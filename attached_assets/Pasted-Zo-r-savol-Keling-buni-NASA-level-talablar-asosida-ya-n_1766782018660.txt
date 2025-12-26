@@ -1,0 +1,266 @@
+Zo‘r savol. Keling buni **“NASA-level” talablar** asosida, ya’ni **katta loyihalarda ishlatiladigan, kengayuvchan, qat’iy boshqariladigan va professional** arxitektura sifatida quramiz.
+
+Men buni **React + TypeScript + TailwindCSS + Global CSS + In-Memory State** asosida tushuntiraman.
+
+---
+
+## 🎯 ASOSIY TALABLAR (NASA-style mindset)
+
+NASA yondashuvi quyidagilarni talab qiladi:
+
+1. **Modullarga bo‘lingan** (hech narsa chalkash emas)
+2. **Markaziy boshqaruv** (state, auth, routing)
+3. **Izolyatsiya** (bir modul boshqasini buzmaydi)
+4. **Kengayuvchanlik** (100+ feature qo‘shsa ham sinmaydi)
+5. **Predictable flow** (har doim qayerdan qayerga o‘tayotgani aniq)
+
+---
+
+## 🧠 APPLICATION FLOW (SEN AYTGAN LOGIKA)
+
+```
+[LandingPage]
+      |
+      v
+[Login / Register]
+      |
+      v
+[HeroSection (Main App)]
+      |
+   Logout
+      |
+      v
+[LandingPage]
+```
+
+---
+
+## 🏗️ YUQORI DARAJADAGI ARXITEKTURA
+
+```
+src/
+├── app/                    # Application Core (NASA Command Center)
+│   ├── App.tsx
+│   ├── providers/
+│   ├── router/
+│   └── store/
+│
+├── pages/                  # Sahifalar (Routing level)
+│   ├── Landing/
+│   ├── Auth/
+│   └── Hero/
+│
+├── modules/                # Business-modullar (Furniture logic)
+│   └── furniture/
+│
+├── shared/                 # Global qayta ishlatiladigan narsalar
+│   ├── components/
+│   ├── hooks/
+│   ├── ui/
+│   └── utils/
+│
+├── styles/                 # Global CSS + Tailwind
+│
+├── types/                  # Global TypeScript turlari
+│
+└── main.tsx
+```
+
+Endi buni **qatlamma-qatlam** ochamiz.
+
+---
+
+## 🧠 `app/` – MARKAZIY BOSHQARUV (MISSION CONTROL)
+
+```
+app/
+├── App.tsx
+├── providers/
+│   ├── AuthProvider.tsx
+│   └── ThemeProvider.tsx
+├── router/
+│   ├── AppRouter.tsx
+│   └── routes.ts
+└── store/
+    ├── auth.store.ts
+    └── furniture.store.ts
+```
+
+### 🧩 Bu nima?
+
+* **AuthProvider** – login/logout holati
+* **store/** – in-memory global state (Redux/Zustand stilida)
+* **router/** – kim qayerga kira oladi
+
+👉 **NASA qoidası:**
+
+> UI hech qachon biznes logikani bilmasligi kerak
+
+---
+
+## 🗺️ ROUTING (AUTH-GUARDED)
+
+```
+router/
+├── AppRouter.tsx
+└── routes.ts
+```
+
+### Logic:
+
+* Auth yo‘q → faqat `Landing`, `Login`
+* Auth bor → `HeroSection`
+
+```ts
+if (!isAuthenticated) {
+  return <PublicRoutes />
+}
+return <PrivateRoutes />
+```
+
+---
+
+## 📄 `pages/` – SAHIFALAR (ENTRY POINT)
+
+```
+pages/
+├── Landing/
+│   ├── LandingPage.tsx
+│   └── index.ts
+│
+├── Auth/
+│   ├── Login.tsx
+│   ├── Register.tsx
+│   └── index.ts
+│
+└── Hero/
+    ├── HeroPage.tsx
+    └── sections/
+        ├── HeroHeader.tsx
+        ├── HeroProducts.tsx
+        └── HeroFooter.tsx
+```
+
+### Qoidalar:
+
+* Sahifa = layout + sectionlar
+* Sahifada **business logic YO‘Q**
+
+---
+
+## 🪑 `modules/furniture/` – MEbel LOGIKASI
+
+```
+modules/
+└── furniture/
+    ├── model/
+    │   ├── furniture.types.ts
+    │   └── furniture.mock.ts
+    │
+    ├── store/
+    │   └── furniture.store.ts
+    │
+    ├── hooks/
+    │   └── useFurniture.ts
+    │
+    └── ui/
+        ├── FurnitureCard.tsx
+        └── FurnitureList.tsx
+```
+
+### In-Memory DATA (NASA simulation mode)
+
+```ts
+export const furnitureMock = [
+  { id: 1, name: "Sofa", price: 1200 },
+  { id: 2, name: "Stol", price: 800 },
+]
+```
+
+---
+
+## 🧰 `shared/` – GLOBAL QAYTA ISHLATILADIGAN QATLAM
+
+```
+shared/
+├── components/
+│   ├── Button.tsx
+│   └── Modal.tsx
+│
+├── hooks/
+│   └── useAuth.ts
+│
+├── ui/
+│   └── Loader.tsx
+│
+└── utils/
+    └── classNames.ts
+```
+
+👉 **Hech qachon domain (mebel) bu yerga qo‘yilmaydi**
+
+---
+
+## 🎨 STYLES – Global CSS + Tailwind
+
+```
+styles/
+├── globals.css
+├── tailwind.css
+└── variables.css
+```
+
+### `globals.css`
+
+```css
+html, body {
+  font-family: system-ui;
+}
+```
+
+Tailwind **component-level**, Global CSS **foundation-level**
+
+---
+
+## 🔐 AUTH FLOW (ANIQ VA QAT’IY)
+
+```
+Login.tsx
+   ↓
+auth.store.login()
+   ↓
+AuthProvider state update
+   ↓
+Router redirect → HeroPage
+```
+
+```
+Logout
+   ↓
+auth.store.logout()
+   ↓
+Router redirect → LandingPage
+```
+
+---
+
+## 🧠 NASA PRINCIPLARI (XULOSA)
+
+| Prinsip                | Qanday bajarildi         |
+| ---------------------- | ------------------------ |
+| Separation of Concerns | pages / modules / shared |
+| Predictable State      | app/store                |
+| Scalability            | feature-based modules    |
+| Safety                 | Auth guarded routes      |
+| Maintainability        | qat’iy folder qoidalari  |
+
+---
+
+Agar xohlasang keyingi bosqichda:
+
+* 🔥 **Zustand / Redux Toolkit** bilan yozib beraman
+* 🔥 **Real backend ulanishga tayyor** qilamiz
+* 🔥 **Role-based access (admin/user)** qo‘shamiz
+* 🔥 **NASA-style naming conventions** beraman
+
+Qaysi tomonga yuramiz? 🚀
