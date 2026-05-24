@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useCart } from "@/modules/furniture/hooks/use-cart";
 import { useTheme } from "@/app/providers/ThemeProvider";
@@ -5,7 +6,9 @@ import { useFurnitureStore, CATEGORIES, type Category, useWishlistStore } from "
 import { PremiumButton } from "@/shared/components/PremiumButton";
 import { CartDrawer } from "@/modules/furniture/ui/CartDrawer";
 import { MobileNav } from "@/modules/furniture/ui/MobileNav";
-import { LogOut, Menu, Moon, Search, ShoppingBag, Sun, User, X, Heart, LayoutDashboard, Settings } from "lucide-react";
+import {
+  Heart, LayoutDashboard, LogOut, Menu, Moon, Search, ShoppingBag, Sun, User, X,
+} from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -36,7 +39,27 @@ export function HeroHeader() {
   const wishlist = useWishlistStore();
 
   const [searchOpen, setSearchOpen] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const mobileSearchRef = useRef<HTMLInputElement>(null);
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
+
+  // Keyboard shortcut: "/" focuses search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      if (e.key === "/" && tag !== "INPUT" && tag !== "TEXTAREA") {
+        e.preventDefault();
+        if (window.innerWidth >= 768) {
+          searchRef.current?.focus();
+        } else {
+          setSearchOpen(true);
+          setTimeout(() => mobileSearchRef.current?.focus(), 50);
+        }
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   return (
     <>
@@ -48,7 +71,6 @@ export function HeroHeader() {
 
           {/* Left: Hamburger + Logo + Desktop Nav */}
           <div className="flex items-center gap-3">
-            {/* Mobile Hamburger */}
             <button
               data-testid="button-mobile-menu"
               onClick={() => setMobileNavOpen(true)}
@@ -57,7 +79,6 @@ export function HeroHeader() {
               <Menu className="h-5 w-5" />
             </button>
 
-            {/* Logo */}
             <button
               data-testid="nav-logo"
               onClick={() => setCategory("All")}
@@ -66,7 +87,6 @@ export function HeroHeader() {
               SPACE.
             </button>
 
-            {/* Desktop Category Nav */}
             <nav className="hidden lg:flex items-center gap-0.5 ml-4">
               {NAV_CATEGORIES.map((cat) => (
                 <button
@@ -87,14 +107,15 @@ export function HeroHeader() {
 
           {/* Center: Search Bar */}
           <div className="flex-1 max-w-sm hidden md:block">
-            <div className="relative">
+            <div className="relative group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <input
+                ref={searchRef}
                 data-testid="input-search"
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search furniture..."
+                placeholder='Search furniture… (press "/")'
                 className="w-full h-9 pl-9 pr-8 text-sm bg-secondary/40 border border-border rounded-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:bg-background transition-all placeholder:text-muted-foreground"
               />
               {searchQuery && (
@@ -108,7 +129,7 @@ export function HeroHeader() {
             </div>
           </div>
 
-          {/* Right: Actions */}
+          {/* Right: Action Buttons */}
           <div className="flex items-center gap-1 shrink-0">
             {/* Mobile Search */}
             <PremiumButton
@@ -147,7 +168,7 @@ export function HeroHeader() {
               </AnimatePresence>
             </PremiumButton>
 
-            {/* Wishlist */}
+            {/* Wishlist Badge */}
             <Link href="/account">
               <PremiumButton variant="ghost" size="icon" className="relative" data-testid="button-wishlist-nav">
                 <Heart className="h-5 w-5" />
@@ -164,7 +185,7 @@ export function HeroHeader() {
               </PremiumButton>
             </Link>
 
-            {/* Cart — opens drawer */}
+            {/* Cart Drawer Trigger */}
             <PremiumButton
               variant="ghost" size="icon" className="relative"
               data-testid="button-cart"
@@ -183,7 +204,7 @@ export function HeroHeader() {
               </AnimatePresence>
             </PremiumButton>
 
-            {/* User Menu */}
+            {/* User Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <PremiumButton variant="ghost" size="icon" data-testid="button-user-menu">
@@ -248,6 +269,7 @@ export function HeroHeader() {
               <div className="container py-3 relative">
                 <Search className="absolute left-8 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <input
+                  ref={mobileSearchRef}
                   autoFocus
                   type="text"
                   value={searchQuery}
@@ -261,7 +283,7 @@ export function HeroHeader() {
         </AnimatePresence>
 
         {/* Mobile Category Scroll */}
-        <div className="lg:hidden border-t overflow-x-auto scrollbar-thin">
+        <div className="lg:hidden border-t overflow-x-auto scrollbar-none">
           <div className="container flex gap-2 py-2.5 w-max min-w-full">
             {NAV_CATEGORIES.map((cat) => (
               <button

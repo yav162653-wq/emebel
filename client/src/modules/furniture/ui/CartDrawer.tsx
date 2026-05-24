@@ -1,26 +1,35 @@
 import { useCart } from "../hooks/use-cart";
 import { useFurnitureStore } from "../store/furniture-store";
 import { PremiumButton } from "@/shared/components/PremiumButton";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
+} from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
-import { ShoppingBag, X, Minus, Plus, ArrowRight, Package } from "lucide-react";
-import { useState } from "react";
+import { ArrowRight, Minus, Package, Plus, ShoppingBag, X } from "lucide-react";
+import { useEffect } from "react";
 
 export function CartDrawer() {
   const { cartDrawerOpen, setCartDrawerOpen } = useFurnitureStore();
-  const { items, total, removeFromCart, isRemoving } = useCart();
-  const [quantities, setQuantities] = useState<Record<number, number>>({});
+  const { items, total, removeFromCart } = useCart();
 
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const shipping = total > 50000 ? 0 : 2900;
   const grandTotal = total + shipping;
 
+  // Esc key closes drawer
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && cartDrawerOpen) setCartDrawerOpen(false);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [cartDrawerOpen, setCartDrawerOpen]);
+
   return (
     <Sheet open={cartDrawerOpen} onOpenChange={setCartDrawerOpen}>
       <SheetContent side="right" className="w-full sm:max-w-lg flex flex-col p-0 gap-0">
-        {/* Header */}
         <SheetHeader className="px-6 py-5 border-b shrink-0">
           <div className="flex items-center justify-between">
             <SheetTitle className="font-display text-xl font-medium flex items-center gap-2">
@@ -33,10 +42,13 @@ export function CartDrawer() {
               )}
             </SheetTitle>
           </div>
+          <SheetDescription className="sr-only">
+            Your shopping bag with {cartCount} items. Total: ${(grandTotal / 100).toFixed(2)}.
+          </SheetDescription>
         </SheetHeader>
 
         {/* Items */}
-        <div className="flex-1 overflow-y-auto scrollbar-thin">
+        <div className="flex-1 overflow-y-auto">
           <AnimatePresence mode="popLayout">
             {items.length === 0 ? (
               <motion.div
@@ -53,10 +65,7 @@ export function CartDrawer() {
                     Discover our curated furniture collection.
                   </p>
                 </div>
-                <PremiumButton
-                  size="sm"
-                  onClick={() => setCartDrawerOpen(false)}
-                >
+                <PremiumButton size="sm" onClick={() => setCartDrawerOpen(false)}>
                   Continue Shopping
                 </PremiumButton>
               </motion.div>
@@ -73,7 +82,6 @@ export function CartDrawer() {
                     className="flex gap-4"
                     data-testid={`cart-item-${item.id}`}
                   >
-                    {/* Thumbnail */}
                     <Link href={`/product/${item.product.id}`} onClick={() => setCartDrawerOpen(false)}>
                       <div className="h-20 w-16 shrink-0 overflow-hidden rounded-sm bg-secondary/30 cursor-pointer">
                         <img
@@ -84,7 +92,6 @@ export function CartDrawer() {
                       </div>
                     </Link>
 
-                    {/* Info */}
                     <div className="flex-1 min-w-0 flex flex-col gap-1.5">
                       <Link href={`/product/${item.product.id}`} onClick={() => setCartDrawerOpen(false)}>
                         <p className="text-sm font-medium text-foreground truncate hover:text-accent transition-colors cursor-pointer">
@@ -93,14 +100,11 @@ export function CartDrawer() {
                       </Link>
                       <p className="text-xs text-muted-foreground">{item.product.category}</p>
                       <div className="flex items-center justify-between mt-auto">
-                        {/* Quantity control */}
                         <div className="flex items-center border border-border rounded-sm">
                           <button
                             className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
                             onClick={() => {
-                              if (item.quantity <= 1) {
-                                removeFromCart(item.id);
-                              }
+                              if (item.quantity <= 1) removeFromCart(item.id);
                             }}
                           >
                             <Minus className="h-3 w-3" />
@@ -118,7 +122,6 @@ export function CartDrawer() {
                       </div>
                     </div>
 
-                    {/* Remove */}
                     <button
                       data-testid={`button-remove-${item.id}`}
                       onClick={() => removeFromCart(item.id)}
@@ -152,9 +155,7 @@ export function CartDrawer() {
                 </span>
               </div>
               {shipping > 0 && (
-                <p className="text-[10px] text-muted-foreground/70">
-                  Free shipping on orders over $500
-                </p>
+                <p className="text-[10px] text-muted-foreground/70">Free shipping on orders over $500</p>
               )}
               <Separator />
               <div className="flex justify-between font-semibold text-foreground">
@@ -162,7 +163,6 @@ export function CartDrawer() {
                 <span className="font-mono text-lg">${(grandTotal / 100).toFixed(2)}</span>
               </div>
             </div>
-
             <Link href="/checkout" onClick={() => setCartDrawerOpen(false)}>
               <PremiumButton className="w-full" size="lg" data-testid="button-checkout">
                 Checkout <ArrowRight className="ml-2 h-4 w-4" />

@@ -1,12 +1,12 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useWishlistStore } from "@/modules/furniture/store/furniture-store";
 import { useFurniture } from "@/modules/furniture/hooks/use-furniture";
+import { usePageTitle } from "@/hooks/use-page-title";
+import { useToast } from "@/hooks/use-toast";
 import { PremiumButton } from "@/shared/components/PremiumButton";
 import { motion } from "framer-motion";
 import { Link, useLocation } from "wouter";
-import {
-  ArrowLeft, Heart, LogOut, Package, Settings, ShoppingBag, Star, Trash2, User,
-} from "lucide-react";
+import { Heart, LogOut, Package, Settings, ShoppingBag, Star, Trash2, User } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 
@@ -20,26 +20,30 @@ const STATUS_COLORS: Record<string, string> = {
   Delivered: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
   Processing: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
   Shipped: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-  Cancelled: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
 };
 
 export default function AccountPage() {
   const { user, logout } = useAuth();
   const { items: wishlistIds, toggle, count } = useWishlistStore();
   const { data: products } = useFurniture();
+  const { toast } = useToast();
   const [, setLocation] = useLocation();
+  usePageTitle("My Account");
 
   const wishlistProducts = products?.filter((p) => wishlistIds.includes(p.id)) ?? [];
 
+  const handleRemoveWishlist = (id: number, name: string) => {
+    toggle(id);
+    toast({ title: "Removed from wishlist", description: name, duration: 2000 });
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b bg-background/80 backdrop-blur-xl sticky top-0 z-40">
         <div className="container flex h-16 items-center justify-between">
           <Link href="/shop">
             <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Shop
+              ← Back to Shop
             </button>
           </Link>
           <span className="font-display text-xl font-bold tracking-tighter">SPACE.</span>
@@ -48,7 +52,6 @@ export default function AccountPage() {
       </header>
 
       <div className="container py-10 max-w-4xl">
-        {/* Profile Header */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -63,9 +66,7 @@ export default function AccountPage() {
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="font-display text-3xl font-medium">{user?.name || user?.username}</h1>
               <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                user?.role === "admin"
-                  ? "bg-accent/15 text-accent"
-                  : "bg-secondary text-muted-foreground"
+                user?.role === "admin" ? "bg-accent/15 text-accent" : "bg-secondary text-muted-foreground"
               }`}>
                 {user?.role}
               </span>
@@ -87,13 +88,11 @@ export default function AccountPage() {
             </div>
           </div>
           <PremiumButton
-            variant="ghost"
-            size="sm"
+            variant="ghost" size="sm"
             onClick={() => { logout(); setLocation("/"); }}
             className="text-destructive hover:text-destructive hover:bg-destructive/10"
           >
-            <LogOut className="mr-2 h-4 w-4" />
-            Log out
+            <LogOut className="mr-2 h-4 w-4" /> Log out
           </PremiumButton>
         </motion.div>
 
@@ -110,53 +109,44 @@ export default function AccountPage() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Orders Tab */}
           <TabsContent value="orders" className="space-y-4">
-            {MOCK_ORDERS.length === 0 ? (
-              <div className="text-center py-20 text-muted-foreground">
-                <ShoppingBag className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                <p>No orders yet</p>
-              </div>
-            ) : (
-              MOCK_ORDERS.map((order, i) => (
-                <motion.div
-                  key={order.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.08 }}
-                  className="p-5 rounded-sm border border-border bg-card hover:border-primary/30 transition-colors"
-                >
-                  <div className="flex items-start justify-between gap-4 flex-wrap">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <p className="font-mono text-sm font-semibold">{order.id}</p>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${STATUS_COLORS[order.status]}`}>
-                          {order.status}
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">{order.date} · {order.items} item{order.items > 1 ? "s" : ""}</p>
+            {MOCK_ORDERS.map((order, i) => (
+              <motion.div
+                key={order.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.08 }}
+                className="p-5 rounded-sm border border-border bg-card hover:border-primary/30 transition-colors"
+              >
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <p className="font-mono text-sm font-semibold">{order.id}</p>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${STATUS_COLORS[order.status]}`}>
+                        {order.status}
+                      </span>
                     </div>
-                    <div className="text-right shrink-0">
-                      <p className="font-mono font-bold text-foreground">${(order.total / 100).toFixed(2)}</p>
-                      <button className="text-xs text-accent hover:underline mt-1">View Details</button>
-                    </div>
+                    <p className="text-xs text-muted-foreground">{order.date} · {order.items} item{order.items > 1 ? "s" : ""}</p>
                   </div>
-                  {order.status === "Delivered" && (
-                    <div className="mt-4 pt-3 border-t border-border flex items-center gap-2">
-                      <div className="flex gap-0.5">
-                        {[1, 2, 3, 4, 5].map((s) => (
-                          <Star key={s} className={`h-3.5 w-3.5 ${s <= 5 ? "fill-accent text-accent" : "text-muted-foreground"}`} />
-                        ))}
-                      </div>
-                      <span className="text-xs text-muted-foreground">Rate this order</span>
+                  <div className="text-right shrink-0">
+                    <p className="font-mono font-bold text-foreground">${(order.total / 100).toFixed(2)}</p>
+                    <button className="text-xs text-accent hover:underline mt-1">View Details</button>
+                  </div>
+                </div>
+                {order.status === "Delivered" && (
+                  <div className="mt-4 pt-3 border-t border-border flex items-center gap-2">
+                    <div className="flex gap-0.5">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star key={s} className="h-3.5 w-3.5 fill-accent text-accent" />
+                      ))}
                     </div>
-                  )}
-                </motion.div>
-              ))
-            )}
+                    <span className="text-xs text-muted-foreground">Rate this order</span>
+                  </div>
+                )}
+              </motion.div>
+            ))}
           </TabsContent>
 
-          {/* Wishlist Tab */}
           <TabsContent value="wishlist">
             {wishlistProducts.length === 0 ? (
               <div className="text-center py-20 text-muted-foreground">
@@ -178,7 +168,11 @@ export default function AccountPage() {
                     className="group relative rounded-sm border border-border bg-card overflow-hidden"
                   >
                     <div className="aspect-[4/3] bg-secondary/20 overflow-hidden">
-                      <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
                     </div>
                     <div className="p-4 space-y-2">
                       <div className="flex justify-between items-start gap-2">
@@ -191,7 +185,7 @@ export default function AccountPage() {
                           <PremiumButton size="sm" className="w-full text-xs">View Item</PremiumButton>
                         </Link>
                         <button
-                          onClick={() => toggle(product.id)}
+                          onClick={() => handleRemoveWishlist(product.id, product.name)}
                           className="p-2 rounded-sm border border-border text-muted-foreground hover:text-destructive hover:border-destructive/30 transition-colors"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -204,7 +198,6 @@ export default function AccountPage() {
             )}
           </TabsContent>
 
-          {/* Settings Tab */}
           <TabsContent value="settings" className="max-w-lg space-y-6">
             <div className="space-y-4">
               <h3 className="font-semibold text-foreground">Profile Information</h3>
@@ -222,7 +215,12 @@ export default function AccountPage() {
                   </div>
                 ))}
               </div>
-              <PremiumButton size="sm" variant="outline">Save Changes</PremiumButton>
+              <PremiumButton
+                size="sm" variant="outline"
+                onClick={() => toast({ title: "Changes saved", description: "Your profile has been updated.", duration: 2000 })}
+              >
+                Save Changes
+              </PremiumButton>
             </div>
             <Separator />
             <div className="space-y-4">

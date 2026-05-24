@@ -1,11 +1,12 @@
 import { useFurnitureStore, CATEGORIES, type Category } from "../store/furniture-store";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/app/providers/ThemeProvider";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
+} from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { Link } from "wouter";
-import { Home, LayoutDashboard, LogOut, Moon, Sun, User } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
+import { LayoutDashboard, LogOut, Moon, Sun, User } from "lucide-react";
 
 export function MobileNav() {
   const { mobileNavOpen, setMobileNavOpen, activeCategory, setCategory } = useFurnitureStore();
@@ -24,10 +25,12 @@ export function MobileNav() {
           <SheetTitle className="font-display text-xl font-bold tracking-tighter text-left">
             SPACE.
           </SheetTitle>
+          <SheetDescription className="sr-only">
+            Navigation menu with shop categories, account settings, and theme toggle.
+          </SheetDescription>
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto">
-          {/* User */}
           {user && (
             <div className="px-6 py-4 bg-secondary/20 border-b">
               <div className="flex items-center gap-3">
@@ -44,7 +47,6 @@ export function MobileNav() {
             </div>
           )}
 
-          {/* Navigation */}
           <div className="px-3 py-4 space-y-1">
             <p className="px-3 text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">
               Shop
@@ -87,7 +89,6 @@ export function MobileNav() {
           </div>
         </div>
 
-        {/* Footer Actions */}
         <div className="px-3 py-4 border-t space-y-1">
           <button
             onClick={toggleTheme}

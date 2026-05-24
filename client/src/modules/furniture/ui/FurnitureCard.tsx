@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { type Product } from "@shared/schema";
 import { PremiumButton } from "@/shared/components/PremiumButton";
 import { Heart, ShoppingBag } from "lucide-react";
 import { useCart } from "../hooks/use-cart";
 import { useWishlistStore } from "../store/furniture-store";
+import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 
 interface FurnitureCardProps {
@@ -14,6 +16,8 @@ interface FurnitureCardProps {
 export function FurnitureCard({ product, index = 0 }: FurnitureCardProps) {
   const { addToCart, isAdding } = useCart();
   const { has, toggle } = useWishlistStore();
+  const { toast } = useToast();
+  const [imgLoaded, setImgLoaded] = useState(false);
   const isWishlisted = has(product.id);
 
   const formattedPrice = new Intl.NumberFormat("en-US", {
@@ -25,6 +29,16 @@ export function FurnitureCard({ product, index = 0 }: FurnitureCardProps) {
   const isLowStock = product.stock > 0 && product.stock <= 5;
   const isOutOfStock = product.stock === 0;
 
+  const handleWishlist = (e: React.MouseEvent) => {
+    e.preventDefault();
+    toggle(product.id);
+    toast({
+      title: isWishlisted ? "Removed from wishlist" : "Added to wishlist",
+      description: product.name,
+      duration: 2000,
+    });
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
@@ -33,14 +47,20 @@ export function FurnitureCard({ product, index = 0 }: FurnitureCardProps) {
       data-testid={`card-product-${product.id}`}
       className="group relative flex flex-col gap-3"
     >
-      {/* Image Container */}
       <Link href={`/product/${product.id}`}>
         <div className="relative aspect-[4/5] overflow-hidden rounded-sm bg-secondary/30 cursor-pointer">
+          {/* Blur-up loading placeholder */}
+          {!imgLoaded && (
+            <div className="absolute inset-0 bg-secondary/50 animate-pulse" />
+          )}
           <img
             src={product.image}
             alt={product.name}
             loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+            onLoad={() => setImgLoaded(true)}
+            className={`h-full w-full object-cover transition-all duration-700 ease-out group-hover:scale-[1.04] ${
+              imgLoaded ? "opacity-100" : "opacity-0"
+            }`}
           />
 
           {/* Gradient overlay */}
@@ -49,14 +69,11 @@ export function FurnitureCard({ product, index = 0 }: FurnitureCardProps) {
           {/* Wishlist Button */}
           <button
             data-testid={`button-wishlist-${product.id}`}
-            onClick={(e) => {
-              e.preventDefault();
-              toggle(product.id);
-            }}
+            onClick={handleWishlist}
             className={`absolute top-3 right-3 h-8 w-8 flex items-center justify-center rounded-full backdrop-blur-sm border transition-all duration-200 ${
               isWishlisted
-                ? "bg-accent/90 border-accent/50 opacity-100 translate-y-0"
-                : "bg-background/80 border-border/50 opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0"
+                ? "bg-accent/90 border-accent/50 opacity-100 scale-100"
+                : "bg-background/80 border-border/50 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100"
             }`}
           >
             <Heart className={`h-3.5 w-3.5 transition-colors ${isWishlisted ? "fill-white text-white" : "text-foreground"}`} />
@@ -69,7 +86,7 @@ export function FurnitureCard({ product, index = 0 }: FurnitureCardProps) {
             </span>
           </div>
 
-          {/* Stock Badges */}
+          {/* Low Stock Badge */}
           {isLowStock && (
             <div className="absolute bottom-14 left-3">
               <span className="inline-flex items-center rounded-full bg-accent/90 backdrop-blur-sm px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-accent-foreground">
@@ -77,6 +94,8 @@ export function FurnitureCard({ product, index = 0 }: FurnitureCardProps) {
               </span>
             </div>
           )}
+
+          {/* Out of Stock Overlay */}
           {isOutOfStock && (
             <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center">
               <span className="bg-foreground/90 text-background px-4 py-1.5 rounded-sm text-xs font-bold uppercase tracking-widest">
@@ -85,7 +104,7 @@ export function FurnitureCard({ product, index = 0 }: FurnitureCardProps) {
             </div>
           )}
 
-          {/* Add to Cart — hover overlay */}
+          {/* Add to Cart — hover reveal */}
           {!isOutOfStock && (
             <div className="absolute bottom-3 left-3 right-3 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 ease-out">
               <PremiumButton

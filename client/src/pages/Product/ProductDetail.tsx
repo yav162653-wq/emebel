@@ -1,10 +1,16 @@
+import { useEffect } from "react";
 import { useFurniture, useFurnitureItem } from "@/modules/furniture/hooks/use-furniture";
 import { useCart } from "@/modules/furniture/hooks/use-cart";
 import { useWishlistStore, useFurnitureStore } from "@/modules/furniture/store/furniture-store";
+import { useRecentlyViewedStore } from "@/hooks/use-recently-viewed";
+import { usePageTitle } from "@/hooks/use-page-title";
+import { useToast } from "@/hooks/use-toast";
 import { PremiumButton } from "@/shared/components/PremiumButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
-import { ArrowLeft, Heart, Minus, Package, Plus, RotateCcw, Shield, ShoppingBag, Star, Truck } from "lucide-react";
+import {
+  ArrowLeft, Eye, Heart, Minus, Package, Plus, RotateCcw, Shield, ShoppingBag, Star, Truck,
+} from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "wouter";
 import { FurnitureCard } from "@/modules/furniture/ui/FurnitureCard";
@@ -17,12 +23,37 @@ export default function ProductDetail() {
   const { addToCart, isAdding } = useCart();
   const { has, toggle } = useWishlistStore();
   const { setCartDrawerOpen } = useFurnitureStore();
+  const { add: addRecentlyViewed, ids: recentIds } = useRecentlyViewedStore();
+  const { toast } = useToast();
   const [quantity, setQuantity] = useState(1);
 
+  usePageTitle(product?.name);
+
+  // Track recently viewed
+  useEffect(() => {
+    if (product) addRecentlyViewed(product.id);
+  }, [product]);
+
   const isWishlisted = product ? has(product.id) : false;
+
   const relatedProducts = allProducts
     ?.filter((p) => p.category === product?.category && p.id !== product?.id)
     .slice(0, 4) ?? [];
+
+  const recentlyViewed = allProducts
+    ?.filter((p) => recentIds.includes(p.id) && p.id !== product?.id)
+    .sort((a, b) => recentIds.indexOf(a.id) - recentIds.indexOf(b.id))
+    .slice(0, 4) ?? [];
+
+  const handleWishlist = () => {
+    if (!product) return;
+    toggle(product.id);
+    toast({
+      title: isWishlisted ? "Removed from wishlist" : "Saved to wishlist",
+      description: product.name,
+      duration: 2000,
+    });
+  };
 
   if (isLoading) {
     return (
@@ -91,9 +122,12 @@ export default function ProductDetail() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <div className="aspect-[4/5] overflow-hidden rounded-sm bg-secondary/20 relative">
-              <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
-              {/* Badges */}
+            <div className="aspect-[4/5] overflow-hidden rounded-sm bg-secondary/20 relative group">
+              <img
+                src={product.image}
+                alt={product.name}
+                className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700"
+              />
               <div className="absolute top-4 left-4">
                 <span className="inline-flex items-center rounded-full bg-background/85 backdrop-blur-sm border border-border/40 px-3 py-1 text-xs font-semibold uppercase tracking-wider">
                   {product.category}
@@ -146,10 +180,9 @@ export default function ProductDetail() {
 
             <div className="h-px bg-border" />
 
-            {/* Description */}
             <p className="text-foreground/80 leading-relaxed">{product.description}</p>
 
-            {/* Specs Grid */}
+            {/* Specs */}
             <div className="grid grid-cols-2 gap-x-6 gap-y-4">
               {[
                 { label: "Category", value: product.category },
@@ -168,12 +201,10 @@ export default function ProductDetail() {
 
             <div className="h-px bg-border" />
 
-            {/* Quantity + Actions */}
+            {/* Quantity */}
             {!isOutOfStock && (
               <div className="flex items-center gap-4">
-                <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground shrink-0">
-                  Qty
-                </span>
+                <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground shrink-0">Qty</span>
                 <div className="flex items-center border border-border rounded-sm">
                   <button
                     data-testid="button-qty-decrease"
@@ -216,10 +247,10 @@ export default function ProductDetail() {
                 data-testid="button-wishlist"
                 variant="outline"
                 size="lg"
-                onClick={() => toggle(product.id)}
+                onClick={handleWishlist}
                 className={isWishlisted ? "border-accent text-accent hover:bg-accent/5" : ""}
               >
-                <Heart className={`h-4 w-4 ${isWishlisted ? "fill-accent" : ""}`} />
+                <Heart className={`h-4 w-4 transition-all ${isWishlisted ? "fill-accent scale-110" : ""}`} />
               </PremiumButton>
             </div>
 
@@ -230,7 +261,7 @@ export default function ProductDetail() {
                 { icon: Shield, label: "Lifetime Warranty", sub: "No asterisks" },
                 { icon: RotateCcw, label: "30-Day Returns", sub: "Hassle free" },
               ].map(({ icon: Icon, label, sub }) => (
-                <div key={label} className="flex flex-col items-center text-center gap-1.5 p-3 rounded-sm bg-secondary/30">
+                <div key={label} className="flex flex-col items-center text-center gap-1.5 p-3 rounded-sm bg-secondary/30 hover:bg-secondary/50 transition-colors">
                   <Icon className="h-4 w-4 text-accent" />
                   <p className="text-[11px] font-semibold text-foreground">{label}</p>
                   <p className="text-[10px] text-muted-foreground">{sub}</p>
@@ -256,6 +287,21 @@ export default function ProductDetail() {
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-10">
               {relatedProducts.map((p, i) => (
+                <FurnitureCard key={p.id} product={p} index={i} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Recently Viewed */}
+        {recentlyViewed.length > 0 && (
+          <section className="mt-20 space-y-8">
+            <div className="flex items-center gap-2">
+              <Eye className="h-4 w-4 text-muted-foreground" />
+              <h2 className="font-display text-2xl font-medium">Recently Viewed</h2>
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-10">
+              {recentlyViewed.map((p, i) => (
                 <FurnitureCard key={p.id} product={p} index={i} />
               ))}
             </div>

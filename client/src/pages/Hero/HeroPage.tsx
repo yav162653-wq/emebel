@@ -1,8 +1,10 @@
 import { HeroHeader } from "./sections/HeroHeader";
 import { HeroProducts } from "./sections/HeroProducts";
-import { motion } from "framer-motion";
+import { usePageTitle } from "@/hooks/use-page-title";
 
 export default function HeroPage() {
+  usePageTitle("Shop");
+
   return (
     <div className="min-h-screen bg-background">
       <HeroHeader />
@@ -10,7 +12,7 @@ export default function HeroPage() {
       <main className="container py-12 space-y-20">
         <HeroProducts />
 
-        {/* Newsletter / Club CTA */}
+        {/* Newsletter CTA */}
         <section className="relative overflow-hidden bg-primary rounded-2xl p-12 md:p-16 text-center space-y-6">
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
             <div className="absolute -top-20 -left-20 w-96 h-96 rounded-full bg-white/5 blur-3xl" />
@@ -52,9 +54,7 @@ export default function HeroPage() {
           </p>
           <div className="flex gap-6 text-xs text-muted-foreground">
             {["Privacy", "Terms", "Shipping", "Returns"].map((link) => (
-              <a key={link} href="#" className="hover:text-foreground transition-colors">
-                {link}
-              </a>
+              <a key={link} href="#" className="hover:text-foreground transition-colors">{link}</a>
             ))}
           </div>
         </div>
