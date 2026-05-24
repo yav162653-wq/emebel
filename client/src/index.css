@@ -9,22 +9,28 @@
   --font-display: 'Playfair Display', serif;
   --font-mono: 'JetBrains Mono', monospace;
 
-  /* Premium Furniture Palette - Earthy, refined, architectural */
-  --background: 30 20% 98%;      /* Soft off-white, almost linen */
-  --foreground: 220 15% 15%;     /* Deep charcoal, softer than black */
-  
-  --primary: 25 20% 25%;         /* Rich deep wood brown */
+  /* Core Palette */
+  --background: 30 20% 98%;
+  --foreground: 220 15% 15%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 220 15% 15%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 15% 15%;
+
+  --primary: 25 20% 25%;
   --primary-foreground: 35 20% 96%;
-  
-  --secondary: 35 15% 90%;       /* Subtle beige/stone */
+
+  --secondary: 35 15% 90%;
   --secondary-foreground: 25 20% 20%;
-  
-  --muted: 35 10% 94%;           /* Very light gray-beige */
-  --muted-foreground: 220 8% 45%; /* Architectural gray */
-  
-  --accent: 25 40% 50%;          /* Terracotta accent */
+
+  --muted: 35 10% 94%;
+  --muted-foreground: 220 8% 48%;
+
+  --accent: 25 40% 50%;
   --accent-foreground: 30 20% 98%;
-  
+
   --destructive: 0 65% 50%;
   --destructive-foreground: 0 0% 98%;
 
@@ -32,36 +38,79 @@
   --input: 35 10% 92%;
   --ring: 25 20% 25%;
 
-  --radius: 0.25rem; /* Crisp, architectural corners */
+  /* Sidebar */
+  --sidebar: 30 20% 97%;
+  --sidebar-foreground: 220 15% 15%;
+  --sidebar-border: 35 10% 88%;
+  --sidebar-ring: 25 20% 25%;
+  --sidebar-primary: 25 20% 25%;
+  --sidebar-primary-foreground: 35 20% 96%;
+  --sidebar-accent: 35 15% 90%;
+  --sidebar-accent-foreground: 25 20% 20%;
+
+  /* Charts */
+  --chart-1: 25 40% 50%;
+  --chart-2: 200 60% 45%;
+  --chart-3: 150 45% 40%;
+  --chart-4: 350 55% 50%;
+  --chart-5: 45 70% 55%;
+
+  --radius: 0.25rem;
 }
 
 .dark {
-  --background: 220 15% 10%;     /* Deep night blue-grey */
-  --foreground: 35 10% 90%;      /* Soft stone white */
-  
-  --primary: 35 15% 85%;         /* Light stone */
+  --background: 220 15% 9%;
+  --foreground: 35 10% 92%;
+
+  --card: 220 15% 12%;
+  --card-foreground: 35 10% 92%;
+
+  --popover: 220 15% 12%;
+  --popover-foreground: 35 10% 92%;
+
+  --primary: 35 15% 85%;
   --primary-foreground: 220 15% 10%;
-  
-  --secondary: 220 15% 18%;      /* Darker panel */
-  --secondary-foreground: 35 10% 90%;
-  
-  --muted: 220 15% 16%;
-  --muted-foreground: 220 10% 60%;
-  
-  --accent: 25 40% 60%;          /* Terracotta, slightly lighter */
+
+  --secondary: 220 15% 17%;
+  --secondary-foreground: 35 10% 92%;
+
+  --muted: 220 15% 15%;
+  --muted-foreground: 220 10% 58%;
+
+  --accent: 25 40% 60%;
   --accent-foreground: 30 20% 98%;
-  
-  --destructive: 0 60% 40%;
+
+  --destructive: 0 55% 45%;
   --destructive-foreground: 0 0% 98%;
 
   --border: 220 15% 20%;
-  --input: 220 15% 20%;
-  --ring: 35 15% 85%;
+  --input: 220 15% 18%;
+  --ring: 35 15% 80%;
+
+  /* Sidebar dark */
+  --sidebar: 220 15% 11%;
+  --sidebar-foreground: 35 10% 92%;
+  --sidebar-border: 220 15% 20%;
+  --sidebar-ring: 35 15% 80%;
+  --sidebar-primary: 35 15% 85%;
+  --sidebar-primary-foreground: 220 15% 10%;
+  --sidebar-accent: 220 15% 17%;
+  --sidebar-accent-foreground: 35 10% 92%;
+
+  /* Charts dark */
+  --chart-1: 25 40% 60%;
+  --chart-2: 200 55% 55%;
+  --chart-3: 150 40% 50%;
+  --chart-4: 350 50% 60%;
+  --chart-5: 45 65% 60%;
 }
 
 @layer base {
   * {
     @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
   }
   body {
     @apply bg-background text-foreground antialiased selection:bg-accent/20 selection:text-accent font-sans;
@@ -76,13 +125,34 @@
     text-wrap: balance;
   }
   .glass-panel {
-    @apply bg-background/80 backdrop-blur-md border border-white/20 shadow-xl;
+    @apply bg-background/80 backdrop-blur-md border border-border/40 shadow-xl;
   }
   .premium-shadow {
     box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.08);
   }
+  .premium-shadow-lg {
+    box-shadow: 0 32px 64px -16px rgba(0, 0, 0, 0.12);
+  }
+  .card-hover {
+    @apply transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg;
+  }
   .animate-in-up {
     animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  /* Custom scrollbar */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border-radius: 2px;
   }
 }
 

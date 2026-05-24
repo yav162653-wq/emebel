@@ -2,11 +2,11 @@ import { Route, Switch, useLocation } from "wouter";
 import { useAuthContext } from "@/app/providers/AuthProvider";
 import { Loader2 } from "lucide-react";
 
-// Page Imports
 import LandingPage from "@/pages/Landing/LandingPage";
 import Login from "@/pages/Auth/Login";
 import Register from "@/pages/Auth/Register";
 import HeroPage from "@/pages/Hero/HeroPage";
+import ProductDetail from "@/pages/Product/ProductDetail";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -16,13 +16,12 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   if (isLoading) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   if (!user) {
-    // Redirect to login but renders null to avoid flash
     setTimeout(() => setLocation("/login"), 0);
     return null;
   }
@@ -38,6 +37,9 @@ export function AppRouter() {
       <Route path="/register" component={Register} />
       <Route path="/shop">
         <ProtectedRoute component={HeroPage} />
+      </Route>
+      <Route path="/product/:id">
+        {(params) => <ProtectedRoute component={ProductDetail} />}
       </Route>
       <Route component={NotFound} />
     </Switch>

@@ -1,20 +1,14 @@
 import { z } from 'zod';
 import { insertUserSchema, insertProductSchema, insertCartItemSchema, users, products, cartItems } from './schema';
 
+// Re-export types for convenience
+export type { LoginRequest, InsertUser, User, Product, CartItem, InsertProduct, CartListResponse, ProductListResponse } from './schema';
+
 export const errorSchemas = {
-  validation: z.object({
-    message: z.string(),
-    field: z.string().optional(),
-  }),
-  notFound: z.object({
-    message: z.string(),
-  }),
-  internal: z.object({
-    message: z.string(),
-  }),
-  unauthorized: z.object({
-    message: z.string(),
-  }),
+  validation: z.object({ message: z.string(), field: z.string().optional() }),
+  notFound: z.object({ message: z.string() }),
+  internal: z.object({ message: z.string() }),
+  unauthorized: z.object({ message: z.string() }),
 };
 
 export const api = {
@@ -31,9 +25,7 @@ export const api = {
     logout: {
       method: 'POST' as const,
       path: '/api/auth/logout',
-      responses: {
-        200: z.void(),
-      },
+      responses: { 200: z.void() },
     },
     me: {
       method: 'GET' as const,
@@ -57,9 +49,7 @@ export const api = {
     list: {
       method: 'GET' as const,
       path: '/api/products',
-      responses: {
-        200: z.array(z.custom<typeof products.$inferSelect>()),
-      },
+      responses: { 200: z.array(z.custom<typeof products.$inferSelect>()) },
     },
     get: {
       method: 'GET' as const,
@@ -82,18 +72,14 @@ export const api = {
       method: 'POST' as const,
       path: '/api/cart',
       input: z.object({ productId: z.number(), quantity: z.number().default(1) }),
-      responses: {
-        200: z.custom<typeof cartItems.$inferSelect>(),
-      },
+      responses: { 200: z.custom<typeof cartItems.$inferSelect>() },
     },
     remove: {
       method: 'DELETE' as const,
       path: '/api/cart/:id',
-      responses: {
-        204: z.void(),
-      },
+      responses: { 204: z.void() },
     },
-  }
+  },
 };
 
 export function buildUrl(path: string, params?: Record<string, string | number>): string {
