@@ -7,18 +7,23 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
-import { ArrowRight, Minus, Package, Plus, ShoppingBag, X } from "lucide-react";
+import { ArrowRight, Minus, Package, Plus, ShoppingBag, Truck, X } from "lucide-react";
 import { useEffect } from "react";
+
+const FREE_SHIPPING_THRESHOLD = 50000; // $500 in cents
 
 export function CartDrawer() {
   const { cartDrawerOpen, setCartDrawerOpen } = useFurnitureStore();
   const { items, total, removeFromCart } = useCart();
 
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
-  const shipping = total > 50000 ? 0 : 2900;
+  const shipping = total >= FREE_SHIPPING_THRESHOLD ? 0 : 2900;
   const grandTotal = total + shipping;
+  const remaining = Math.max(FREE_SHIPPING_THRESHOLD - total, 0);
+  const shippingProgress = Math.min((total / FREE_SHIPPING_THRESHOLD) * 100, 100);
+  const freeShipping = total >= FREE_SHIPPING_THRESHOLD;
 
-  // Esc key closes drawer
+  // Esc closes drawer
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape" && cartDrawerOpen) setCartDrawerOpen(false);
@@ -43,9 +48,41 @@ export function CartDrawer() {
             </SheetTitle>
           </div>
           <SheetDescription className="sr-only">
-            Your shopping bag with {cartCount} items. Total: ${(grandTotal / 100).toFixed(2)}.
+            Your shopping bag with {cartCount} items.
           </SheetDescription>
         </SheetHeader>
+
+        {/* Free Shipping Progress */}
+        {items.length > 0 && (
+          <div className="px-6 py-3 border-b bg-secondary/20 shrink-0">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5 text-xs">
+                <Truck className={`h-3.5 w-3.5 ${freeShipping ? "text-green-500" : "text-muted-foreground"}`} />
+                {freeShipping ? (
+                  <motion.span
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-green-600 dark:text-green-400 font-semibold"
+                  >
+                    🎉 You've unlocked free shipping!
+                  </motion.span>
+                ) : (
+                  <span className="text-muted-foreground">
+                    Add <span className="font-semibold text-foreground">${(remaining / 100).toFixed(0)}</span> more for free shipping
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+              <motion.div
+                className={`h-full rounded-full ${freeShipping ? "bg-green-500" : "bg-accent"}`}
+                initial={{ width: 0 }}
+                animate={{ width: `${shippingProgress}%` }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Items */}
         <div className="flex-1 overflow-y-auto">
@@ -103,9 +140,7 @@ export function CartDrawer() {
                         <div className="flex items-center border border-border rounded-sm">
                           <button
                             className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
-                            onClick={() => {
-                              if (item.quantity <= 1) removeFromCart(item.id);
-                            }}
+                            onClick={() => { if (item.quantity <= 1) removeFromCart(item.id); }}
                           >
                             <Minus className="h-3 w-3" />
                           </button>
@@ -148,15 +183,10 @@ export function CartDrawer() {
                 <span>Shipping</span>
                 <span className="font-mono">
                   {shipping === 0 ? (
-                    <span className="text-green-600 dark:text-green-400 font-medium">Free</span>
-                  ) : (
-                    `$${(shipping / 100).toFixed(2)}`
-                  )}
+                    <span className="text-green-600 dark:text-green-400 font-semibold">Free</span>
+                  ) : `$${(shipping / 100).toFixed(2)}`}
                 </span>
               </div>
-              {shipping > 0 && (
-                <p className="text-[10px] text-muted-foreground/70">Free shipping on orders over $500</p>
-              )}
               <Separator />
               <div className="flex justify-between font-semibold text-foreground">
                 <span>Total</span>

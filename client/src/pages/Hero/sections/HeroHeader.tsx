@@ -2,12 +2,15 @@ import { useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useCart } from "@/modules/furniture/hooks/use-cart";
 import { useTheme } from "@/app/providers/ThemeProvider";
-import { useFurnitureStore, CATEGORIES, type Category, useWishlistStore } from "@/modules/furniture/store/furniture-store";
+import {
+  useFurnitureStore, CATEGORIES, type Category, useWishlistStore,
+} from "@/modules/furniture/store/furniture-store";
 import { PremiumButton } from "@/shared/components/PremiumButton";
 import { CartDrawer } from "@/modules/furniture/ui/CartDrawer";
 import { MobileNav } from "@/modules/furniture/ui/MobileNav";
 import {
-  Heart, LayoutDashboard, LogOut, Menu, Moon, Search, ShoppingBag, Sun, User, X,
+  Heart, LayoutDashboard, LogOut, Moon, Search, ShoppingBag, Sun, User, X,
+  Menu,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -17,13 +20,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { Link } from "wouter";
 
-const NAV_CATEGORIES: { label: string; value: Category }[] = [
-  { label: "All", value: "All" },
-  { label: "Seating", value: "Seating" },
-  { label: "Tables", value: "Tables" },
+// All categories for navigation (subset for desktop to avoid overflow)
+const DESKTOP_NAV: { label: string; value: Category }[] = [
+  { label: "All",      value: "All"      },
+  { label: "Seating",  value: "Seating"  },
+  { label: "Tables",   value: "Tables"   },
   { label: "Lighting", value: "Lighting" },
-  { label: "Storage", value: "Storage" },
-  { label: "Bedroom", value: "Bedroom" },
+  { label: "Storage",  value: "Storage"  },
+  { label: "Bedroom",  value: "Bedroom"  },
+  { label: "Outdoor",  value: "Outdoor"  },
+  { label: "Decor",    value: "Decor"    },
 ];
 
 export function HeroHeader() {
@@ -43,7 +49,7 @@ export function HeroHeader() {
   const mobileSearchRef = useRef<HTMLInputElement>(null);
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Keyboard shortcut: "/" focuses search
+  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement).tagName;
@@ -56,10 +62,14 @@ export function HeroHeader() {
           setTimeout(() => mobileSearchRef.current?.focus(), 50);
         }
       }
+      if (e.key === "Escape") {
+        setCartDrawerOpen(false);
+        setSearchOpen(false);
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, []);
+  }, [setCartDrawerOpen]);
 
   return (
     <>
@@ -70,11 +80,11 @@ export function HeroHeader() {
         <div className="container flex h-16 items-center justify-between gap-4">
 
           {/* Left: Hamburger + Logo + Desktop Nav */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <button
               data-testid="button-mobile-menu"
               onClick={() => setMobileNavOpen(true)}
-              className="lg:hidden p-2 -ml-2 rounded-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
+              className="lg:hidden p-2 -ml-2 rounded-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors shrink-0"
             >
               <Menu className="h-5 w-5" />
             </button>
@@ -87,13 +97,14 @@ export function HeroHeader() {
               SPACE.
             </button>
 
-            <nav className="hidden lg:flex items-center gap-0.5 ml-4">
-              {NAV_CATEGORIES.map((cat) => (
+            {/* Desktop category nav — scrollable strip */}
+            <nav className="hidden lg:flex items-center gap-0.5 ml-4 overflow-x-auto scrollbar-none max-w-[480px]">
+              {DESKTOP_NAV.map(cat => (
                 <button
                   key={cat.value}
                   data-testid={`nav-${cat.value.toLowerCase()}`}
                   onClick={() => setCategory(cat.value)}
-                  className={`px-3 py-1.5 rounded-sm text-sm font-medium transition-all duration-200 ${
+                  className={`px-3 py-1.5 rounded-sm text-sm font-medium transition-all duration-200 whitespace-nowrap ${
                     activeCategory === cat.value
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
@@ -129,9 +140,9 @@ export function HeroHeader() {
             </div>
           </div>
 
-          {/* Right: Action Buttons */}
+          {/* Right: Actions */}
           <div className="flex items-center gap-1 shrink-0">
-            {/* Mobile Search */}
+            {/* Mobile Search Toggle */}
             <PremiumButton
               variant="ghost" size="icon" className="md:hidden"
               onClick={() => setSearchOpen(!searchOpen)}
@@ -168,13 +179,13 @@ export function HeroHeader() {
               </AnimatePresence>
             </PremiumButton>
 
-            {/* Wishlist Badge */}
+            {/* Wishlist */}
             <Link href="/account">
               <PremiumButton variant="ghost" size="icon" className="relative" data-testid="button-wishlist-nav">
                 <Heart className="h-5 w-5" />
                 <AnimatePresence>
                   {wishlist.count() > 0 && (
-                    <motion.span key="wbadge"
+                    <motion.span key="wb"
                       initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
                       transition={{ type: "spring", stiffness: 400, damping: 20 }}
                       className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-accent-foreground">
@@ -185,7 +196,7 @@ export function HeroHeader() {
               </PremiumButton>
             </Link>
 
-            {/* Cart Drawer Trigger */}
+            {/* Cart */}
             <PremiumButton
               variant="ghost" size="icon" className="relative"
               data-testid="button-cart"
@@ -194,7 +205,7 @@ export function HeroHeader() {
               <ShoppingBag className="h-5 w-5" />
               <AnimatePresence>
                 {cartCount > 0 && (
-                  <motion.span key="badge"
+                  <motion.span key="cb"
                     initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
                     transition={{ type: "spring", stiffness: 400, damping: 20 }}
                     className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-accent-foreground">
@@ -204,7 +215,7 @@ export function HeroHeader() {
               </AnimatePresence>
             </PremiumButton>
 
-            {/* User Dropdown */}
+            {/* User Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <PremiumButton variant="ghost" size="icon" data-testid="button-user-menu">
@@ -285,7 +296,7 @@ export function HeroHeader() {
         {/* Mobile Category Scroll */}
         <div className="lg:hidden border-t overflow-x-auto scrollbar-none">
           <div className="container flex gap-2 py-2.5 w-max min-w-full">
-            {NAV_CATEGORIES.map((cat) => (
+            {DESKTOP_NAV.map(cat => (
               <button
                 key={cat.value}
                 data-testid={`mobile-nav-${cat.value.toLowerCase()}`}
