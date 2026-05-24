@@ -7,6 +7,9 @@ import Login from "@/pages/Auth/Login";
 import Register from "@/pages/Auth/Register";
 import HeroPage from "@/pages/Hero/HeroPage";
 import ProductDetail from "@/pages/Product/ProductDetail";
+import CheckoutPage from "@/pages/Checkout/CheckoutPage";
+import AccountPage from "@/pages/Account/AccountPage";
+import AdminDashboard from "@/pages/Admin/AdminDashboard";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -39,7 +42,16 @@ export function AppRouter() {
         <ProtectedRoute component={HeroPage} />
       </Route>
       <Route path="/product/:id">
-        {(params) => <ProtectedRoute component={ProductDetail} />}
+        {() => <ProtectedRoute component={ProductDetail} />}
+      </Route>
+      <Route path="/checkout">
+        {() => <ProtectedRoute component={CheckoutPage} />}
+      </Route>
+      <Route path="/account">
+        {() => <ProtectedRoute component={AccountPage} />}
+      </Route>
+      <Route path="/admin">
+        {() => <ProtectedRoute component={AdminDashboard} />}
       </Route>
       <Route component={NotFound} />
     </Switch>

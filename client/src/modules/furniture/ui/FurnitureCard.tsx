@@ -3,7 +3,7 @@ import { type Product } from "@shared/schema";
 import { PremiumButton } from "@/shared/components/PremiumButton";
 import { Heart, ShoppingBag } from "lucide-react";
 import { useCart } from "../hooks/use-cart";
-import { useState } from "react";
+import { useWishlistStore } from "../store/furniture-store";
 import { Link } from "wouter";
 
 interface FurnitureCardProps {
@@ -13,7 +13,8 @@ interface FurnitureCardProps {
 
 export function FurnitureCard({ product, index = 0 }: FurnitureCardProps) {
   const { addToCart, isAdding } = useCart();
-  const [isWishlisted, setIsWishlisted] = useState(false);
+  const { has, toggle } = useWishlistStore();
+  const isWishlisted = has(product.id);
 
   const formattedPrice = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -42,7 +43,7 @@ export function FurnitureCard({ product, index = 0 }: FurnitureCardProps) {
             className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
           />
 
-          {/* Gradient Overlay */}
+          {/* Gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
           {/* Wishlist Button */}
@@ -50,15 +51,15 @@ export function FurnitureCard({ product, index = 0 }: FurnitureCardProps) {
             data-testid={`button-wishlist-${product.id}`}
             onClick={(e) => {
               e.preventDefault();
-              setIsWishlisted(!isWishlisted);
+              toggle(product.id);
             }}
-            className="absolute top-3 right-3 h-8 w-8 flex items-center justify-center rounded-full bg-background/80 backdrop-blur-sm border border-border/50 hover:bg-background transition-all duration-200 opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0"
+            className={`absolute top-3 right-3 h-8 w-8 flex items-center justify-center rounded-full backdrop-blur-sm border transition-all duration-200 ${
+              isWishlisted
+                ? "bg-accent/90 border-accent/50 opacity-100 translate-y-0"
+                : "bg-background/80 border-border/50 opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0"
+            }`}
           >
-            <Heart
-              className={`h-3.5 w-3.5 transition-colors ${
-                isWishlisted ? "fill-accent text-accent" : "text-foreground"
-              }`}
-            />
+            <Heart className={`h-3.5 w-3.5 transition-colors ${isWishlisted ? "fill-white text-white" : "text-foreground"}`} />
           </button>
 
           {/* Category Badge */}
@@ -68,9 +69,9 @@ export function FurnitureCard({ product, index = 0 }: FurnitureCardProps) {
             </span>
           </div>
 
-          {/* Stock Badge */}
+          {/* Stock Badges */}
           {isLowStock && (
-            <div className="absolute bottom-3 left-3">
+            <div className="absolute bottom-14 left-3">
               <span className="inline-flex items-center rounded-full bg-accent/90 backdrop-blur-sm px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-accent-foreground">
                 Only {product.stock} left
               </span>
@@ -84,9 +85,9 @@ export function FurnitureCard({ product, index = 0 }: FurnitureCardProps) {
             </div>
           )}
 
-          {/* Add to Cart Overlay */}
+          {/* Add to Cart — hover overlay */}
           {!isOutOfStock && (
-            <div className="absolute bottom-3 left-3 right-3 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
+            <div className="absolute bottom-3 left-3 right-3 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 ease-out">
               <PremiumButton
                 onClick={(e) => {
                   e.preventDefault();
