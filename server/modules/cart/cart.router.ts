@@ -12,6 +12,10 @@ const addItemSchema = z.object({
   quantity: z.number().int().positive().default(1),
 });
 
+const updateItemSchema = z.object({
+  quantity: z.number().int().min(0),
+});
+
 // All cart routes require auth
 router.use(requireAuth);
 
@@ -32,6 +36,18 @@ router.post(
   asyncHandler(async (req, res) => {
     const { productId, quantity } = addItemSchema.parse(req.body);
     const item = await CartService.add(req.session.userId!, productId, quantity);
+    res.json(item);
+  })
+);
+
+// PATCH /api/cart/:id — update quantity (0 = remove)
+router.patch(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    const id = z.coerce.number().int().positive().parse(req.params.id);
+    const { quantity } = updateItemSchema.parse(req.body);
+    const item = await CartService.updateQuantity(req.session.userId!, id, quantity);
+    if (item === null) return res.sendStatus(204); // item removed
     res.json(item);
   })
 );

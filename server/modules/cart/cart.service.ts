@@ -32,6 +32,17 @@ export const CartService = {
     });
   },
 
+  async updateQuantity(userId: number, id: number, quantity: number) {
+    const item = await db.cartItem.findUnique({ where: { id } });
+    if (!item) throw new NotFoundError("Cart item");
+    if (item.userId !== userId) throw new ForbiddenError();
+    if (quantity <= 0) {
+      await db.cartItem.delete({ where: { id } });
+      return null;
+    }
+    return db.cartItem.update({ where: { id }, data: { quantity } });
+  },
+
   async remove(userId: number, id: number) {
     const item = await db.cartItem.findUnique({ where: { id } });
     if (!item) throw new NotFoundError("Cart item");

@@ -62,8 +62,8 @@ export function createApp() {
     })
   );
 
-  // ── Rate Limiting ─────────────────────────────────────────────────────
-  app.use(globalLimiter);
+  // ── Rate Limiting (only /api/* — never block Vite/static files) ──────
+  app.use("/api", globalLimiter);
 
   // ── Health Check ──────────────────────────────────────────────────────
   app.get("/api/health", (_req, res) => {

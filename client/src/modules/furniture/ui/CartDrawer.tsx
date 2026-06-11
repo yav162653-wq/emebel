@@ -10,11 +10,11 @@ import { Link } from "wouter";
 import { ArrowRight, Minus, Package, Plus, ShoppingBag, Truck, X } from "lucide-react";
 import { useEffect } from "react";
 
-const FREE_SHIPPING_THRESHOLD = 50000; // $500 in cents
+const FREE_SHIPPING_THRESHOLD = 50000;
 
 export function CartDrawer() {
   const { cartDrawerOpen, setCartDrawerOpen } = useFurnitureStore();
-  const { items, total, removeFromCart } = useCart();
+  const { items, total, removeFromCart, updateQuantity, isUpdating } = useCart();
 
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const shipping = total >= FREE_SHIPPING_THRESHOLD ? 0 : 2900;
@@ -23,7 +23,6 @@ export function CartDrawer() {
   const shippingProgress = Math.min((total / FREE_SHIPPING_THRESHOLD) * 100, 100);
   const freeShipping = total >= FREE_SHIPPING_THRESHOLD;
 
-  // Esc closes drawer
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape" && cartDrawerOpen) setCartDrawerOpen(false);
@@ -136,21 +135,37 @@ export function CartDrawer() {
                         </p>
                       </Link>
                       <p className="text-xs text-muted-foreground">{item.product.category}</p>
+
                       <div className="flex items-center justify-between mt-auto">
+                        {/* Quantity controls */}
                         <div className="flex items-center border border-border rounded-sm">
                           <button
-                            className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
-                            onClick={() => { if (item.quantity <= 1) removeFromCart(item.id); }}
+                            data-testid={`button-decrease-${item.id}`}
+                            disabled={isUpdating}
+                            className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors disabled:opacity-40"
+                            onClick={() => {
+                              if (item.quantity <= 1) {
+                                removeFromCart(item.id);
+                              } else {
+                                updateQuantity({ id: item.id, quantity: item.quantity - 1 });
+                              }
+                            }}
                           >
                             <Minus className="h-3 w-3" />
                           </button>
                           <span className="h-7 w-8 flex items-center justify-center text-xs font-semibold border-x border-border">
                             {item.quantity}
                           </span>
-                          <button className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors">
+                          <button
+                            data-testid={`button-increase-${item.id}`}
+                            disabled={isUpdating}
+                            className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors disabled:opacity-40"
+                            onClick={() => updateQuantity({ id: item.id, quantity: item.quantity + 1 })}
+                          >
                             <Plus className="h-3 w-3" />
                           </button>
                         </div>
+
                         <span className="font-mono text-sm font-semibold">
                           ${((item.product.price * item.quantity) / 100).toFixed(0)}
                         </span>

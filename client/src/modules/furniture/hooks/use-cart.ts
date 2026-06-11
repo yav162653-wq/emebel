@@ -12,7 +12,7 @@ export function useCart() {
     queryFn: async () => {
       const res = await fetch(api.cart.list.path);
       if (!res.ok) {
-        if (res.status === 401) return []; // Empty cart for guests
+        if (res.status === 401) return [];
         throw new Error("Failed to fetch cart");
       }
       return await res.json() as CartListResponse;
@@ -34,8 +34,27 @@ export function useCart() {
       toast({ title: "Added to Cart", description: "Item successfully added." });
     },
     onError: () => {
-      toast({ variant: "destructive", title: "Error", description: "Could not add item to cart. Please log in." });
-    }
+      toast({ variant: "destructive", title: "Error", description: "Could not add item. Please log in." });
+    },
+  });
+
+  const updateQuantityMutation = useMutation({
+    mutationFn: async ({ id, quantity }: { id: number; quantity: number }) => {
+      const res = await fetch(`/api/cart/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quantity }),
+      });
+      if (!res.ok) throw new Error("Failed to update quantity");
+      if (res.status === 204) return null;
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
+    },
+    onError: () => {
+      toast({ variant: "destructive", title: "Error", description: "Could not update quantity." });
+    },
   });
 
   const removeFromCartMutation = useMutation({
@@ -50,7 +69,7 @@ export function useCart() {
     },
   });
 
-  const total = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  const total = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
 
   return {
     items,
@@ -58,6 +77,8 @@ export function useCart() {
     total,
     addToCart: addToCartMutation.mutate,
     isAdding: addToCartMutation.isPending,
+    updateQuantity: updateQuantityMutation.mutate,
+    isUpdating: updateQuantityMutation.isPending,
     removeFromCart: removeFromCartMutation.mutate,
     isRemoving: removeFromCartMutation.isPending,
   };
