@@ -12,6 +12,7 @@ import { globalLimiter } from "./middleware/rateLimiter";
 import authRouter     from "./modules/auth/auth.router";
 import productsRouter from "./modules/products/products.router";
 import cartRouter     from "./modules/cart/cart.router";
+import adminRouter    from "./modules/admin/admin.router";
 
 const SessionStore = MemoryStore(session);
 
@@ -78,6 +79,7 @@ export function createApp() {
   app.use("/api/auth",     authRouter);
   app.use("/api/products", productsRouter);
   app.use("/api/cart",     cartRouter);
+  app.use("/api/admin",    adminRouter);
 
   // ── 404 for unmatched API routes (frontend routes handled by Vite) ────
   app.use("/api/*", notFoundHandler);
