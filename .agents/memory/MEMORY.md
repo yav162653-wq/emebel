@@ -1,0 +1,2 @@
+- [Prisma 7 on Replit](prisma7-replit.md) — Prisma 7 needs prisma.config.ts with datasource.url; no url in schema.prisma; use @prisma/adapter-pg at runtime.
+- [Enterprise backend architecture](enterprise-backend.md) — modular Node/Express: config/, middleware/, modules/auth|products|cart/, db/, utils/ pattern used in SPACE. app.
