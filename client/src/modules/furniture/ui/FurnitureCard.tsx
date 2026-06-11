@@ -69,8 +69,9 @@ export function FurnitureCard({ product, index = 0 }: FurnitureCardProps) {
 
       <motion.div
         initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, delay: Math.min(index * 0.07, 0.5), ease: [0.16, 1, 0.3, 1] }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.08 }}
+        transition={{ duration: 0.5, delay: Math.min(index * 0.07, 0.42), ease: [0.16, 1, 0.3, 1] }}
         data-testid={`card-product-${product.id}`}
         className="group relative flex flex-col gap-3"
       >

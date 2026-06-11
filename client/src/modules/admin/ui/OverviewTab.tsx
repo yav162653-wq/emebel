@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { BarChart3, DollarSign, Package, TrendingDown, TrendingUp, Users } from "lucide-react";
+import { BarChart3, DollarSign, Package, ShoppingBag, TrendingDown, TrendingUp, Users } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAdminStats } from "../hooks/use-admin";
 import { useFurniture } from "@/modules/furniture/hooks/use-furniture";
@@ -47,11 +47,11 @@ export function OverviewTab() {
           up: true,
         },
         {
-          label: "Low Stock Alerts",
-          value: stats.lowStock,
-          icon: BarChart3,
-          change: stats.lowStock > 0 ? "Needs attention" : "All good",
-          up: stats.lowStock === 0,
+          label: "Total Orders",
+          value: stats.orderCount,
+          icon: ShoppingBag,
+          change: stats.orderCount > 0 ? "All time" : "No orders yet",
+          up: true,
         },
       ]
     : [];

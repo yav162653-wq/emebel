@@ -2,18 +2,20 @@ import { useState } from "react";
 import { useCart } from "@/modules/furniture/hooks/use-cart";
 import { PremiumButton } from "@/shared/components/PremiumButton";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ArrowRight, Check, CreditCard, MapPin, ShoppingBag, Truck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
 
 type Step = "cart" | "shipping" | "payment" | "success";
 
 const STEPS: { key: Step; label: string; icon: typeof ShoppingBag }[] = [
-  { key: "cart", label: "Review", icon: ShoppingBag },
-  { key: "shipping", label: "Shipping", icon: MapPin },
-  { key: "payment", label: "Payment", icon: CreditCard },
+  { key: "cart",     label: "Review",   icon: ShoppingBag },
+  { key: "shipping", label: "Shipping", icon: MapPin      },
+  { key: "payment",  label: "Payment",  icon: CreditCard  },
 ];
 
 const stepIndex = (s: Step) => ["cart", "shipping", "payment", "success"].indexOf(s);
@@ -21,11 +23,13 @@ const stepIndex = (s: Step) => ["cart", "shipping", "payment", "success"].indexO
 export default function CheckoutPage() {
   const [step, setStep] = useState<Step>("cart");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [orderNumber, setOrderNumber] = useState("");
   const { items, total } = useCart();
-  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const shipping = total > 50000 ? 0 : 2900;
-  const tax = Math.round(total * 0.08);
+  const tax      = Math.round(total * 0.08);
   const grandTotal = total + shipping + tax;
 
   const [shippingData, setShippingData] = useState({
@@ -37,9 +41,42 @@ export default function CheckoutPage() {
 
   const handlePlaceOrder = async () => {
     setIsProcessing(true);
-    await new Promise((r) => setTimeout(r, 2000));
-    setIsProcessing(false);
-    setStep("success");
+    try {
+      const address = [
+        shippingData.address, shippingData.city,
+        shippingData.state, shippingData.zip, shippingData.country,
+      ].filter(Boolean).join(", ");
+
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          total: grandTotal,
+          address: address || "Not provided",
+          items: items.map((item) => ({
+            productId: item.product.id,
+            name: item.product.name,
+            price: item.product.price,
+            quantity: item.quantity,
+            image: item.product.image,
+          })),
+        }),
+      });
+
+      if (!res.ok) throw new Error("Order failed");
+      const order = await res.json();
+
+      // Invalidate cart + orders cache
+      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders/my"] });
+
+      setOrderNumber(`SP-${String(order.id).padStart(5, "0")}`);
+      setStep("success");
+    } catch {
+      toast({ variant: "destructive", title: "Order failed", description: "Please try again." });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (items.length === 0 && step !== "success") {
@@ -77,21 +114,15 @@ export default function CheckoutPage() {
             <p className="text-muted-foreground leading-relaxed">
               Your order has been placed successfully. You'll receive a confirmation email shortly.
             </p>
-            <p className="font-mono text-sm text-muted-foreground mt-2">
-              Order #SP-{Math.floor(Math.random() * 90000) + 10000}
-            </p>
+            <p className="font-mono text-sm text-muted-foreground mt-2">Order {orderNumber}</p>
           </div>
-          <div className="flex items-center gap-3 bg-secondary/40 rounded-sm px-4 py-3 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2 bg-secondary/40 rounded-sm px-4 py-3 text-sm text-muted-foreground">
             <Truck className="h-4 w-4 shrink-0 text-accent" />
             <span>Estimated delivery: 5–7 business days with white-glove service.</span>
           </div>
           <div className="flex gap-3 justify-center">
-            <Link href="/shop">
-              <PremiumButton>Continue Shopping</PremiumButton>
-            </Link>
-            <Link href="/account">
-              <PremiumButton variant="outline">View Orders</PremiumButton>
-            </Link>
+            <Link href="/shop"><PremiumButton>Continue Shopping</PremiumButton></Link>
+            <Link href="/account"><PremiumButton variant="outline">View Orders</PremiumButton></Link>
           </div>
         </motion.div>
       </div>
@@ -100,13 +131,11 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top Bar */}
       <header className="border-b bg-background/80 backdrop-blur-xl sticky top-0 z-40">
         <div className="container flex h-16 items-center justify-between">
           <Link href="/shop">
             <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Shop
+              <ArrowLeft className="h-4 w-4" /> Back to Shop
             </button>
           </Link>
           <span className="font-display text-xl font-bold tracking-tighter">SPACE.</span>
@@ -127,23 +156,20 @@ export default function CheckoutPage() {
                   <div className="flex flex-col items-center gap-1.5">
                     <div className={`h-9 w-9 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
                       isCompleted ? "bg-primary border-primary" :
-                      isActive ? "bg-background border-primary" :
-                      "bg-background border-border"
+                      isActive    ? "bg-background border-primary" :
+                                    "bg-background border-border"
                     }`}>
-                      {isCompleted ? (
-                        <Check className="h-4 w-4 text-primary-foreground" />
-                      ) : (
-                        <s.icon className={`h-4 w-4 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
-                      )}
+                      {isCompleted
+                        ? <Check className="h-4 w-4 text-primary-foreground" />
+                        : <s.icon className={`h-4 w-4 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
+                      }
                     </div>
                     <span className={`text-xs font-medium ${isActive ? "text-foreground" : "text-muted-foreground"}`}>
                       {s.label}
                     </span>
                   </div>
                   {i < STEPS.length - 1 && (
-                    <div className={`w-24 h-0.5 mx-2 mb-5 transition-colors duration-300 ${
-                      i < current ? "bg-primary" : "bg-border"
-                    }`} />
+                    <div className={`w-24 h-0.5 mx-2 mb-5 transition-colors duration-300 ${i < current ? "bg-primary" : "bg-border"}`} />
                   )}
                 </div>
               );
@@ -152,7 +178,6 @@ export default function CheckoutPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-10 max-w-5xl mx-auto">
-          {/* Main Content */}
           <div className="lg:col-span-3">
             <AnimatePresence mode="wait">
               {step === "cart" && (
@@ -175,7 +200,7 @@ export default function CheckoutPage() {
                       </div>
                     ))}
                   </div>
-                  <PremiumButton className="w-full" size="lg" onClick={() => setStep("shipping")}>
+                  <PremiumButton className="w-full" size="lg" onClick={() => setStep("shipping")} data-testid="button-continue-shipping">
                     Continue to Shipping <ArrowRight className="ml-2 h-4 w-4" />
                   </PremiumButton>
                 </motion.div>
@@ -186,23 +211,22 @@ export default function CheckoutPage() {
                   <h2 className="font-display text-2xl font-medium">Shipping Information</h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {[
-                      { key: "fullName", label: "Full Name", placeholder: "John Doe", col: 2 },
-                      { key: "email", label: "Email", placeholder: "john@example.com", col: 2 },
-                      { key: "address", label: "Street Address", placeholder: "123 Main St", col: 2 },
-                      { key: "city", label: "City", placeholder: "New York", col: 1 },
-                      { key: "state", label: "State", placeholder: "NY", col: 1 },
-                      { key: "zip", label: "ZIP Code", placeholder: "10001", col: 1 },
-                      { key: "country", label: "Country", placeholder: "United States", col: 1 },
+                      { key: "fullName", label: "Full Name",       placeholder: "John Doe",          col: 2 },
+                      { key: "email",    label: "Email",            placeholder: "john@example.com",  col: 2 },
+                      { key: "address",  label: "Street Address",   placeholder: "123 Main St",       col: 2 },
+                      { key: "city",     label: "City",             placeholder: "New York",          col: 1 },
+                      { key: "state",    label: "State",            placeholder: "NY",                col: 1 },
+                      { key: "zip",      label: "ZIP Code",         placeholder: "10001",             col: 1 },
+                      { key: "country",  label: "Country",          placeholder: "United States",     col: 1 },
                     ].map((field) => (
                       <div key={field.key} className={field.col === 2 ? "sm:col-span-2" : ""}>
-                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                          {field.label}
-                        </Label>
+                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{field.label}</Label>
                         <Input
                           className="mt-1.5 h-11 bg-secondary/20 rounded-sm"
                           placeholder={field.placeholder}
                           value={(shippingData as any)[field.key]}
                           onChange={(e) => setShippingData((d) => ({ ...d, [field.key]: e.target.value }))}
+                          data-testid={`input-${field.key}`}
                         />
                       </div>
                     ))}
@@ -211,7 +235,7 @@ export default function CheckoutPage() {
                     <PremiumButton variant="outline" onClick={() => setStep("cart")}>
                       <ArrowLeft className="mr-2 h-4 w-4" /> Back
                     </PremiumButton>
-                    <PremiumButton className="flex-1" size="lg" onClick={() => setStep("payment")}>
+                    <PremiumButton className="flex-1" size="lg" onClick={() => setStep("payment")} data-testid="button-continue-payment">
                       Continue to Payment <ArrowRight className="ml-2 h-4 w-4" />
                     </PremiumButton>
                   </div>
@@ -253,7 +277,12 @@ export default function CheckoutPage() {
                     <PremiumButton variant="outline" onClick={() => setStep("shipping")}>
                       <ArrowLeft className="mr-2 h-4 w-4" /> Back
                     </PremiumButton>
-                    <PremiumButton className="flex-1" size="lg" isLoading={isProcessing} onClick={handlePlaceOrder}>
+                    <PremiumButton
+                      className="flex-1" size="lg"
+                      isLoading={isProcessing}
+                      onClick={handlePlaceOrder}
+                      data-testid="button-place-order"
+                    >
                       Place Order · ${(grandTotal / 100).toFixed(2)}
                     </PremiumButton>
                   </div>
@@ -262,12 +291,10 @@ export default function CheckoutPage() {
             </AnimatePresence>
           </div>
 
-          {/* Order Summary Sidebar */}
+          {/* Order Summary */}
           <div className="lg:col-span-2">
             <div className="sticky top-28 rounded-sm border border-border bg-card p-6 space-y-5">
-              <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground font-mono">
-                Order Summary
-              </h3>
+              <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground font-mono">Order Summary</h3>
               <div className="space-y-3">
                 {items.map((item) => (
                   <div key={item.id} className="flex justify-between text-sm gap-2">
@@ -281,16 +308,14 @@ export default function CheckoutPage() {
               <Separator />
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between text-muted-foreground">
-                  <span>Subtotal</span>
-                  <span className="font-mono">${(total / 100).toFixed(2)}</span>
+                  <span>Subtotal</span><span className="font-mono">${(total / 100).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Shipping</span>
-                  <span className="font-mono">{shipping === 0 ? "Free" : `$${(shipping / 100).toFixed(2)}`}</span>
+                  <span className="font-mono">{shipping === 0 ? <span className="text-green-600 dark:text-green-400">Free</span> : `$${(shipping / 100).toFixed(2)}`}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
-                  <span>Tax (8%)</span>
-                  <span className="font-mono">${(tax / 100).toFixed(2)}</span>
+                  <span>Tax (8%)</span><span className="font-mono">${(tax / 100).toFixed(2)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between font-bold text-foreground">
@@ -299,8 +324,7 @@ export default function CheckoutPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground bg-secondary/30 rounded-sm px-3 py-2">
-                <Truck className="h-3.5 w-3.5 shrink-0" />
-                White-glove delivery included
+                <Truck className="h-3.5 w-3.5 shrink-0" /> White-glove delivery included
               </div>
             </div>
           </div>

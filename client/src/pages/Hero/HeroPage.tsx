@@ -50,7 +50,7 @@ export default function HeroPage() {
         <div className="container py-10 flex flex-col sm:flex-row items-center justify-between gap-6">
           <span className="font-display text-xl font-bold tracking-tighter">SPACE.</span>
           <p className="font-mono text-xs text-muted-foreground uppercase tracking-widest text-center">
-            © 2025 Space Furniture. All rights reserved.
+            © 2026 Space Furniture. All rights reserved.
           </p>
           <div className="flex gap-6 text-xs text-muted-foreground">
             {["Privacy", "Terms", "Shipping", "Returns"].map((link) => (

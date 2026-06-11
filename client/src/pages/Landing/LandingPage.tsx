@@ -461,7 +461,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <span className="font-display text-2xl font-bold tracking-tighter">SPACE.</span>
           <p className="font-mono text-xs text-muted-foreground uppercase tracking-widest">
-            © 2025 Space Furniture. All rights reserved.
+            © 2026 Space Furniture. All rights reserved.
           </p>
           <div className="flex gap-6 text-xs text-muted-foreground">
             {["Privacy", "Terms", "Contact", "Shipping"].map((link) => (

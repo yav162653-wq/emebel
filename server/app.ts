@@ -13,6 +13,7 @@ import authRouter     from "./modules/auth/auth.router";
 import productsRouter from "./modules/products/products.router";
 import cartRouter     from "./modules/cart/cart.router";
 import adminRouter    from "./modules/admin/admin.router";
+import ordersRouter   from "./modules/orders/orders.router";
 
 const SessionStore = MemoryStore(session);
 
@@ -80,6 +81,7 @@ export function createApp() {
   app.use("/api/products", productsRouter);
   app.use("/api/cart",     cartRouter);
   app.use("/api/admin",    adminRouter);
+  app.use("/api/orders",   ordersRouter);
 
   // ── 404 for unmatched API routes (frontend routes handled by Vite) ────
   app.use("/api/*", notFoundHandler);

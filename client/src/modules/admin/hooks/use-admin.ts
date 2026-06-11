@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 export type AdminStats = {
   productCount: number;
   userCount: number;
+  orderCount: number;
   totalInventoryValue: number;
   lowStock: number;
   outOfStock: number;

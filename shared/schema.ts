@@ -45,9 +45,31 @@ export type CartItem = {
   quantity: number;
 };
 
+// ── Order ─────────────────────────────────────────────────────────────────────
+export type OrderItem = {
+  id: number;
+  orderId: number;
+  productId: number;
+  name: string;
+  price: number;
+  quantity: number;
+  image: string;
+};
+
+export type Order = {
+  id: number;
+  userId: number;
+  total: number;
+  status: string;
+  address: string;
+  createdAt: string;
+  items: OrderItem[];
+};
+
 // ── Request / Response aliases ────────────────────────────────────────────────
 export type LoginRequest = { username: string; password: string };
 export type AuthResponse = User;
 export type ProductListResponse = Product[];
 export type ProductResponse = Product;
 export type CartListResponse = (CartItem & { product: Product })[];
+export type OrderListResponse = Order[];

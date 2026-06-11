@@ -1,5 +1,6 @@
 import { Route, Switch, useLocation } from "wouter";
 import { useAuthContext } from "@/app/providers/AuthProvider";
+import { AnimatePresence, motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 
 import LandingPage from "@/pages/Landing/LandingPage";
@@ -11,6 +12,20 @@ import CheckoutPage from "@/pages/Checkout/CheckoutPage";
 import AccountPage from "@/pages/Account/AccountPage";
 import AdminDashboard from "@/pages/Admin/AdminDashboard";
 import NotFound from "@/pages/not-found";
+
+const pageVariants = {
+  initial: { opacity: 0, y: 10 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.22, ease: [0.16, 1, 0.3, 1] } },
+  exit:    { opacity: 0, y: -6, transition: { duration: 0.15, ease: "easeIn" } },
+};
+
+function PageTransition({ children }: { children: React.ReactNode }) {
+  return (
+    <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
+      {children}
+    </motion.div>
+  );
+}
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { user, isLoading } = useAuthContext();
@@ -33,27 +48,33 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 }
 
 export function AppRouter() {
+  const [location] = useLocation();
+
   return (
-    <Switch>
-      <Route path="/" component={LandingPage} />
-      <Route path="/login" component={Login} />
-      <Route path="/register" component={Register} />
-      <Route path="/shop">
-        <ProtectedRoute component={HeroPage} />
-      </Route>
-      <Route path="/product/:id">
-        {() => <ProtectedRoute component={ProductDetail} />}
-      </Route>
-      <Route path="/checkout">
-        {() => <ProtectedRoute component={CheckoutPage} />}
-      </Route>
-      <Route path="/account">
-        {() => <ProtectedRoute component={AccountPage} />}
-      </Route>
-      <Route path="/admin">
-        {() => <ProtectedRoute component={AdminDashboard} />}
-      </Route>
-      <Route component={NotFound} />
-    </Switch>
+    <AnimatePresence mode="wait" initial={false}>
+      <PageTransition key={location}>
+        <Switch location={location}>
+          <Route path="/" component={LandingPage} />
+          <Route path="/login" component={Login} />
+          <Route path="/register" component={Register} />
+          <Route path="/shop">
+            <ProtectedRoute component={HeroPage} />
+          </Route>
+          <Route path="/product/:id">
+            {() => <ProtectedRoute component={ProductDetail} />}
+          </Route>
+          <Route path="/checkout">
+            {() => <ProtectedRoute component={CheckoutPage} />}
+          </Route>
+          <Route path="/account">
+            {() => <ProtectedRoute component={AccountPage} />}
+          </Route>
+          <Route path="/admin">
+            {() => <ProtectedRoute component={AdminDashboard} />}
+          </Route>
+          <Route component={NotFound} />
+        </Switch>
+      </PageTransition>
+    </AnimatePresence>
   );
 }

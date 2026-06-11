@@ -56,6 +56,19 @@ router.get(
   })
 );
 
+// PATCH /api/auth/profile
+router.patch(
+  "/profile",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const data = z
+      .object({ name: z.string().min(1).max(100).optional() })
+      .parse(req.body);
+    const user = await AuthService.updateProfile(req.session.userId!, data);
+    res.json(user);
+  })
+);
+
 // POST /api/auth/logout
 router.post(
   "/logout",

@@ -1,36 +1,74 @@
+import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useWishlistStore } from "@/modules/furniture/store/furniture-store";
 import { useFurniture } from "@/modules/furniture/hooks/use-furniture";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PremiumButton } from "@/shared/components/PremiumButton";
 import { motion } from "framer-motion";
 import { Link, useLocation } from "wouter";
-import { Heart, LogOut, Package, Settings, ShoppingBag, Star, Trash2, User } from "lucide-react";
+import { ArrowLeft, Heart, LogOut, Package, Settings, Star, Trash2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-
-const MOCK_ORDERS = [
-  { id: "SP-38291", date: "May 18, 2025", status: "Delivered", total: 28900, items: 2 },
-  { id: "SP-27183", date: "Apr 3, 2025", status: "Processing", total: 112000, items: 1 },
-  { id: "SP-19042", date: "Feb 22, 2025", status: "Delivered", total: 52000, items: 3 },
-];
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { Order } from "@shared/schema";
+import { cn } from "@/lib/utils";
 
 const STATUS_COLORS: Record<string, string> = {
-  Delivered: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  Delivered:  "bg-green-100  text-green-800  dark:bg-green-900/30  dark:text-green-400",
   Processing: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-  Shipped: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+  Shipped:    "bg-blue-100   text-blue-800   dark:bg-blue-900/30   dark:text-blue-400",
 };
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-US", {
+    year: "numeric", month: "short", day: "numeric",
+  });
+}
 
 export default function AccountPage() {
   const { user, logout } = useAuth();
   const { items: wishlistIds, toggle, count } = useWishlistStore();
   const { data: products } = useFurniture();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   usePageTitle("My Account");
 
+  const [name, setName] = useState(user?.name || "");
+
+  const { data: orders = [], isLoading: ordersLoading } = useQuery<Order[]>({
+    queryKey: ["/api/orders/my"],
+    queryFn: async () => {
+      const res = await fetch("/api/orders/my");
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const updateProfileMutation = useMutation({
+    mutationFn: async (newName: string) => {
+      const res = await fetch("/api/auth/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName }),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      toast({ title: "Profile updated", description: "Your name has been saved." });
+    },
+    onError: () => {
+      toast({ variant: "destructive", title: "Update failed", description: "Please try again." });
+    },
+  });
+
   const wishlistProducts = products?.filter((p) => wishlistIds.includes(p.id)) ?? [];
+  const totalSpent = orders.reduce((sum, o) => sum + o.total, 0);
 
   const handleRemoveWishlist = (id: number, name: string) => {
     toggle(id);
@@ -42,8 +80,8 @@ export default function AccountPage() {
       <header className="border-b bg-background/80 backdrop-blur-xl sticky top-0 z-40">
         <div className="container flex h-16 items-center justify-between">
           <Link href="/shop">
-            <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-              ← Back to Shop
+            <button className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <ArrowLeft className="h-4 w-4" /> Back to Shop
             </button>
           </Link>
           <span className="font-display text-xl font-bold tracking-tighter">SPACE.</span>
@@ -52,6 +90,7 @@ export default function AccountPage() {
       </header>
 
       <div className="container py-10 max-w-4xl">
+        {/* Profile Header */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -65,16 +104,17 @@ export default function AccountPage() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="font-display text-3xl font-medium">{user?.name || user?.username}</h1>
-              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+              <span className={cn(
+                "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
                 user?.role === "admin" ? "bg-accent/15 text-accent" : "bg-secondary text-muted-foreground"
-              }`}>
+              )}>
                 {user?.role}
               </span>
             </div>
             <p className="text-muted-foreground text-sm mt-1">@{user?.username}</p>
             <div className="flex gap-6 mt-3">
               <div className="text-center">
-                <p className="font-bold text-foreground">{MOCK_ORDERS.length}</p>
+                <p className="font-bold text-foreground">{ordersLoading ? "—" : orders.length}</p>
                 <p className="text-xs text-muted-foreground">Orders</p>
               </div>
               <div className="text-center">
@@ -82,7 +122,9 @@ export default function AccountPage() {
                 <p className="text-xs text-muted-foreground">Wishlist</p>
               </div>
               <div className="text-center">
-                <p className="font-bold text-foreground">$1,929</p>
+                <p className="font-bold text-foreground">
+                  {ordersLoading ? "—" : `$${(totalSpent / 100).toFixed(0)}`}
+                </p>
                 <p className="text-xs text-muted-foreground">Total Spent</p>
               </div>
             </div>
@@ -91,6 +133,7 @@ export default function AccountPage() {
             variant="ghost" size="sm"
             onClick={() => { logout(); setLocation("/"); }}
             className="text-destructive hover:text-destructive hover:bg-destructive/10"
+            data-testid="button-logout"
           >
             <LogOut className="mr-2 h-4 w-4" /> Log out
           </PremiumButton>
@@ -98,55 +141,89 @@ export default function AccountPage() {
 
         <Tabs defaultValue="orders">
           <TabsList className="bg-secondary/40 rounded-sm mb-8">
-            <TabsTrigger value="orders" className="rounded-sm gap-2">
-              <Package className="h-4 w-4" /> Orders ({MOCK_ORDERS.length})
+            <TabsTrigger value="orders" className="rounded-sm gap-2" data-testid="tab-orders">
+              <Package className="h-4 w-4" /> Orders ({ordersLoading ? "…" : orders.length})
             </TabsTrigger>
-            <TabsTrigger value="wishlist" className="rounded-sm gap-2">
+            <TabsTrigger value="wishlist" className="rounded-sm gap-2" data-testid="tab-wishlist">
               <Heart className="h-4 w-4" /> Wishlist ({count()})
             </TabsTrigger>
-            <TabsTrigger value="settings" className="rounded-sm gap-2">
+            <TabsTrigger value="settings" className="rounded-sm gap-2" data-testid="tab-settings">
               <Settings className="h-4 w-4" /> Settings
             </TabsTrigger>
           </TabsList>
 
+          {/* Orders Tab */}
           <TabsContent value="orders" className="space-y-4">
-            {MOCK_ORDERS.map((order, i) => (
-              <motion.div
-                key={order.id}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.08 }}
-                className="p-5 rounded-sm border border-border bg-card hover:border-primary/30 transition-colors"
-              >
-                <div className="flex items-start justify-between gap-4 flex-wrap">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <p className="font-mono text-sm font-semibold">{order.id}</p>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${STATUS_COLORS[order.status]}`}>
-                        {order.status}
-                      </span>
+            {ordersLoading ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-24 rounded-sm" />
+              ))
+            ) : orders.length === 0 ? (
+              <div className="text-center py-20 text-muted-foreground">
+                <Package className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                <p className="font-medium">No orders yet</p>
+                <p className="text-sm mt-1">Your order history will appear here.</p>
+                <Link href="/shop">
+                  <PremiumButton size="sm" className="mt-6">Shop Now</PremiumButton>
+                </Link>
+              </div>
+            ) : (
+              orders.map((order, i) => (
+                <motion.div
+                  key={order.id}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.06 }}
+                  className="p-5 rounded-sm border border-border bg-card hover:border-primary/30 transition-colors"
+                  data-testid={`order-card-${order.id}`}
+                >
+                  <div className="flex items-start justify-between gap-4 flex-wrap">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <p className="font-mono text-sm font-semibold">
+                          SP-{String(order.id).padStart(5, "0")}
+                        </p>
+                        <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider", STATUS_COLORS[order.status] ?? STATUS_COLORS.Processing)}>
+                          {order.status}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDate(order.createdAt)} · {order.items.length} item{order.items.length !== 1 ? "s" : ""}
+                      </p>
+                      {/* Item thumbnails */}
+                      <div className="flex gap-1.5 mt-2">
+                        {order.items.slice(0, 4).map((item) => (
+                          <div key={item.id} className="h-8 w-8 rounded-sm overflow-hidden bg-secondary/30 shrink-0">
+                            <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
+                          </div>
+                        ))}
+                        {order.items.length > 4 && (
+                          <div className="h-8 w-8 rounded-sm bg-secondary/50 flex items-center justify-center text-[10px] font-bold text-muted-foreground">
+                            +{order.items.length - 4}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">{order.date} · {order.items} item{order.items > 1 ? "s" : ""}</p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="font-mono font-bold text-foreground">${(order.total / 100).toFixed(2)}</p>
-                    <button className="text-xs text-accent hover:underline mt-1">View Details</button>
-                  </div>
-                </div>
-                {order.status === "Delivered" && (
-                  <div className="mt-4 pt-3 border-t border-border flex items-center gap-2">
-                    <div className="flex gap-0.5">
-                      {[1, 2, 3, 4, 5].map((s) => (
-                        <Star key={s} className="h-3.5 w-3.5 fill-accent text-accent" />
-                      ))}
+                    <div className="text-right shrink-0">
+                      <p className="font-mono font-bold text-foreground">${(order.total / 100).toFixed(2)}</p>
                     </div>
-                    <span className="text-xs text-muted-foreground">Rate this order</span>
                   </div>
-                )}
-              </motion.div>
-            ))}
+                  {order.status === "Delivered" && (
+                    <div className="mt-4 pt-3 border-t border-border flex items-center gap-2">
+                      <div className="flex gap-0.5">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star key={s} className="h-3.5 w-3.5 fill-accent text-accent" />
+                        ))}
+                      </div>
+                      <span className="text-xs text-muted-foreground">Rate this order</span>
+                    </div>
+                  )}
+                </motion.div>
+              ))
+            )}
           </TabsContent>
 
+          {/* Wishlist Tab */}
           <TabsContent value="wishlist">
             {wishlistProducts.length === 0 ? (
               <div className="text-center py-20 text-muted-foreground">
@@ -166,11 +243,11 @@ export default function AccountPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.07 }}
                     className="group relative rounded-sm border border-border bg-card overflow-hidden"
+                    data-testid={`wishlist-item-${product.id}`}
                   >
                     <div className="aspect-[4/3] bg-secondary/20 overflow-hidden">
                       <img
-                        src={product.image}
-                        alt={product.name}
+                        src={product.image} alt={product.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                     </div>
@@ -187,6 +264,7 @@ export default function AccountPage() {
                         <button
                           onClick={() => handleRemoveWishlist(product.id, product.name)}
                           className="p-2 rounded-sm border border-border text-muted-foreground hover:text-destructive hover:border-destructive/30 transition-colors"
+                          data-testid={`button-remove-wishlist-${product.id}`}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -198,26 +276,36 @@ export default function AccountPage() {
             )}
           </TabsContent>
 
+          {/* Settings Tab */}
           <TabsContent value="settings" className="max-w-lg space-y-6">
             <div className="space-y-4">
               <h3 className="font-semibold text-foreground">Profile Information</h3>
               <div className="space-y-3">
-                {[
-                  { label: "Full Name", value: user?.name || "" },
-                  { label: "Username", value: user?.username || "" },
-                ].map((field) => (
-                  <div key={field.label}>
-                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{field.label}</label>
-                    <input
-                      className="mt-1.5 w-full h-11 px-3 text-sm bg-secondary/30 border border-border rounded-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
-                      defaultValue={field.value}
-                    />
-                  </div>
-                ))}
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Full Name</label>
+                  <Input
+                    className="mt-1.5 h-11 bg-secondary/30"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    data-testid="input-profile-name"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Username</label>
+                  <Input
+                    className="mt-1.5 h-11 bg-secondary/30 opacity-60 cursor-not-allowed"
+                    value={user?.username || ""}
+                    disabled
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Username cannot be changed.</p>
+                </div>
               </div>
               <PremiumButton
-                size="sm" variant="outline"
-                onClick={() => toast({ title: "Changes saved", description: "Your profile has been updated.", duration: 2000 })}
+                size="sm"
+                isLoading={updateProfileMutation.isPending}
+                onClick={() => updateProfileMutation.mutate(name)}
+                data-testid="button-save-profile"
+                disabled={name === user?.name || !name.trim()}
               >
                 Save Changes
               </PremiumButton>
@@ -227,9 +315,9 @@ export default function AccountPage() {
               <h3 className="font-semibold text-foreground">Preferences</h3>
               <div className="space-y-3">
                 {[
-                  { label: "Order confirmation emails", checked: true },
-                  { label: "New arrivals newsletter", checked: false },
-                  { label: "Exclusive member offers", checked: true },
+                  { label: "Order confirmation emails",  checked: true  },
+                  { label: "New arrivals newsletter",     checked: false },
+                  { label: "Exclusive member offers",     checked: true  },
                 ].map((pref) => (
                   <label key={pref.label} className="flex items-center gap-3 cursor-pointer group">
                     <input

@@ -3,9 +3,10 @@ import { NotFoundError } from "../../utils/errors";
 
 export const AdminService = {
   async getStats() {
-    const [productCount, userCount, products] = await Promise.all([
+    const [productCount, userCount, orderCount, products] = await Promise.all([
       db.product.count(),
       db.user.count(),
+      db.order.count(),
       db.product.findMany({ select: { price: true, stock: true } }),
     ]);
 
@@ -19,6 +20,7 @@ export const AdminService = {
     return {
       productCount,
       userCount,
+      orderCount,
       totalInventoryValue,
       lowStock,
       outOfStock,

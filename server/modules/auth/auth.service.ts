@@ -42,4 +42,9 @@ export const AuthService = {
     if (!user) return null;
     return toSafeUser(user);
   },
+
+  async updateProfile(id: number, data: { name?: string }): Promise<SafeUser> {
+    const user = await db.user.update({ where: { id }, data });
+    return toSafeUser(user);
+  },
 };
