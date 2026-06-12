@@ -5,6 +5,7 @@ export type AdminStats = {
   productCount: number;
   userCount: number;
   orderCount: number;
+  reviewCount: number;
   totalInventoryValue: number;
   lowStock: number;
   outOfStock: number;

@@ -1,12 +1,15 @@
 import { db } from "../../db/client";
 import { NotFoundError } from "../../utils/errors";
 
+const ORDER_STATUSES = ["Processing", "Shipped", "Delivered"] as const;
+
 export const AdminService = {
   async getStats() {
-    const [productCount, userCount, orderCount, products] = await Promise.all([
+    const [productCount, userCount, orderCount, reviewCount, products] = await Promise.all([
       db.product.count(),
       db.user.count(),
       db.order.count(),
+      db.review.count(),
       db.product.findMany({ select: { price: true, stock: true } }),
     ]);
 
@@ -21,6 +24,7 @@ export const AdminService = {
       productCount,
       userCount,
       orderCount,
+      reviewCount,
       totalInventoryValue,
       lowStock,
       outOfStock,
@@ -38,5 +42,31 @@ export const AdminService = {
     const product = await db.product.findUnique({ where: { id } });
     if (!product) throw new NotFoundError("Product");
     return db.product.update({ where: { id }, data });
+  },
+
+  async getAllOrders() {
+    return db.order.findMany({
+      include: {
+        user: { select: { id: true, username: true, name: true } },
+        items: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  },
+
+  async updateOrderStatus(id: number, status: string) {
+    if (!ORDER_STATUSES.includes(status as any)) {
+      throw new Error(`Invalid status: ${status}`);
+    }
+    const order = await db.order.findUnique({ where: { id } });
+    if (!order) throw new NotFoundError("Order");
+    return db.order.update({
+      where: { id },
+      data: { status },
+      include: {
+        user: { select: { id: true, username: true, name: true } },
+        items: true,
+      },
+    });
   },
 };

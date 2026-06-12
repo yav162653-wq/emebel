@@ -1,20 +1,288 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useFurniture, useFurnitureItem } from "@/modules/furniture/hooks/use-furniture";
 import { useCart } from "@/modules/furniture/hooks/use-cart";
 import { useWishlistStore, useFurnitureStore } from "@/modules/furniture/store/furniture-store";
 import { useRecentlyViewedStore } from "@/hooks/use-recently-viewed";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { PremiumButton } from "@/shared/components/PremiumButton";
 import { Skeleton } from "@/components/ui/skeleton";
-import { motion } from "framer-motion";
+import { Textarea } from "@/components/ui/textarea";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, Eye, Heart, Minus, Package, Plus, RotateCcw, Shield, ShoppingBag, Star, Truck,
+  ArrowLeft, Eye, Heart, Minus, Package, Plus, RotateCcw,
+  Shield, ShoppingBag, Star, Truck, MessageSquare, Check,
 } from "lucide-react";
-import { useState } from "react";
 import { Link, useParams } from "wouter";
 import { FurnitureCard } from "@/modules/furniture/ui/FurnitureCard";
+import type { Review, ReviewSummary } from "@shared/schema";
+import { cn } from "@/lib/utils";
 
+// ── Star Rating Picker ────────────────────────────────────────────────────────
+function StarPicker({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [hovered, setHovered] = useState(0);
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map((s) => (
+        <button
+          key={s}
+          type="button"
+          data-testid={`star-pick-${s}`}
+          onMouseEnter={() => setHovered(s)}
+          onMouseLeave={() => setHovered(0)}
+          onClick={() => onChange(s)}
+          className="transition-transform hover:scale-110"
+        >
+          <Star
+            className={cn(
+              "h-6 w-6 transition-colors",
+              s <= (hovered || value)
+                ? "fill-accent text-accent"
+                : "text-muted-foreground/40"
+            )}
+          />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ── Review Card ───────────────────────────────────────────────────────────────
+function ReviewCard({ review }: { review: Review }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="p-4 rounded-sm border border-border bg-card space-y-2"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-full bg-accent/15 flex items-center justify-center shrink-0">
+            <span className="text-xs font-bold text-accent">
+              {review.user.name[0].toUpperCase()}
+            </span>
+          </div>
+          <div>
+            <p className="text-sm font-semibold">{review.user.name}</p>
+            <p className="text-[11px] text-muted-foreground">
+              {new Date(review.createdAt).toLocaleDateString("en-US", {
+                year: "numeric", month: "short", day: "numeric",
+              })}
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-0.5">
+          {[1, 2, 3, 4, 5].map((s) => (
+            <Star
+              key={s}
+              className={cn(
+                "h-3.5 w-3.5",
+                s <= review.rating ? "fill-accent text-accent" : "text-muted-foreground/20"
+              )}
+            />
+          ))}
+        </div>
+      </div>
+      {review.body && (
+        <p className="text-sm text-foreground/80 leading-relaxed pl-11">{review.body}</p>
+      )}
+    </motion.div>
+  );
+}
+
+// ── Reviews Section ───────────────────────────────────────────────────────────
+function ReviewsSection({ productId }: { productId: number }) {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const [rating, setRating] = useState(0);
+  const [body, setBody] = useState("");
+  const [showForm, setShowForm] = useState(false);
+
+  const { data: summary } = useQuery<ReviewSummary>({
+    queryKey: ["/api/reviews", productId, "summary"],
+    queryFn: async () => {
+      const res = await fetch(`/api/reviews/${productId}/summary`);
+      return res.json();
+    },
+  });
+
+  const { data: reviews = [], isLoading: reviewsLoading } = useQuery<Review[]>({
+    queryKey: ["/api/reviews", productId],
+    queryFn: async () => {
+      const res = await fetch(`/api/reviews/${productId}`);
+      return res.json();
+    },
+  });
+
+  const { data: myReview } = useQuery({
+    queryKey: ["/api/reviews", productId, "mine"],
+    queryFn: async () => {
+      const res = await fetch(`/api/reviews/${productId}/mine`);
+      return res.json();
+    },
+    enabled: !!user,
+  });
+
+  // Pre-fill if user already has a review
+  useEffect(() => {
+    if (myReview) {
+      setRating(myReview.rating);
+      setBody(myReview.body ?? "");
+    }
+  }, [myReview]);
+
+  const submitReview = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/reviews/${productId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating, body: body.trim() || undefined }),
+      });
+      if (!res.ok) throw new Error("Failed to submit");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/reviews", productId] });
+      setShowForm(false);
+      toast({ title: myReview ? "Review updated" : "Review submitted", description: "Thank you for your feedback!", duration: 3000 });
+    },
+    onError: () => {
+      toast({ variant: "destructive", title: "Error", description: "Could not submit your review." });
+    },
+  });
+
+  const avgStars = summary?.average ?? 0;
+  const fullStars = Math.floor(avgStars);
+
+  return (
+    <section className="mt-20 space-y-8">
+      <div className="flex items-end justify-between">
+        <div>
+          <p className="text-xs font-mono uppercase tracking-widest text-accent mb-2">Verified Buyers</p>
+          <h2 className="font-display text-3xl font-medium">Customer Reviews</h2>
+        </div>
+
+        {summary && summary.count > 0 && (
+          <div className="text-right hidden sm:block">
+            <div className="flex items-center gap-1 justify-end mb-1">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <Star
+                  key={s}
+                  className={cn(
+                    "h-4 w-4",
+                    s <= fullStars ? "fill-accent text-accent" :
+                    s === fullStars + 1 && avgStars % 1 >= 0.5 ? "fill-accent/50 text-accent" :
+                    "text-muted-foreground/20"
+                  )}
+                />
+              ))}
+              <span className="ml-1.5 font-bold text-lg">{avgStars.toFixed(1)}</span>
+            </div>
+            <p className="text-sm text-muted-foreground">{summary.count} review{summary.count !== 1 ? "s" : ""}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Write a Review CTA */}
+      {user && !showForm && (
+        <button
+          onClick={() => setShowForm(true)}
+          data-testid="button-write-review"
+          className="flex items-center gap-2 text-sm font-medium text-accent hover:underline transition-colors"
+        >
+          <MessageSquare className="h-4 w-4" />
+          {myReview ? "Edit your review" : "Write a review"}
+        </button>
+      )}
+
+      {/* Review Form */}
+      <AnimatePresence>
+        {showForm && user && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="p-6 rounded-sm border border-accent/20 bg-accent/5 space-y-5">
+              <h3 className="font-semibold">{myReview ? "Update your review" : "Leave a review"}</h3>
+
+              <div className="space-y-1.5">
+                <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Rating</p>
+                <StarPicker value={rating} onChange={setRating} />
+              </div>
+
+              <div className="space-y-1.5">
+                <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+                  Comment <span className="normal-case">(optional)</span>
+                </p>
+                <Textarea
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  placeholder="Share your experience with this piece..."
+                  data-testid="input-review-body"
+                  className="resize-none h-24 bg-background"
+                  maxLength={1000}
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <PremiumButton
+                  onClick={() => submitReview.mutate()}
+                  isLoading={submitReview.isPending}
+                  disabled={rating === 0}
+                  data-testid="button-submit-review"
+                >
+                  <Check className="mr-2 h-4 w-4" />
+                  {myReview ? "Update Review" : "Submit Review"}
+                </PremiumButton>
+                <PremiumButton
+                  variant="outline"
+                  onClick={() => setShowForm(false)}
+                  data-testid="button-cancel-review"
+                >
+                  Cancel
+                </PremiumButton>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Login prompt */}
+      {!user && (
+        <p className="text-sm text-muted-foreground">
+          <Link href="/login">
+            <span className="text-accent underline cursor-pointer hover:no-underline">Sign in</span>
+          </Link>{" "}
+          to leave a review.
+        </p>
+      )}
+
+      {/* Reviews List */}
+      {reviewsLoading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-sm" />)}
+        </div>
+      ) : reviews.length === 0 ? (
+        <div className="py-12 text-center border border-dashed border-border rounded-sm">
+          <Star className="h-8 w-8 text-muted-foreground/20 mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">No reviews yet. Be the first!</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {reviews.map((review) => <ReviewCard key={review.id} review={review} />)}
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ── Main ProductDetail ────────────────────────────────────────────────────────
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const productId = Number(id);
@@ -27,9 +295,17 @@ export default function ProductDetail() {
   const { toast } = useToast();
   const [quantity, setQuantity] = useState(1);
 
+  const { data: summary } = useQuery<ReviewSummary>({
+    queryKey: ["/api/reviews", productId, "summary"],
+    queryFn: async () => {
+      const res = await fetch(`/api/reviews/${productId}/summary`);
+      return res.json();
+    },
+    enabled: !!productId,
+  });
+
   usePageTitle(product?.name);
 
-  // Track recently viewed
   useEffect(() => {
     if (product) addRecentlyViewed(product.id);
   }, [product]);
@@ -95,6 +371,8 @@ export default function ProductDetail() {
 
   const isOutOfStock = product.stock === 0;
   const isLowStock = product.stock > 0 && product.stock <= 5;
+  const avgStars = summary?.average ?? 0;
+  const reviewCount = summary?.count ?? 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -150,12 +428,26 @@ export default function ProductDetail() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="flex flex-col gap-7 lg:pt-4"
           >
-            {/* Rating */}
+            {/* Rating — real data */}
             <div className="flex items-center gap-2">
               {[1, 2, 3, 4, 5].map((s) => (
-                <Star key={s} className="h-4 w-4 fill-accent text-accent" />
+                <Star
+                  key={s}
+                  className={cn(
+                    "h-4 w-4",
+                    reviewCount === 0
+                      ? "text-muted-foreground/30"
+                      : s <= Math.round(avgStars)
+                      ? "fill-accent text-accent"
+                      : "text-muted-foreground/30"
+                  )}
+                />
               ))}
-              <span className="text-sm text-muted-foreground ml-1">(48 reviews)</span>
+              <span className="text-sm text-muted-foreground ml-1" data-testid="text-review-count">
+                {reviewCount > 0
+                  ? `${avgStars.toFixed(1)} (${reviewCount} review${reviewCount !== 1 ? "s" : ""})`
+                  : "No reviews yet"}
+              </span>
             </div>
 
             {/* Title + Price */}
@@ -270,6 +562,9 @@ export default function ProductDetail() {
             </div>
           </motion.div>
         </div>
+
+        {/* Reviews */}
+        <ReviewsSection productId={productId} />
 
         {/* Related Products */}
         {relatedProducts.length > 0 && (

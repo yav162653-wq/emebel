@@ -1,18 +1,20 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, Eye, Menu, X } from "lucide-react";
+import { ArrowLeft, Eye, Menu } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { PremiumButton } from "@/shared/components/PremiumButton";
 import { AdminSidebar, type AdminTab } from "@/modules/admin/ui/AdminSidebar";
 import { OverviewTab } from "@/modules/admin/ui/OverviewTab";
 import { ProductsTab } from "@/modules/admin/ui/ProductsTab";
 import { UsersTab } from "@/modules/admin/ui/UsersTab";
+import { OrdersTab } from "@/modules/admin/ui/OrdersTab";
 import { cn } from "@/lib/utils";
 
 function TabContent({ tab }: { tab: AdminTab }) {
   if (tab === "overview") return <OverviewTab />;
   if (tab === "products") return <ProductsTab />;
   if (tab === "users")    return <UsersTab />;
+  if (tab === "orders")   return <OrdersTab />;
   return null;
 }
 

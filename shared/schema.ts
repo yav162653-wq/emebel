@@ -66,6 +66,34 @@ export type Order = {
   items: OrderItem[];
 };
 
+// Admin-facing order with user info
+export type AdminOrder = Order & {
+  user: { id: number; username: string; name: string };
+};
+
+// ── Review ────────────────────────────────────────────────────────────────────
+export const insertReviewSchema = z.object({
+  rating: z.number().int().min(1).max(5),
+  body: z.string().max(1000).optional(),
+});
+
+export type InsertReview = z.infer<typeof insertReviewSchema>;
+
+export type Review = {
+  id: number;
+  productId: number;
+  userId: number;
+  rating: number;
+  body: string | null;
+  createdAt: string;
+  user: { id: number; name: string; username: string };
+};
+
+export type ReviewSummary = {
+  count: number;
+  average: number;
+};
+
 // ── Request / Response aliases ────────────────────────────────────────────────
 export type LoginRequest = { username: string; password: string };
 export type AuthResponse = User;
@@ -73,3 +101,5 @@ export type ProductListResponse = Product[];
 export type ProductResponse = Product;
 export type CartListResponse = (CartItem & { product: Product })[];
 export type OrderListResponse = Order[];
+export type AdminOrderListResponse = AdminOrder[];
+export type ReviewListResponse = Review[];

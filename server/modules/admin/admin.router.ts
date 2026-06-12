@@ -42,4 +42,24 @@ router.patch(
   })
 );
 
+// GET /api/admin/orders — all orders
+router.get(
+  "/orders",
+  asyncHandler(async (_req, res) => {
+    const orders = await AdminService.getAllOrders();
+    res.json(orders);
+  })
+);
+
+// PATCH /api/admin/orders/:id/status — update order status
+router.patch(
+  "/orders/:id/status",
+  asyncHandler(async (req, res) => {
+    const id = z.coerce.number().int().positive().parse(req.params.id);
+    const { status } = z.object({ status: z.string() }).parse(req.body);
+    const order = await AdminService.updateOrderStatus(id, status);
+    res.json(order);
+  })
+);
+
 export default router;

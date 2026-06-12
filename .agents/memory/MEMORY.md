@@ -1,3 +1,4 @@
 - [Prisma 7 on Replit](prisma7-replit.md) — Prisma 7 needs prisma.config.ts with datasource.url; no url in schema.prisma; use @prisma/adapter-pg at runtime.
-- [Enterprise backend architecture](enterprise-backend.md) — modular Node/Express: config/, middleware/, modules/auth|products|cart|orders|admin/, db/, utils/ pattern used in SPACE. app.
-- [Orders module + Prisma regenerate](orders-module.md) — After adding new Prisma models (Order, OrderItem), must run prisma db push AND prisma generate; skipping generate causes 500 errors at runtime.
+- [Enterprise backend architecture](enterprise-backend.md) — modular Node/Express: config/, middleware/, modules/auth|products|cart|orders|admin|reviews/, db/, utils/ pattern used in SPACE. app.
+- [Prisma schema change workflow](prisma-schema-change.md) — After any Prisma model change: run prisma db push then prisma generate; skipping generate causes 500 errors at runtime.
+- [Reviews module](reviews-module.md) — Review model has @@unique([productId, userId]); upsert via productId_userId compound key; router at /api/reviews/:productId with summary + mine sub-routes.

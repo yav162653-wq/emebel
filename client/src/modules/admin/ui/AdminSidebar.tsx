@@ -1,13 +1,14 @@
-import { BarChart3, ChevronRight, LogOut, Package, Settings, Users } from "lucide-react";
+import { BarChart3, ChevronRight, LogOut, Package, ShoppingBag, Users } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 
-export type AdminTab = "overview" | "products" | "users";
+export type AdminTab = "overview" | "products" | "users" | "orders";
 
 const NAV_ITEMS: { id: AdminTab; label: string; icon: React.ElementType }[] = [
-  { id: "overview",  label: "Overview",  icon: BarChart3 },
-  { id: "products",  label: "Products",  icon: Package   },
-  { id: "users",     label: "Users",     icon: Users     },
+  { id: "overview",  label: "Overview",  icon: BarChart3   },
+  { id: "products",  label: "Products",  icon: Package     },
+  { id: "orders",    label: "Orders",    icon: ShoppingBag },
+  { id: "users",     label: "Users",     icon: Users       },
 ];
 
 interface AdminSidebarProps {

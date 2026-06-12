@@ -1,17 +1,11 @@
 import { motion } from "framer-motion";
-import { BarChart3, DollarSign, Package, ShoppingBag, TrendingDown, TrendingUp, Users } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { DollarSign, MessageSquare, Package, ShoppingBag, TrendingDown, TrendingUp, Users } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAdminStats } from "../hooks/use-admin";
 import { useFurniture } from "@/modules/furniture/hooks/use-furniture";
 import { cn } from "@/lib/utils";
-
-const MOCK_ORDERS = [
-  { id: "SP-91823", customer: "Emma Wilson",  product: "Cosimo Lounge Chair", amount: 189000, status: "Processing" },
-  { id: "SP-81723", customer: "James Carter", product: "Slab Dining Table",   amount: 345000, status: "Shipped"    },
-  { id: "SP-71623", customer: "Sophie Tan",   product: "Nebula Pendant",      amount: 68000,  status: "Delivered"  },
-  { id: "SP-61523", customer: "Luca Romano",  product: "Monolith Bed Frame",  amount: 285000, status: "Processing" },
-  { id: "SP-51423", customer: "Mia Chen",     product: "Arch Floor Lamp",     amount: 52000,  status: "Delivered"  },
-];
+import type { AdminOrder } from "@shared/schema";
 
 const STATUS_COLORS: Record<string, string> = {
   Delivered:  "bg-green-100  text-green-800  dark:bg-green-900/30  dark:text-green-400",
@@ -22,6 +16,15 @@ const STATUS_COLORS: Record<string, string> = {
 export function OverviewTab() {
   const { data: stats, isLoading: statsLoading } = useAdminStats();
   const { data: products, isLoading: productsLoading } = useFurniture();
+
+  const { data: recentOrders = [], isLoading: ordersLoading } = useQuery<AdminOrder[]>({
+    queryKey: ["/api/admin/orders"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/orders");
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+  });
 
   const kpiCards = stats
     ? [
@@ -53,6 +56,13 @@ export function OverviewTab() {
           change: stats.orderCount > 0 ? "All time" : "No orders yet",
           up: true,
         },
+        {
+          label: "Reviews",
+          value: stats.reviewCount,
+          icon: MessageSquare,
+          change: stats.reviewCount > 0 ? "Customer reviews" : "None yet",
+          up: true,
+        },
       ]
     : [];
 
@@ -66,9 +76,9 @@ export function OverviewTab() {
       </motion.div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
         {statsLoading
-          ? Array.from({ length: 4 }).map((_, i) => (
+          ? Array.from({ length: 5 }).map((_, i) => (
               <Skeleton key={i} className="h-28 rounded-sm" />
             ))
           : kpiCards.map((card, i) => (
@@ -99,7 +109,7 @@ export function OverviewTab() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Recent Orders (mock) */}
+        {/* Recent Orders — real data */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -108,30 +118,53 @@ export function OverviewTab() {
         >
           <div className="px-5 py-4 border-b flex items-center justify-between">
             <h3 className="font-semibold">Recent Orders</h3>
-            <span className="text-xs text-muted-foreground font-mono">Demo data</span>
+            <span className="text-xs text-muted-foreground font-mono">
+              {recentOrders.length} total
+            </span>
           </div>
           <div className="divide-y divide-border">
-            {MOCK_ORDERS.map((order) => (
-              <div
-                key={order.id}
-                className="px-5 py-3.5 flex items-center gap-4 hover:bg-secondary/20 transition-colors"
-                data-testid={`order-row-${order.id}`}
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-mono text-xs text-muted-foreground">{order.id}</p>
-                    <span className={cn("px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider", STATUS_COLORS[order.status])}>
-                      {order.status}
-                    </span>
-                  </div>
-                  <p className="text-sm font-medium truncate mt-0.5">{order.product}</p>
-                  <p className="text-xs text-muted-foreground">{order.customer}</p>
+            {ordersLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="px-5 py-3.5 flex items-center gap-4">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-12 ml-auto" />
                 </div>
-                <span className="font-mono text-sm font-semibold shrink-0">
-                  ${(order.amount / 100).toFixed(0)}
-                </span>
+              ))
+            ) : recentOrders.length === 0 ? (
+              <div className="px-5 py-10 text-center text-sm text-muted-foreground">
+                No orders placed yet.
               </div>
-            ))}
+            ) : (
+              recentOrders.slice(0, 6).map((order) => (
+                <div
+                  key={order.id}
+                  className="px-5 py-3.5 flex items-center gap-4 hover:bg-secondary/20 transition-colors"
+                  data-testid={`order-row-${order.id}`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-mono text-xs text-muted-foreground">
+                        SP-{String(order.id).padStart(5, "0")}
+                      </p>
+                      <span className={cn(
+                        "px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider",
+                        STATUS_COLORS[order.status] ?? STATUS_COLORS.Processing
+                      )}>
+                        {order.status}
+                      </span>
+                    </div>
+                    <p className="text-sm font-medium truncate mt-0.5">
+                      {order.items[0]?.name ?? "—"}
+                      {order.items.length > 1 ? ` +${order.items.length - 1} more` : ""}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{order.user.name}</p>
+                  </div>
+                  <span className="font-mono text-sm font-semibold shrink-0">
+                    ${(order.total / 100).toFixed(0)}
+                  </span>
+                </div>
+              ))
+            )}
           </div>
         </motion.div>
 
