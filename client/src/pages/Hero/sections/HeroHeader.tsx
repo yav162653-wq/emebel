@@ -180,7 +180,7 @@ export function HeroHeader() {
             </PremiumButton>
 
             {/* Wishlist */}
-            <Link href="/account">
+            <Link href="/wishlist">
               <PremiumButton variant="ghost" size="icon" className="relative" data-testid="button-wishlist-nav">
                 <Heart className="h-5 w-5" />
                 <AnimatePresence>
@@ -238,7 +238,7 @@ export function HeroHeader() {
                     <User className="mr-2 h-4 w-4" /> My Account
                   </DropdownMenuItem>
                 </Link>
-                <Link href="/account">
+                <Link href="/wishlist">
                   <DropdownMenuItem className="cursor-pointer">
                     <Heart className="mr-2 h-4 w-4" /> Wishlist
                     {wishlist.count() > 0 && (

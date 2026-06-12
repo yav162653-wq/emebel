@@ -11,6 +11,7 @@ import ProductDetail from "@/pages/Product/ProductDetail";
 import CheckoutPage from "@/pages/Checkout/CheckoutPage";
 import AccountPage from "@/pages/Account/AccountPage";
 import AdminDashboard from "@/pages/Admin/AdminDashboard";
+import WishlistPage from "@/pages/Wishlist/WishlistPage";
 import NotFound from "@/pages/not-found";
 
 const pageVariants = {
@@ -71,6 +72,9 @@ export function AppRouter() {
           </Route>
           <Route path="/admin">
             {() => <ProtectedRoute component={AdminDashboard} />}
+          </Route>
+          <Route path="/wishlist">
+            {() => <ProtectedRoute component={WishlistPage} />}
           </Route>
           <Route component={NotFound} />
         </Switch>

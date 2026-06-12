@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { Link } from "wouter";
-import { LayoutDashboard, LogOut, Moon, Sun, User } from "lucide-react";
+import { Heart, LayoutDashboard, LogOut, Moon, Sun, User } from "lucide-react";
 
 export function MobileNav() {
   const { mobileNavOpen, setMobileNavOpen, activeCategory, setCategory } = useFurnitureStore();
@@ -76,6 +76,12 @@ export function MobileNav() {
               <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm font-medium text-foreground hover:bg-secondary/60 transition-colors">
                 <User className="h-4 w-4" />
                 My Account
+              </button>
+            </Link>
+            <Link href="/wishlist" onClick={() => setMobileNavOpen(false)}>
+              <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm font-medium text-foreground hover:bg-secondary/60 transition-colors">
+                <Heart className="h-4 w-4" />
+                Wishlist
               </button>
             </Link>
             {user?.role === "admin" && (

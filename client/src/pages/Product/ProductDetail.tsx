@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useFurniture, useFurnitureItem } from "@/modules/furniture/hooks/use-furniture";
 import { useCart } from "@/modules/furniture/hooks/use-cart";
@@ -282,6 +282,16 @@ function ReviewsSection({ productId }: { productId: number }) {
   );
 }
 
+// ── Finish / Color Config ─────────────────────────────────────────────────────
+const FINISHES = [
+  { name: "Slate",   hex: "#6B7280", textLight: false },
+  { name: "Walnut",  hex: "#7C5C3A", textLight: true  },
+  { name: "Cream",   hex: "#F0EBE0", textLight: false },
+  { name: "Onyx",    hex: "#1C1C1E", textLight: true  },
+] as const;
+
+type FinishName = typeof FINISHES[number]["name"];
+
 // ── Main ProductDetail ────────────────────────────────────────────────────────
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
@@ -294,6 +304,7 @@ export default function ProductDetail() {
   const { add: addRecentlyViewed, ids: recentIds } = useRecentlyViewedStore();
   const { toast } = useToast();
   const [quantity, setQuantity] = useState(1);
+  const [selectedFinish, setSelectedFinish] = useState<FinishName>("Walnut");
 
   const { data: summary } = useQuery<ReviewSummary>({
     queryKey: ["/api/reviews", productId, "summary"],
@@ -492,6 +503,32 @@ export default function ProductDetail() {
             </div>
 
             <div className="h-px bg-border" />
+
+            {/* Finish Selector */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Finish</p>
+                <p className="text-sm font-semibold text-foreground">{selectedFinish}</p>
+              </div>
+              <div className="flex gap-3">
+                {FINISHES.map((finish) => (
+                  <button
+                    key={finish.name}
+                    data-testid={`button-finish-${finish.name.toLowerCase()}`}
+                    onClick={() => setSelectedFinish(finish.name)}
+                    title={finish.name}
+                    className={cn(
+                      "h-9 w-9 rounded-full border-2 transition-all duration-200 hover:scale-110 focus:outline-none",
+                      selectedFinish === finish.name
+                        ? "border-foreground ring-2 ring-offset-2 ring-foreground/30 scale-110"
+                        : "border-border/60 hover:border-foreground/40"
+                    )}
+                    style={{ backgroundColor: finish.hex }}
+                    aria-label={finish.name}
+                  />
+                ))}
+              </div>
+            </div>
 
             {/* Quantity */}
             {!isOutOfStock && (
