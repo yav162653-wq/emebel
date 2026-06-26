@@ -29,6 +29,7 @@ export const insertProductSchema = z.object({
   material: z.string().default("Premium Grade"),
   warranty: z.string().default("Lifetime"),
   origin: z.string().default("Studio Crafted"),
+  assembly: z.string().default("White Glove"),
   colors: z.array(z.string()).default([]),
 });
 

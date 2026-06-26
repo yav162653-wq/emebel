@@ -31,6 +31,7 @@ model Product {
   material    String     @default("Premium Grade")
   warranty    String     @default("Lifetime")
   origin      String     @default("Studio Crafted")
+  assembly    String     @default("White Glove")
   colors      String[]   @default([])
   cartItems   CartItem[]
   reviews     Review[]

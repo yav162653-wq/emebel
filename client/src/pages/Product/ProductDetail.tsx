@@ -519,7 +519,7 @@ export default function ProductDetail() {
                 { label: "Stock",    value: isOutOfStock ? "Sold Out" : `${product.stock} units` },
                 { label: "Material", value: product.material },
                 { label: "Warranty", value: product.warranty },
-                { label: "Assembly", value: "White Glove" },
+                { label: "Assembly", value: product.assembly },
                 { label: "Origin",   value: product.origin },
               ].map(({ label, value }) => (
                 <div key={label}>

@@ -82,9 +82,9 @@ export default function HeroPage() {
             © {new Date().getFullYear()} Space Furniture. All rights reserved.
           </p>
           <div className="flex gap-6 text-xs text-muted-foreground">
-            {["Privacy", "Terms", "Shipping", "Returns"].map((link) => (
-              <a key={link} href="#" className="hover:text-foreground transition-colors">{link}</a>
-            ))}
+            <a href="mailto:hello@spacefurniture.com" className="hover:text-foreground transition-colors">Contact</a>
+            <a href="https://spacefurniture.com/shipping" className="hover:text-foreground transition-colors">Shipping</a>
+            <a href="https://spacefurniture.com/returns" className="hover:text-foreground transition-colors">Returns</a>
           </div>
         </div>
       </footer>

@@ -556,18 +556,14 @@ export default function LandingPage() {
             © {currentYear} Space Furniture. All rights reserved.
           </p>
           <div className="flex gap-6 text-xs text-muted-foreground">
-            <Link href="/register">
+            <Link href="/shop">
               <span className="hover:text-foreground transition-colors cursor-pointer">Shop</span>
             </Link>
             <Link href="/login">
               <span className="hover:text-foreground transition-colors cursor-pointer">Account</span>
             </Link>
-            <Link href="/register">
-              <span className="hover:text-foreground transition-colors cursor-pointer">Contact</span>
-            </Link>
-            <Link href="/register">
-              <span className="hover:text-foreground transition-colors cursor-pointer">About</span>
-            </Link>
+            <a href="mailto:hello@spacefurniture.com" className="hover:text-foreground transition-colors">Contact</a>
+            <a href="https://spacefurniture.com/about" className="hover:text-foreground transition-colors">About</a>
           </div>
         </div>
       </footer>

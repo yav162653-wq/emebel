@@ -147,6 +147,9 @@ export function ProductsTab() {
                 <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-12">#</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Product</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Category</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden xl:table-cell">Material</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden xl:table-cell">Origin</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden 2xl:table-cell">Colors</th>
                 <th className="text-right px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Price</th>
                 <th className="text-right px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Stock</th>
               </tr>
@@ -163,11 +166,14 @@ export function ProductsTab() {
                         </div>
                       </td>
                       <td className="px-5 py-3.5 hidden md:table-cell"><Skeleton className="h-4 w-20" /></td>
+                      <td className="px-5 py-3.5 hidden xl:table-cell"><Skeleton className="h-4 w-24" /></td>
+                      <td className="px-5 py-3.5 hidden xl:table-cell"><Skeleton className="h-4 w-16" /></td>
+                      <td className="px-5 py-3.5 hidden 2xl:table-cell"><Skeleton className="h-4 w-28" /></td>
                       <td className="px-5 py-3.5 text-right"><Skeleton className="h-4 w-14 ml-auto" /></td>
                       <td className="px-5 py-3.5 text-right"><Skeleton className="h-4 w-10 ml-auto" /></td>
                     </tr>
                   ))
-                : filtered.map((product, i) => (
+                : filtered.map((product) => (
                     <tr
                       key={product.id}
                       className="group hover:bg-secondary/20 transition-colors"
@@ -181,13 +187,29 @@ export function ProductsTab() {
                           <div className="h-9 w-9 shrink-0 rounded-sm overflow-hidden bg-secondary/30">
                             <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
                           </div>
-                          <span className="font-medium text-sm truncate max-w-[180px]">{product.name}</span>
+                          <div className="min-w-0">
+                            <span className="font-medium text-sm truncate block max-w-[180px]" data-testid={`text-admin-product-name-${product.id}`}>{product.name}</span>
+                            <span className="text-[11px] text-muted-foreground font-mono">{product.warranty} warranty</span>
+                          </div>
                         </div>
                       </td>
                       <td className="px-5 py-3.5 hidden md:table-cell">
                         <span className="px-2 py-0.5 rounded-full bg-secondary/60 text-xs font-medium text-muted-foreground">
                           {product.category}
                         </span>
+                      </td>
+                      <td className="px-5 py-3.5 hidden xl:table-cell text-sm text-muted-foreground truncate max-w-[140px]" data-testid={`text-admin-material-${product.id}`}>
+                        {product.material}
+                      </td>
+                      <td className="px-5 py-3.5 hidden xl:table-cell text-sm text-muted-foreground" data-testid={`text-admin-origin-${product.id}`}>
+                        {product.origin}
+                      </td>
+                      <td className="px-5 py-3.5 hidden 2xl:table-cell" data-testid={`text-admin-colors-${product.id}`}>
+                        {product.colors && product.colors.length > 0 ? (
+                          <span className="text-xs text-muted-foreground">{product.colors.slice(0, 2).join(", ")}{product.colors.length > 2 ? ` +${product.colors.length - 2}` : ""}</span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground/40">—</span>
+                        )}
                       </td>
                       <td className="px-5 py-3.5 text-right font-mono text-sm">
                         ${(product.price / 100).toFixed(0)}
