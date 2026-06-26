@@ -68,7 +68,7 @@ export function HeroProducts() {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <p className="text-xs font-mono uppercase tracking-[0.25em] text-accent mb-2">
-            Collection 2025
+            Collection {new Date().getFullYear()}
           </p>
           <h2 className="font-display text-4xl md:text-5xl font-medium tracking-tight">
             {activeCategory === "All" ? "All Products" : activeCategory}

@@ -26,6 +26,10 @@ export const insertProductSchema = z.object({
   category: z.string().min(1),
   image: z.string(),
   stock: z.number().int().default(0),
+  material: z.string().default("Premium Grade"),
+  warranty: z.string().default("Lifetime"),
+  origin: z.string().default("Studio Crafted"),
+  colors: z.array(z.string()).default([]),
 });
 
 export type InsertProduct = z.infer<typeof insertProductSchema>;

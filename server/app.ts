@@ -9,12 +9,14 @@ import { httpLogger } from "./config/logger";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { globalLimiter } from "./middleware/rateLimiter";
 
-import authRouter     from "./modules/auth/auth.router";
-import productsRouter from "./modules/products/products.router";
-import cartRouter     from "./modules/cart/cart.router";
-import adminRouter    from "./modules/admin/admin.router";
-import ordersRouter   from "./modules/orders/orders.router";
-import reviewsRouter  from "./modules/reviews/reviews.router";
+import authRouter       from "./modules/auth/auth.router";
+import productsRouter   from "./modules/products/products.router";
+import cartRouter       from "./modules/cart/cart.router";
+import adminRouter      from "./modules/admin/admin.router";
+import ordersRouter     from "./modules/orders/orders.router";
+import reviewsRouter    from "./modules/reviews/reviews.router";
+import statsRouter      from "./modules/stats/stats.router";
+import newsletterRouter from "./modules/newsletter/newsletter.router";
 
 const SessionStore = MemoryStore(session);
 
@@ -78,12 +80,14 @@ export function createApp() {
   });
 
   // ── API Routes ────────────────────────────────────────────────────────
-  app.use("/api/auth",     authRouter);
-  app.use("/api/products", productsRouter);
-  app.use("/api/cart",     cartRouter);
-  app.use("/api/admin",    adminRouter);
-  app.use("/api/orders",   ordersRouter);
-  app.use("/api/reviews",  reviewsRouter);
+  app.use("/api/auth",       authRouter);
+  app.use("/api/products",   productsRouter);
+  app.use("/api/cart",       cartRouter);
+  app.use("/api/admin",      adminRouter);
+  app.use("/api/orders",     ordersRouter);
+  app.use("/api/reviews",    reviewsRouter);
+  app.use("/api/stats",      statsRouter);
+  app.use("/api/newsletter", newsletterRouter);
 
   // ── 404 for unmatched API routes (frontend routes handled by Vite) ────
   app.use("/api/*", notFoundHandler);

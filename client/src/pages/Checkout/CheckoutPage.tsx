@@ -51,14 +51,10 @@ export default function CheckoutPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          total: grandTotal,
           address: address || "Not provided",
           items: items.map((item) => ({
             productId: item.product.id,
-            name: item.product.name,
-            price: item.product.price,
             quantity: item.quantity,
-            image: item.product.image,
           })),
         }),
       });

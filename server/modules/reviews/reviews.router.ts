@@ -11,6 +11,19 @@ const reviewBody = z.object({
   body: z.string().max(1000).optional(),
 });
 
+// GET /api/reviews/latest — latest top-rated reviews across all products (public)
+router.get(
+  "/latest",
+  asyncHandler(async (req, res) => {
+    const limit = Math.min(
+      z.coerce.number().int().positive().default(3).parse(req.query.limit ?? 3),
+      10
+    );
+    const reviews = await ReviewsService.getLatest(limit);
+    res.json(reviews);
+  })
+);
+
 // GET /api/reviews/:productId — all reviews for a product (public)
 router.get(
   "/:productId",

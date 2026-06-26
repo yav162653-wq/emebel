@@ -1,6 +1,18 @@
 import { db } from "../../db/client";
 
 export const ReviewsService = {
+  async getLatest(limit = 3) {
+    return db.review.findMany({
+      where: { body: { not: null }, rating: { gte: 4 } },
+      include: {
+        user: { select: { id: true, name: true, username: true } },
+        product: { select: { id: true, name: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+    });
+  },
+
   async getByProduct(productId: number) {
     return db.review.findMany({
       where: { productId },

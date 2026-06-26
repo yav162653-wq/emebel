@@ -2,45 +2,14 @@ import { Link } from "wouter";
 import { PremiumButton } from "@/shared/components/PremiumButton";
 import { useTheme } from "@/app/providers/ThemeProvider";
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { ArrowRight, Moon, Star, Sun, Truck, Shield, Zap } from "lucide-react";
-
-const FEATURED = [
-  {
-    name: "Cosimo Lounge Chair",
-    price: "$1,890",
-    category: "Seating",
-    image: "https://images.unsplash.com/photo-1592078615290-033ee584e267?auto=format&fit=crop&q=80&w=600",
-    tag: "Best Seller",
-  },
-  {
-    name: "Slab Dining Table",
-    price: "$3,450",
-    category: "Tables",
-    image: "https://images.unsplash.com/photo-1577140917170-285929fb55b7?auto=format&fit=crop&q=80&w=600",
-    tag: "Limited",
-  },
-  {
-    name: "Nebula Pendant",
-    price: "$680",
-    category: "Lighting",
-    image: "https://images.unsplash.com/photo-1507473883581-20963378120f?auto=format&fit=crop&q=80&w=600",
-    tag: "New",
-  },
-  {
-    name: "Monolith Bed Frame",
-    price: "$2,850",
-    category: "Bedroom",
-    image: "https://images.unsplash.com/photo-1505693314120-0d443867891c?auto=format&fit=crop&q=80&w=600",
-    tag: "Editor's Pick",
-  },
-];
-
-const REVIEWS = [
-  { name: "Emma W.", text: "Absolutely stunning quality. The Cosimo chair is the centerpiece of my living room. Worth every penny.", rating: 5 },
-  { name: "James C.", text: "White-glove delivery was flawless. The team assembled everything perfectly. Will order again.", rating: 5 },
-  { name: "Sophie T.", text: "Space has redefined what furniture shopping should feel like. Effortless, beautiful, premium.", rating: 5 },
-];
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { Product } from "@shared/schema";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 function AnimatedWord({ word, delay }: { word: string; delay: number }) {
   return (
@@ -55,8 +24,24 @@ function AnimatedWord({ word, delay }: { word: string; delay: number }) {
   );
 }
 
+type LatestReview = {
+  id: number;
+  rating: number;
+  body: string | null;
+  createdAt: string;
+  user: { id: number; name: string; username: string };
+  product: { id: number; name: string };
+};
+
+type PublicStats = {
+  productCount: number;
+  reviewCount: number;
+  orderCount: number;
+};
+
 export default function LandingPage() {
   const { theme, toggleTheme } = useTheme();
+  const { toast } = useToast();
   const heroRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
   const heroScale = useTransform(scrollYProgress, [0, 1], [1, 1.15]);
@@ -65,6 +50,57 @@ export default function LandingPage() {
 
   const featuresRef = useRef<HTMLElement>(null);
   const featuresInView = useInView(featuresRef, { once: true, margin: "-100px" });
+
+  const [email, setEmail] = useState("");
+  const [subscribed, setSubscribed] = useState(false);
+
+  const { data: products, isLoading: productsLoading } = useQuery<Product[]>({
+    queryKey: ["/api/products"],
+  });
+
+  const { data: latestReviews = [], isLoading: reviewsLoading } = useQuery<LatestReview[]>({
+    queryKey: ["/api/reviews/latest"],
+    queryFn: async () => {
+      const res = await fetch("/api/reviews/latest?limit=3");
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const { data: stats } = useQuery<PublicStats>({
+    queryKey: ["/api/stats"],
+    queryFn: async () => {
+      const res = await fetch("/api/stats");
+      if (!res.ok) return { productCount: 0, reviewCount: 0, orderCount: 0 };
+      return res.json();
+    },
+  });
+
+  const subscribeMutation = useMutation({
+    mutationFn: async (emailAddr: string) =>
+      apiRequest("POST", "/api/newsletter", { email: emailAddr }),
+    onSuccess: () => {
+      setSubscribed(true);
+      setEmail("");
+      toast({ title: "You're in!", description: "Welcome to the Designer Club.", duration: 4000 });
+    },
+    onError: (err: any) => {
+      const msg = err?.message?.includes("409") ? "This email is already subscribed." : "Could not subscribe. Try again.";
+      toast({ variant: "destructive", title: "Subscription failed", description: msg });
+    },
+  });
+
+  const featuredProducts = products?.slice(0, 4) ?? [];
+  const TAG_LABELS = ["Best Seller", "Limited", "New", "Editor's Pick"];
+
+  const dynamicStats = [
+    { value: stats?.productCount ? `${stats.productCount}+` : "24+", label: "Products" },
+    { value: stats?.reviewCount ? `${stats.reviewCount}+` : "0",  label: "Reviews" },
+    { value: stats?.orderCount  ? `${stats.orderCount}+`  : "0",  label: "Orders" },
+    { value: "∞",                                                  label: "Year Warranty" },
+  ];
+
+  const currentYear = new Date().getFullYear();
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground overflow-x-hidden">
@@ -105,7 +141,6 @@ export default function LandingPage() {
 
       {/* ── HERO ── */}
       <section ref={heroRef} className="relative h-screen flex items-center justify-center overflow-hidden">
-        {/* Parallax background */}
         <motion.div className="absolute inset-0 z-0" style={{ scale: heroScale }}>
           <motion.div
             className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/15 to-background z-10"
@@ -118,7 +153,6 @@ export default function LandingPage() {
           />
         </motion.div>
 
-        {/* Hero content */}
         <motion.div
           className="relative z-20 max-w-5xl mx-auto px-6 text-center text-white"
           style={{ y: heroY }}
@@ -159,7 +193,6 @@ export default function LandingPage() {
                 size="lg"
                 className="bg-white text-black hover:bg-white/90 shadow-2xl shadow-black/30"
                 data-testid="button-hero-shop"
-                data-cursor="SHOP"
               >
                 Shop the Collection <ArrowRight className="ml-2 h-5 w-5" />
               </PremiumButton>
@@ -172,7 +205,6 @@ export default function LandingPage() {
           </motion.div>
         </motion.div>
 
-        {/* Scroll indicator */}
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2 }}
           className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2"
@@ -208,7 +240,7 @@ export default function LandingPage() {
         </motion.div>
       </div>
 
-      {/* ── FEATURED PRODUCTS ── */}
+      {/* ── FEATURED PRODUCTS (real data) ── */}
       <section className="py-28 bg-background">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-14">
@@ -236,40 +268,50 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-            {FEATURED.map((item, i) => (
-              <motion.div
-                key={item.name}
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ delay: i * 0.12, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                className="group cursor-pointer"
-              >
-                <Link href="/register">
-                  <div className="relative aspect-[3/4] overflow-hidden rounded-sm bg-secondary/20 mb-4">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-full h-full object-cover group-hover:scale-[1.06] transition-transform duration-700 ease-out"
-                      data-cursor="OPEN"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <div className="absolute top-3 left-3">
-                      <span className="inline-flex items-center rounded-full bg-background/90 backdrop-blur-sm px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
-                        {item.tag}
-                      </span>
-                    </div>
+            {productsLoading
+              ? Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="space-y-3">
+                    <Skeleton className="aspect-[3/4] w-full rounded-sm" />
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
                   </div>
-                  <div className="flex justify-between items-start gap-2">
-                    <div className="min-w-0">
-                      <h3 className="font-display text-base font-medium group-hover:text-accent transition-colors">{item.name}</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">{item.category}</p>
-                    </div>
-                    <span className="font-mono text-sm font-bold shrink-0">{item.price}</span>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
+                ))
+              : featuredProducts.map((item, i) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, y: 40 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-50px" }}
+                    transition={{ delay: i * 0.12, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                    className="group cursor-pointer"
+                  >
+                    <Link href="/register">
+                      <div className="relative aspect-[3/4] overflow-hidden rounded-sm bg-secondary/20 mb-4">
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="w-full h-full object-cover group-hover:scale-[1.06] transition-transform duration-700 ease-out"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        <div className="absolute top-3 left-3">
+                          <span className="inline-flex items-center rounded-full bg-background/90 backdrop-blur-sm px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                            {TAG_LABELS[i % TAG_LABELS.length]}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="min-w-0">
+                          <h3 className="font-display text-base font-medium group-hover:text-accent transition-colors">{item.name}</h3>
+                          <p className="text-xs text-muted-foreground mt-0.5">{item.category}</p>
+                        </div>
+                        <span className="font-mono text-sm font-bold shrink-0">
+                          ${(item.price / 100).toLocaleString()}
+                        </span>
+                      </div>
+                    </Link>
+                  </motion.div>
+                ))
+            }
           </div>
         </div>
       </section>
@@ -289,9 +331,9 @@ export default function LandingPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { icon: Star, title: "Premium Quality", desc: "Hand-picked materials and expert craftsmanship from studios around the world." },
-              { icon: Truck, title: "White Glove Delivery", desc: "We handle heavy lifting, assembly, placement, and cleanup. Zero stress for you." },
-              { icon: Shield, title: "Lifetime Warranty", desc: "We stand behind everything we sell, forever. No asterisks, no fine print." },
+              { icon: Star,   title: "Premium Quality",      desc: "Hand-picked materials and expert craftsmanship from studios around the world." },
+              { icon: Truck,  title: "White Glove Delivery", desc: "We handle heavy lifting, assembly, placement, and cleanup. Zero stress for you." },
+              { icon: Shield, title: "Lifetime Warranty",    desc: "We stand behind everything we sell, forever. No asterisks, no fine print." },
             ].map((feature, i) => (
               <motion.div
                 key={i}
@@ -311,7 +353,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── REVIEWS ── */}
+      {/* ── REVIEWS (real data) ── */}
       <section className="py-24 px-6 bg-background">
         <div className="max-w-7xl mx-auto">
           <motion.div
@@ -324,26 +366,50 @@ export default function LandingPage() {
             <p className="text-xs font-mono uppercase tracking-widest text-accent mb-3">Testimonials</p>
             <h2 className="font-display text-5xl font-medium">What They Say</h2>
           </motion.div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {REVIEWS.map((review, i) => (
-              <motion.div
-                key={review.name}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ delay: i * 0.12, duration: 0.6 }}
-                className="p-7 rounded-2xl border border-border/60 bg-secondary/10 hover:border-accent/30 hover:bg-secondary/20 transition-all duration-300"
-              >
-                <div className="flex gap-0.5 mb-4">
-                  {Array.from({ length: review.rating }).map((_, s) => (
-                    <Star key={s} className="h-4 w-4 fill-accent text-accent" />
-                  ))}
-                </div>
-                <p className="text-foreground/80 leading-relaxed text-sm mb-5">"{review.text}"</p>
-                <p className="text-xs font-semibold font-mono uppercase tracking-wider text-muted-foreground">— {review.name}</p>
-              </motion.div>
-            ))}
-          </div>
+
+          {reviewsLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-44 rounded-2xl" />
+              ))}
+            </div>
+          ) : latestReviews.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {latestReviews.map((review, i) => (
+                <motion.div
+                  key={review.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-50px" }}
+                  transition={{ delay: i * 0.12, duration: 0.6 }}
+                  className="p-7 rounded-2xl border border-border/60 bg-secondary/10 hover:border-accent/30 hover:bg-secondary/20 transition-all duration-300"
+                >
+                  <div className="flex gap-0.5 mb-4">
+                    {Array.from({ length: review.rating }).map((_, s) => (
+                      <Star key={s} className="h-4 w-4 fill-accent text-accent" />
+                    ))}
+                  </div>
+                  <p className="text-foreground/80 leading-relaxed text-sm mb-5">"{review.body}"</p>
+                  <div>
+                    <p className="text-xs font-semibold font-mono uppercase tracking-wider text-muted-foreground">
+                      — {review.user.name}
+                    </p>
+                    {review.product && (
+                      <p className="text-[11px] text-muted-foreground/60 mt-0.5">{review.product.name}</p>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16 text-muted-foreground">
+              <Star className="h-10 w-10 mx-auto mb-4 text-muted-foreground/20" />
+              <p className="text-sm">Reviews will appear here once customers share their experiences.</p>
+              <Link href="/register">
+                <PremiumButton variant="outline" className="mt-6">Be the first to review</PremiumButton>
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 
@@ -399,15 +465,10 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── STATS ── */}
+      {/* ── STATS (real data) ── */}
       <section className="py-20 px-6 bg-primary text-primary-foreground">
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          {[
-            { value: "14+", label: "Collections" },
-            { value: "98%", label: "Satisfaction" },
-            { value: "60+", label: "Countries" },
-            { value: "∞", label: "Year Warranty" },
-          ].map((stat, i) => (
+          {dynamicStats.map((stat, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 20 }}
@@ -415,14 +476,14 @@ export default function LandingPage() {
               viewport={{ once: true }}
               transition={{ delay: i * 0.1, duration: 0.6 }}
             >
-              <p className="font-display text-5xl font-bold">{stat.value}</p>
+              <p className="font-display text-5xl font-bold" data-testid={`stat-value-${i}`}>{stat.value}</p>
               <p className="text-primary-foreground/50 text-xs font-mono uppercase tracking-widest mt-2">{stat.label}</p>
             </motion.div>
           ))}
         </div>
       </section>
 
-      {/* ── CTA ── */}
+      {/* ── NEWSLETTER CTA ── */}
       <section className="py-32 px-6 bg-background text-center">
         <div className="max-w-2xl mx-auto space-y-8">
           <motion.div
@@ -431,27 +492,58 @@ export default function LandingPage() {
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
           >
-            <p className="text-xs font-mono uppercase tracking-[0.3em] text-accent mb-4">Start Today</p>
+            <p className="text-xs font-mono uppercase tracking-[0.3em] text-accent mb-4">Designer Club</p>
             <h2 className="font-display text-6xl font-medium tracking-tight">Ready to Elevate?</h2>
             <p className="text-muted-foreground leading-relaxed mt-4">
               Join thousands of design-forward homeowners who trust Space Furniture.
             </p>
           </motion.div>
+
+          {/* Newsletter form */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="flex gap-4 justify-center flex-wrap"
+            className="space-y-4"
           >
-            <Link href="/register">
-              <PremiumButton size="lg">
-                Create Free Account <ArrowRight className="ml-2 h-5 w-5" />
-              </PremiumButton>
-            </Link>
-            <Link href="/login">
-              <PremiumButton size="lg" variant="outline">Sign In</PremiumButton>
-            </Link>
+            {subscribed ? (
+              <div className="flex items-center justify-center gap-2 text-accent font-medium text-sm py-3 px-6 rounded-full border border-accent/30 bg-accent/5 w-fit mx-auto">
+                <Zap className="h-4 w-4" />
+                You're in the club! Watch your inbox.
+              </div>
+            ) : (
+              <div className="flex gap-2 max-w-sm mx-auto">
+                <Input
+                  type="email"
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && email && subscribeMutation.mutate(email)}
+                  className="h-11 rounded-sm bg-secondary/20"
+                  data-testid="input-newsletter-email"
+                />
+                <PremiumButton
+                  onClick={() => email && subscribeMutation.mutate(email)}
+                  isLoading={subscribeMutation.isPending}
+                  disabled={!email}
+                  data-testid="button-newsletter-join"
+                >
+                  Join
+                </PremiumButton>
+              </div>
+            )}
+
+            <div className="flex gap-4 justify-center flex-wrap mt-4">
+              <Link href="/register">
+                <PremiumButton size="lg">
+                  Create Free Account <ArrowRight className="ml-2 h-5 w-5" />
+                </PremiumButton>
+              </Link>
+              <Link href="/login">
+                <PremiumButton size="lg" variant="outline">Sign In</PremiumButton>
+              </Link>
+            </div>
           </motion.div>
         </div>
       </section>
@@ -461,12 +553,21 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <span className="font-display text-2xl font-bold tracking-tighter">SPACE.</span>
           <p className="font-mono text-xs text-muted-foreground uppercase tracking-widest">
-            © 2026 Space Furniture. All rights reserved.
+            © {currentYear} Space Furniture. All rights reserved.
           </p>
           <div className="flex gap-6 text-xs text-muted-foreground">
-            {["Privacy", "Terms", "Contact", "Shipping"].map((link) => (
-              <a key={link} href="#" className="hover:text-foreground transition-colors">{link}</a>
-            ))}
+            <Link href="/register">
+              <span className="hover:text-foreground transition-colors cursor-pointer">Shop</span>
+            </Link>
+            <Link href="/login">
+              <span className="hover:text-foreground transition-colors cursor-pointer">Account</span>
+            </Link>
+            <Link href="/register">
+              <span className="hover:text-foreground transition-colors cursor-pointer">Contact</span>
+            </Link>
+            <Link href="/register">
+              <span className="hover:text-foreground transition-colors cursor-pointer">About</span>
+            </Link>
           </div>
         </div>
       </footer>

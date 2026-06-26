@@ -282,15 +282,37 @@ function ReviewsSection({ productId }: { productId: number }) {
   );
 }
 
-// ── Finish / Color Config ─────────────────────────────────────────────────────
-const FINISHES = [
-  { name: "Slate",   hex: "#6B7280", textLight: false },
-  { name: "Walnut",  hex: "#7C5C3A", textLight: true  },
-  { name: "Cream",   hex: "#F0EBE0", textLight: false },
-  { name: "Onyx",    hex: "#1C1C1E", textLight: true  },
-] as const;
+// ── Color label → hex map (for swatch display) ───────────────────────────────
+const COLOR_HEX: Record<string, string> = {
+  "Walnut":         "#7C5C3A",
+  "Onyx":           "#1C1C1E",
+  "Slate":          "#6B7280",
+  "Cream":          "#F0EBE0",
+  "Natural Oak":    "#C4A98A",
+  "Natural":        "#C4A98A",
+  "White":          "#F5F5F5",
+  "Ebonized":       "#1A1A1A",
+  "Cognac":         "#9B4F1B",
+  "Charcoal":       "#374151",
+  "Honey":          "#D97706",
+  "Bleached":       "#E8DCC8",
+  "Stone Grey":     "#9CA3AF",
+  "Matte Black":    "#1C1C1E",
+  "Matte White":    "#F9F9F9",
+  "Chrome":         "#C0C0C0",
+  "Sand":           "#C2B280",
+  "Fog":            "#B0B7C3",
+  "Dusk":           "#8B7F9E",
+  "Dune":           "#C4B597",
+  "Stone":          "#9CA3AF",
+  "Blush":          "#FBBF9A",
+  "Ivory":          "#FFFFF0",
+};
 
-type FinishName = typeof FINISHES[number]["name"];
+function getColorHex(colorName: string): string {
+  const first = colorName.split("/")[0].trim();
+  return COLOR_HEX[first] ?? "#9CA3AF";
+}
 
 // ── Main ProductDetail ────────────────────────────────────────────────────────
 export default function ProductDetail() {
@@ -304,7 +326,7 @@ export default function ProductDetail() {
   const { add: addRecentlyViewed, ids: recentIds } = useRecentlyViewedStore();
   const { toast } = useToast();
   const [quantity, setQuantity] = useState(1);
-  const [selectedFinish, setSelectedFinish] = useState<FinishName>("Walnut");
+  const [selectedColor, setSelectedColor] = useState<string>("");
 
   const { data: summary } = useQuery<ReviewSummary>({
     queryKey: ["/api/reviews", productId, "summary"],
@@ -318,7 +340,12 @@ export default function ProductDetail() {
   usePageTitle(product?.name);
 
   useEffect(() => {
-    if (product) addRecentlyViewed(product.id);
+    if (product) {
+      addRecentlyViewed(product.id);
+      if (product.colors && product.colors.length > 0 && !selectedColor) {
+        setSelectedColor(product.colors[0]);
+      }
+    }
   }, [product]);
 
   const isWishlisted = product ? has(product.id) : false;
@@ -485,15 +512,15 @@ export default function ProductDetail() {
 
             <p className="text-foreground/80 leading-relaxed">{product.description}</p>
 
-            {/* Specs */}
+            {/* Specs — real data from DB */}
             <div className="grid grid-cols-2 gap-x-6 gap-y-4">
               {[
                 { label: "Category", value: product.category },
-                { label: "Stock", value: isOutOfStock ? "Sold Out" : `${product.stock} units` },
-                { label: "Material", value: "Premium Grade" },
-                { label: "Warranty", value: "Lifetime" },
+                { label: "Stock",    value: isOutOfStock ? "Sold Out" : `${product.stock} units` },
+                { label: "Material", value: product.material },
+                { label: "Warranty", value: product.warranty },
                 { label: "Assembly", value: "White Glove" },
-                { label: "Origin", value: "Studio Crafted" },
+                { label: "Origin",   value: product.origin },
               ].map(({ label, value }) => (
                 <div key={label}>
                   <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">{label}</p>
@@ -504,31 +531,33 @@ export default function ProductDetail() {
 
             <div className="h-px bg-border" />
 
-            {/* Finish Selector */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Finish</p>
-                <p className="text-sm font-semibold text-foreground">{selectedFinish}</p>
+            {/* Color / Finish Selector — real data from DB */}
+            {product.colors && product.colors.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Finish</p>
+                  <p className="text-sm font-semibold text-foreground truncate max-w-[160px]">{selectedColor}</p>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {product.colors.map((color) => (
+                    <button
+                      key={color}
+                      data-testid={`button-finish-${color.toLowerCase().replace(/\s+/g, "-")}`}
+                      onClick={() => setSelectedColor(color)}
+                      title={color}
+                      className={cn(
+                        "h-9 w-9 rounded-full border-2 transition-all duration-200 hover:scale-110 focus:outline-none",
+                        selectedColor === color
+                          ? "border-foreground ring-2 ring-offset-2 ring-foreground/30 scale-110"
+                          : "border-border/60 hover:border-foreground/40"
+                      )}
+                      style={{ backgroundColor: getColorHex(color) }}
+                      aria-label={color}
+                    />
+                  ))}
+                </div>
               </div>
-              <div className="flex gap-3">
-                {FINISHES.map((finish) => (
-                  <button
-                    key={finish.name}
-                    data-testid={`button-finish-${finish.name.toLowerCase()}`}
-                    onClick={() => setSelectedFinish(finish.name)}
-                    title={finish.name}
-                    className={cn(
-                      "h-9 w-9 rounded-full border-2 transition-all duration-200 hover:scale-110 focus:outline-none",
-                      selectedFinish === finish.name
-                        ? "border-foreground ring-2 ring-offset-2 ring-foreground/30 scale-110"
-                        : "border-border/60 hover:border-foreground/40"
-                    )}
-                    style={{ backgroundColor: finish.hex }}
-                    aria-label={finish.name}
-                  />
-                ))}
-              </div>
-            </div>
+            )}
 
             {/* Quantity */}
             {!isOutOfStock && (

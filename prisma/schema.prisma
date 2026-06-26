@@ -28,10 +28,22 @@ model Product {
   category    String
   image       String
   stock       Int        @default(0)
+  material    String     @default("Premium Grade")
+  warranty    String     @default("Lifetime")
+  origin      String     @default("Studio Crafted")
+  colors      String[]   @default([])
   cartItems   CartItem[]
   reviews     Review[]
 
   @@map("products")
+}
+
+model Newsletter {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  createdAt DateTime @default(now())
+
+  @@map("newsletters")
 }
 
 model CartItem {
