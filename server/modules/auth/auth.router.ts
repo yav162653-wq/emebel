@@ -49,8 +49,9 @@ router.get(
   asyncHandler(async (req, res) => {
     const user = await AuthService.getById(req.session.userId!);
     if (!user) {
+      const requestId: string = res.locals["requestId"] ?? "unknown";
       req.session.destroy(() => {});
-      return res.status(401).json({ message: "Session expired", code: "UNAUTHORIZED" });
+      return res.status(401).json({ error: "Session expired", code: "UNAUTHORIZED", requestId });
     }
     res.json(user);
   })
@@ -73,8 +74,11 @@ router.patch(
 router.post(
   "/logout",
   asyncHandler(async (req, res) => {
+    const requestId: string = res.locals["requestId"] ?? "unknown";
     req.session.destroy((err) => {
-      if (err) return res.status(500).json({ message: "Logout failed" });
+      if (err) {
+        return res.status(500).json({ error: "Logout failed", code: "INTERNAL_ERROR", requestId });
+      }
       res.clearCookie("connect.sid");
       res.sendStatus(200);
     });

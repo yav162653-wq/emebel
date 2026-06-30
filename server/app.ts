@@ -10,7 +10,7 @@ import { logger } from "./config/logger";
 import { requestIdMiddleware } from "./middleware/requestId";
 import { authContextMiddleware } from "./middleware/authContext";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
-import { globalLimiter, authLimiter } from "./middleware/rateLimiter";
+import { globalLimiter } from "./middleware/rateLimiter";
 
 import authRouter       from "./modules/auth/auth.router";
 import productsRouter   from "./modules/products/products.router";
@@ -22,6 +22,8 @@ import statsRouter      from "./modules/stats/stats.router";
 import newsletterRouter from "./modules/newsletter/newsletter.router";
 
 const SessionStore = MemoryStore(session);
+
+const isProd = env.NODE_ENV === "production";
 
 export function createApp() {
   const app = express();
@@ -39,11 +41,17 @@ export function createApp() {
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc:  ["'self'", "'unsafe-inline'"],   // Vite HMR in dev
-          styleSrc:   ["'self'", "'unsafe-inline'"],   // Tailwind inline styles
+          // Dev: allow 'unsafe-inline' for Vite HMR injections.
+          // Prod: no unsafe-inline — scripts must come from self only.
+          scriptSrc: isProd
+            ? ["'self'"]
+            : ["'self'", "'unsafe-inline'"],
+          styleSrc:   ["'self'", "'unsafe-inline'"],   // Tailwind inline styles (both envs)
           imgSrc:     ["'self'", "data:", "https://images.unsplash.com"],
           fontSrc:    ["'self'", "data:"],
-          connectSrc: ["'self'", "ws:", "wss:"],       // Vite WS + API
+          connectSrc: isProd
+            ? ["'self'"]
+            : ["'self'", "ws:", "wss:"],               // Vite WS hot-reload (dev only)
           frameSrc:   ["'none'"],
           objectSrc:  ["'none'"],
         },
@@ -53,10 +61,9 @@ export function createApp() {
 
   app.use(
     cors({
-      origin:
-        env.NODE_ENV === "production"
-          ? env.APP_ORIGIN?.split(",") || false
-          : true,
+      origin: isProd
+        ? env.APP_ORIGIN!.split(",")
+        : true,
       credentials: true,
     })
   );
@@ -65,11 +72,10 @@ export function createApp() {
   app.use(
     pinoHttp({
       logger,
-      customProps: (req, res) => ({
+      customProps: (_req, res) => ({
         requestId: res.locals["requestId"],
         userId:    res.locals["userId"] ?? undefined,
       }),
-      // Skip health-check noise
       autoLogging: {
         ignore: (req) => req.url === "/api/health" || req.url === "/health",
       },
@@ -94,7 +100,7 @@ export function createApp() {
       cookie: {
         maxAge: 24 * 60 * 60 * 1000,
         httpOnly: true,
-        secure: env.NODE_ENV === "production",
+        secure: isProd,
         sameSite: "lax",
       },
       store: new SessionStore({ checkPeriod: 86_400_000 }),
@@ -117,7 +123,8 @@ export function createApp() {
   });
 
   // ── API Routes ────────────────────────────────────────────────────────
-  app.use("/api/auth",       authLimiter,  authRouter);
+  // Note: authLimiter is applied per-route inside auth.router.ts (login + register only).
+  app.use("/api/auth",       authRouter);
   app.use("/api/products",   productsRouter);
   app.use("/api/cart",       cartRouter);
   app.use("/api/admin",      adminRouter);
