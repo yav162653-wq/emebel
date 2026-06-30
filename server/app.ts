@@ -68,25 +68,6 @@ export function createApp() {
     })
   );
 
-  // ── HTTP request logging (pino-http) ──────────────────────────────────
-  app.use(
-    pinoHttp({
-      logger,
-      customProps: (_req, res) => ({
-        requestId: res.locals["requestId"],
-        userId:    res.locals["userId"] ?? undefined,
-      }),
-      autoLogging: {
-        ignore: (req) => req.url === "/api/health" || req.url === "/health",
-      },
-      customLogLevel: (_req, res, err) => {
-        if (err || res.statusCode >= 500) return "error";
-        if (res.statusCode >= 400) return "warn";
-        return "info";
-      },
-    })
-  );
-
   // ── Body Parsing ──────────────────────────────────────────────────────
   app.use(express.json({ limit: "10kb" }));
   app.use(express.urlencoded({ extended: false }));
@@ -109,6 +90,27 @@ export function createApp() {
 
   // ── Auth context (populate res.locals.userId after session loads) ─────
   app.use(authContextMiddleware);
+
+  // ── HTTP request logging — after session+auth so userId is set ────────
+  // customProps is called at response-end; placing pinoHttp here guarantees
+  // res.locals.userId is populated before any log line is written.
+  app.use(
+    pinoHttp({
+      logger,
+      customProps: (_req, res) => ({
+        requestId: res.locals["requestId"],
+        userId:    res.locals["userId"] ?? undefined,
+      }),
+      autoLogging: {
+        ignore: (req) => req.url === "/api/health" || req.url === "/health",
+      },
+      customLogLevel: (_req, res, err) => {
+        if (err || res.statusCode >= 500) return "error";
+        if (res.statusCode >= 400) return "warn";
+        return "info";
+      },
+    })
+  );
 
   // ── Rate Limiting (only /api/* — never block Vite/static files) ──────
   app.use("/api", globalLimiter);
