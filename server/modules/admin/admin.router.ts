@@ -3,10 +3,11 @@ import { z } from "zod";
 import { AdminService } from "./admin.service";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { requireAdmin } from "../../middleware/auth";
+import { adminLimiter } from "../../middleware/rateLimiter";
 
 const router = Router();
 
-router.use(requireAdmin);
+router.use(requireAdmin, adminLimiter);
 
 // GET /api/admin/stats
 router.get(

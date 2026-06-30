@@ -3,6 +3,7 @@ import { z } from "zod";
 import { ReviewsService } from "./reviews.service";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { requireAuth } from "../../middleware/auth";
+import { reviewLimiter } from "../../middleware/rateLimiter";
 
 const router = Router();
 
@@ -59,6 +60,7 @@ router.get(
 router.post(
   "/:productId",
   requireAuth,
+  reviewLimiter,
   asyncHandler(async (req, res) => {
     const productId = z.coerce.number().int().positive().parse(req.params.productId);
     const { rating, body } = reviewBody.parse(req.body);

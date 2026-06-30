@@ -3,6 +3,8 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import { logger } from "../config/logger";
 
+const dbLogger = logger.child({ module: "db" });
+
 function createPrismaClient() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   const adapter = new PrismaPg(pool);
@@ -21,15 +23,15 @@ function createPrismaClient() {
   });
 
   client.$on("query" as never, (e: any) => {
-    logger.debug(`[DB] ${e.query} — ${e.duration}ms`);
+    dbLogger.debug({ query: e.query, durationMs: e.duration }, "prisma query");
   });
 
   client.$on("error" as never, (e: any) => {
-    logger.error("[DB] Prisma error", { message: e.message });
+    dbLogger.error({ msg: e.message }, "prisma error");
   });
 
   client.$on("warn" as never, (e: any) => {
-    logger.warn("[DB] Prisma warning", { message: e.message });
+    dbLogger.warn({ msg: e.message }, "prisma warning");
   });
 
   return client;

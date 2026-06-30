@@ -3,6 +3,7 @@ import { z } from "zod";
 import { OrdersService } from "./orders.service";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { requireAuth } from "../../middleware/auth";
+import { orderLimiter } from "../../middleware/rateLimiter";
 import { ValidationError } from "../../utils/errors";
 import { db } from "../../db/client";
 
@@ -23,6 +24,7 @@ const createOrderSchema = z.object({
 // POST /api/orders — place order; prices are fetched from DB (never trusted from client)
 router.post(
   "/",
+  orderLimiter,
   asyncHandler(async (req, res) => {
     const { address, items } = createOrderSchema.parse(req.body);
 

@@ -3,11 +3,14 @@ import helmet from "helmet";
 import cors from "cors";
 import session from "express-session";
 import MemoryStore from "memorystore";
+import pinoHttp from "pino-http";
 
 import { env } from "./config/env";
-import { httpLogger } from "./config/logger";
+import { logger } from "./config/logger";
+import { requestIdMiddleware } from "./middleware/requestId";
+import { authContextMiddleware } from "./middleware/authContext";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
-import { globalLimiter } from "./middleware/rateLimiter";
+import { globalLimiter, authLimiter } from "./middleware/rateLimiter";
 
 import authRouter       from "./modules/auth/auth.router";
 import productsRouter   from "./modules/products/products.router";
@@ -26,11 +29,25 @@ export function createApp() {
   // ── Trust proxy (Replit sits behind a reverse proxy) ─────────────────
   app.set("trust proxy", 1);
 
-  // ── Security ──────────────────────────────────────────────────────────
+  // ── Request ID (must come first so all downstream middleware can use it)
+  app.use(requestIdMiddleware);
+
+  // ── Security headers ──────────────────────────────────────────────────
   app.use(
     helmet({
       crossOriginEmbedderPolicy: false,
-      contentSecurityPolicy: false, // Disabled: frontend is on same origin via Vite
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc:  ["'self'", "'unsafe-inline'"],   // Vite HMR in dev
+          styleSrc:   ["'self'", "'unsafe-inline'"],   // Tailwind inline styles
+          imgSrc:     ["'self'", "data:", "https://images.unsplash.com"],
+          fontSrc:    ["'self'", "data:"],
+          connectSrc: ["'self'", "ws:", "wss:"],       // Vite WS + API
+          frameSrc:   ["'none'"],
+          objectSrc:  ["'none'"],
+        },
+      },
     })
   );
 
@@ -38,14 +55,31 @@ export function createApp() {
     cors({
       origin:
         env.NODE_ENV === "production"
-          ? process.env.APP_ORIGIN?.split(",") || false
+          ? env.APP_ORIGIN?.split(",") || false
           : true,
       credentials: true,
     })
   );
 
-  // ── Logging ───────────────────────────────────────────────────────────
-  app.use(httpLogger);
+  // ── HTTP request logging (pino-http) ──────────────────────────────────
+  app.use(
+    pinoHttp({
+      logger,
+      customProps: (req, res) => ({
+        requestId: res.locals["requestId"],
+        userId:    res.locals["userId"] ?? undefined,
+      }),
+      // Skip health-check noise
+      autoLogging: {
+        ignore: (req) => req.url === "/api/health" || req.url === "/health",
+      },
+      customLogLevel: (_req, res, err) => {
+        if (err || res.statusCode >= 500) return "error";
+        if (res.statusCode >= 400) return "warn";
+        return "info";
+      },
+    })
+  );
 
   // ── Body Parsing ──────────────────────────────────────────────────────
   app.use(express.json({ limit: "10kb" }));
@@ -58,7 +92,7 @@ export function createApp() {
       resave: false,
       saveUninitialized: false,
       cookie: {
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        maxAge: 24 * 60 * 60 * 1000,
         httpOnly: true,
         secure: env.NODE_ENV === "production",
         sameSite: "lax",
@@ -66,6 +100,9 @@ export function createApp() {
       store: new SessionStore({ checkPeriod: 86_400_000 }),
     })
   );
+
+  // ── Auth context (populate res.locals.userId after session loads) ─────
+  app.use(authContextMiddleware);
 
   // ── Rate Limiting (only /api/* — never block Vite/static files) ──────
   app.use("/api", globalLimiter);
@@ -80,7 +117,7 @@ export function createApp() {
   });
 
   // ── API Routes ────────────────────────────────────────────────────────
-  app.use("/api/auth",       authRouter);
+  app.use("/api/auth",       authLimiter,  authRouter);
   app.use("/api/products",   productsRouter);
   app.use("/api/cart",       cartRouter);
   app.use("/api/admin",      adminRouter);
