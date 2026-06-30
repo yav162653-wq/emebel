@@ -54,7 +54,7 @@ async function updateProducts() {
 
 updateProducts()
   .catch((e) => {
-    logger.error("❌ Update failed", { error: e.message });
+    logger.error({ error: e.message }, "❌ Update failed");
     process.exit(1);
   })
   .finally(() => db.$disconnect());

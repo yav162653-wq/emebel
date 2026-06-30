@@ -37,11 +37,11 @@ async function bootstrap() {
   process.on("SIGINT",  () => shutdown("SIGINT"));
 
   process.on("unhandledRejection", (reason) => {
-    logger.error("Unhandled rejection", { reason: String(reason) });
+    logger.error({ reason: String(reason) }, "Unhandled rejection");
   });
 
   process.on("uncaughtException", (err) => {
-    logger.error("Uncaught exception", { message: err.message, stack: err.stack });
+    logger.error({ message: err.message, stack: err.stack }, "Uncaught exception");
     process.exit(1);
   });
 }

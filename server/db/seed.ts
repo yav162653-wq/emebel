@@ -307,7 +307,7 @@ async function seed() {
 
 seed()
   .catch((e) => {
-    logger.error("❌ Seed failed", { error: e.message });
+    logger.error({ error: e.message }, "❌ Seed failed");
     process.exit(1);
   })
   .finally(() => db.$disconnect());
