@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, ShoppingBag, Trash2, ArrowLeft, Sparkles } from "lucide-react";
 import { Link } from "wouter";
@@ -12,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { Product } from "@shared/schema";
 
 function WishlistCard({ product, index }: { product: Product; index: number }) {
+  const { t } = useTranslation();
   const { toggle } = useWishlistStore();
   const { addToCart, isAdding } = useCart();
   const { setCartDrawerOpen } = useFurnitureStore();
@@ -28,7 +30,7 @@ function WishlistCard({ product, index }: { product: Product; index: number }) {
   const handleRemove = () => {
     toggle(product.id);
     toast({
-      title: "Removed from wishlist",
+      title: t("wishlist.removedFromWishlist"),
       description: product.name,
       duration: 2000,
     });
@@ -49,7 +51,6 @@ function WishlistCard({ product, index }: { product: Product; index: number }) {
       data-testid={`wishlist-card-${product.id}`}
       className="group relative flex flex-col"
     >
-      {/* Image */}
       <Link href={`/product/${product.id}`}>
         <div className="relative aspect-[4/5] overflow-hidden rounded-sm bg-secondary/20 mb-4 cursor-pointer">
           <img
@@ -57,19 +58,16 @@ function WishlistCard({ product, index }: { product: Product; index: number }) {
             alt={product.name}
             className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-700"
           />
-          {/* Category badge */}
           <div className="absolute top-3 left-3">
             <span className="px-2 py-0.5 rounded-full bg-background/80 backdrop-blur-sm text-[10px] font-semibold uppercase tracking-wider border border-border/40">
               {product.category}
             </span>
           </div>
-          {/* Out of stock overlay */}
           {isOutOfStock && (
             <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
-              <span className="text-sm font-semibold text-muted-foreground">Sold Out</span>
+              <span className="text-sm font-semibold text-muted-foreground">{t("wishlist.soldOut")}</span>
             </div>
           )}
-          {/* Remove button — top right */}
           <button
             onClick={(e) => { e.preventDefault(); handleRemove(); }}
             data-testid={`button-remove-wishlist-${product.id}`}
@@ -80,7 +78,6 @@ function WishlistCard({ product, index }: { product: Product; index: number }) {
         </div>
       </Link>
 
-      {/* Info */}
       <div className="flex-1 flex flex-col gap-1.5">
         <Link href={`/product/${product.id}`}>
           <h3 className="font-display text-base font-medium leading-snug hover:text-accent transition-colors cursor-pointer line-clamp-2">
@@ -90,7 +87,6 @@ function WishlistCard({ product, index }: { product: Product; index: number }) {
         <p className="font-mono text-sm font-bold text-foreground">{formattedPrice}</p>
       </div>
 
-      {/* CTA */}
       <div className="mt-4 flex gap-2">
         <PremiumButton
           size="sm"
@@ -100,7 +96,7 @@ function WishlistCard({ product, index }: { product: Product; index: number }) {
           className="flex-1 text-xs"
         >
           <ShoppingBag className="h-3.5 w-3.5 mr-1.5" />
-          {isOutOfStock ? "Sold Out" : "Add to Bag"}
+          {isOutOfStock ? t("wishlist.soldOut") : t("wishlist.addToBag")}
         </PremiumButton>
         <button
           onClick={handleRemove}
@@ -115,7 +111,8 @@ function WishlistCard({ product, index }: { product: Product; index: number }) {
 }
 
 export default function WishlistPage() {
-  usePageTitle("Wishlist");
+  const { t } = useTranslation();
+  usePageTitle(t("wishlist.title"));
   const { items: wishlistIds, clear } = useWishlistStore();
   const { data: allProducts, isLoading } = useFurniture();
   const { toast } = useToast();
@@ -124,23 +121,22 @@ export default function WishlistPage() {
 
   const handleClearAll = () => {
     clear();
-    toast({ title: "Wishlist cleared", duration: 2000 });
+    toast({ title: t("wishlist.wishlistCleared"), duration: 2000 });
   };
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Breadcrumb */}
       <div className="border-b">
         <div className="container py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Link href="/shop">
               <button className="flex items-center gap-1.5 hover:text-foreground transition-colors">
                 <ArrowLeft className="h-4 w-4" />
-                Shop
+                {t("wishlist.shop")}
               </button>
             </Link>
             <span>/</span>
-            <span className="text-foreground font-medium">Wishlist</span>
+            <span className="text-foreground font-medium">{t("wishlist.title")}</span>
           </div>
           {wishlisted.length > 0 && (
             <button
@@ -148,33 +144,31 @@ export default function WishlistPage() {
               data-testid="button-clear-wishlist"
               className="text-xs text-muted-foreground hover:text-destructive transition-colors"
             >
-              Clear all
+              {t("wishlist.clearAll")}
             </button>
           )}
         </div>
       </div>
 
       <div className="container py-12">
-        {/* Header */}
         <div className="mb-10">
           <div className="flex items-end justify-between">
             <div>
-              <p className="text-xs font-mono uppercase tracking-widest text-accent mb-2">Saved Items</p>
+              <p className="text-xs font-mono uppercase tracking-widest text-accent mb-2">{t("wishlist.savedItems")}</p>
               <h1 className="font-display text-4xl md:text-5xl font-medium tracking-tight">
-                My Wishlist
+                {t("wishlist.title")}
               </h1>
               {!isLoading && (
                 <p className="text-muted-foreground mt-2 text-sm">
                   {wishlisted.length > 0
-                    ? `${wishlisted.length} piece${wishlisted.length !== 1 ? "s" : ""} saved`
-                    : "Nothing saved yet"}
+                    ? t(wishlisted.length === 1 ? "wishlist.pieceSaved" : "wishlist.piecesSaved", { count: wishlisted.length })
+                    : t("wishlist.nothingSaved")}
                 </p>
               )}
             </div>
           </div>
         </div>
 
-        {/* Loading skeleton */}
         {isLoading && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
             {Array.from({ length: 4 }).map((_, i) => (
@@ -188,7 +182,6 @@ export default function WishlistPage() {
           </div>
         )}
 
-        {/* Empty state */}
         {!isLoading && wishlisted.length === 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -202,20 +195,17 @@ export default function WishlistPage() {
               <Sparkles className="h-5 w-5 text-accent absolute -top-1 -right-1" />
             </div>
             <div className="space-y-2">
-              <h2 className="font-display text-2xl font-medium">Your wishlist is empty</h2>
-              <p className="text-muted-foreground text-sm max-w-xs">
-                Browse our collection and save pieces you love — tap the ♡ on any product.
-              </p>
+              <h2 className="font-display text-2xl font-medium">{t("wishlist.emptyTitle")}</h2>
+              <p className="text-muted-foreground text-sm max-w-xs">{t("wishlist.emptyDesc")}</p>
             </div>
             <Link href="/shop">
               <PremiumButton size="lg" data-testid="button-explore-shop">
-                Explore the Collection
+                {t("wishlist.exploreCollection")}
               </PremiumButton>
             </Link>
           </motion.div>
         )}
 
-        {/* Wishlist grid */}
         {!isLoading && wishlisted.length > 0 && (
           <motion.div layout className="grid grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
             <AnimatePresence mode="popLayout">
@@ -226,13 +216,12 @@ export default function WishlistPage() {
           </motion.div>
         )}
 
-        {/* Continue shopping */}
         {!isLoading && wishlisted.length > 0 && (
           <div className="mt-16 pt-10 border-t text-center">
-            <p className="text-muted-foreground text-sm mb-4">Find more pieces you'll love</p>
+            <p className="text-muted-foreground text-sm mb-4">{t("wishlist.findMore")}</p>
             <Link href="/shop">
               <PremiumButton variant="outline" data-testid="button-continue-shopping">
-                Continue Shopping
+                {t("wishlist.continueShopping")}
               </PremiumButton>
             </Link>
           </div>

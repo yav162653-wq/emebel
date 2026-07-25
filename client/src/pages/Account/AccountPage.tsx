@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/use-auth";
 import { useWishlistStore } from "@/modules/furniture/store/furniture-store";
 import { useFurniture } from "@/modules/furniture/hooks/use-furniture";
@@ -29,13 +30,14 @@ function formatDate(iso: string) {
 }
 
 export default function AccountPage() {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const { items: wishlistIds, toggle, count } = useWishlistStore();
   const { data: products } = useFurniture();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-  usePageTitle("My Account");
+  usePageTitle(t("account.title"));
 
   const [name, setName] = useState(user?.name || "");
 
@@ -60,10 +62,10 @@ export default function AccountPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-      toast({ title: "Profile updated", description: "Your name has been saved." });
+      toast({ title: t("account.saveChanges"), description: t("account.fullName") + " updated." });
     },
     onError: () => {
-      toast({ variant: "destructive", title: "Update failed", description: "Please try again." });
+      toast({ variant: "destructive", title: t("common.error"), description: t("common.retry") });
     },
   });
 
@@ -72,7 +74,18 @@ export default function AccountPage() {
 
   const handleRemoveWishlist = (id: number, name: string) => {
     toggle(id);
-    toast({ title: "Removed from wishlist", description: name, duration: 2000 });
+    toast({ title: t("wishlist.removedFromWishlist"), description: name, duration: 2000 });
+  };
+
+  const statusLabel = (status: string) => {
+    const map: Record<string, string> = {
+      Delivered:  t("account.delivered"),
+      Processing: t("account.processing"),
+      Shipped:    t("account.shipped"),
+      Pending:    t("account.pending"),
+      Cancelled:  t("account.cancelled"),
+    };
+    return map[status] || status;
   };
 
   return (
@@ -81,7 +94,7 @@ export default function AccountPage() {
         <div className="container flex h-16 items-center justify-between">
           <Link href="/shop">
             <button className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-              <ArrowLeft className="h-4 w-4" /> Back to Shop
+              <ArrowLeft className="h-4 w-4" /> {t("product.backToShop")}
             </button>
           </Link>
           <span className="font-display text-xl font-bold tracking-tighter">SPACE.</span>
@@ -108,24 +121,24 @@ export default function AccountPage() {
                 "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
                 user?.role === "admin" ? "bg-accent/15 text-accent" : "bg-secondary text-muted-foreground"
               )}>
-                {user?.role}
+                {user?.role === "admin" ? t("common.admin") : t("common.user")}
               </span>
             </div>
             <p className="text-muted-foreground text-sm mt-1">@{user?.username}</p>
             <div className="flex gap-6 mt-3">
               <div className="text-center">
                 <p className="font-bold text-foreground">{ordersLoading ? "—" : orders.length}</p>
-                <p className="text-xs text-muted-foreground">Orders</p>
+                <p className="text-xs text-muted-foreground">{t("account.totalOrders")}</p>
               </div>
               <div className="text-center">
                 <p className="font-bold text-foreground">{count()}</p>
-                <p className="text-xs text-muted-foreground">Wishlist</p>
+                <p className="text-xs text-muted-foreground">{t("account.wishlistItems")}</p>
               </div>
               <div className="text-center">
                 <p className="font-bold text-foreground">
                   {ordersLoading ? "—" : `$${(totalSpent / 100).toFixed(0)}`}
                 </p>
-                <p className="text-xs text-muted-foreground">Total Spent</p>
+                <p className="text-xs text-muted-foreground">{t("account.totalSpent")}</p>
               </div>
             </div>
           </div>
@@ -135,20 +148,20 @@ export default function AccountPage() {
             className="text-destructive hover:text-destructive hover:bg-destructive/10"
             data-testid="button-logout"
           >
-            <LogOut className="mr-2 h-4 w-4" /> Log out
+            <LogOut className="mr-2 h-4 w-4" /> {t("account.logout")}
           </PremiumButton>
         </motion.div>
 
         <Tabs defaultValue="orders">
           <TabsList className="bg-secondary/40 rounded-sm mb-8">
             <TabsTrigger value="orders" className="rounded-sm gap-2" data-testid="tab-orders">
-              <Package className="h-4 w-4" /> Orders ({ordersLoading ? "…" : orders.length})
+              <Package className="h-4 w-4" /> {t("account.orders")} ({ordersLoading ? "…" : orders.length})
             </TabsTrigger>
             <TabsTrigger value="wishlist" className="rounded-sm gap-2" data-testid="tab-wishlist">
-              <Heart className="h-4 w-4" /> Wishlist ({count()})
+              <Heart className="h-4 w-4" /> {t("account.wishlist")} ({count()})
             </TabsTrigger>
             <TabsTrigger value="settings" className="rounded-sm gap-2" data-testid="tab-settings">
-              <Settings className="h-4 w-4" /> Settings
+              <Settings className="h-4 w-4" /> {t("account.profile")}
             </TabsTrigger>
           </TabsList>
 
@@ -161,10 +174,10 @@ export default function AccountPage() {
             ) : orders.length === 0 ? (
               <div className="text-center py-20 text-muted-foreground">
                 <Package className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                <p className="font-medium">No orders yet</p>
-                <p className="text-sm mt-1">Your order history will appear here.</p>
+                <p className="font-medium">{t("account.noOrders")}</p>
+                <p className="text-sm mt-1">{t("account.noOrdersDesc")}</p>
                 <Link href="/shop">
-                  <PremiumButton size="sm" className="mt-6">Shop Now</PremiumButton>
+                  <PremiumButton size="sm" className="mt-6">{t("account.shopNow")}</PremiumButton>
                 </Link>
               </div>
             ) : (
@@ -184,13 +197,12 @@ export default function AccountPage() {
                           SP-{String(order.id).padStart(5, "0")}
                         </p>
                         <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider", STATUS_COLORS[order.status] ?? STATUS_COLORS.Processing)}>
-                          {order.status}
+                          {statusLabel(order.status)}
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        {formatDate(order.createdAt)} · {order.items.length} item{order.items.length !== 1 ? "s" : ""}
+                        {formatDate(order.createdAt)} · {order.items.length} {t("account.items").toLowerCase()}
                       </p>
-                      {/* Item thumbnails */}
                       <div className="flex gap-1.5 mt-2">
                         {order.items.slice(0, 4).map((item) => (
                           <div key={item.id} className="h-8 w-8 rounded-sm overflow-hidden bg-secondary/30 shrink-0">
@@ -215,7 +227,7 @@ export default function AccountPage() {
                           <Star key={s} className="h-3.5 w-3.5 fill-accent text-accent" />
                         ))}
                       </div>
-                      <span className="text-xs text-muted-foreground">Rate this order</span>
+                      <span className="text-xs text-muted-foreground">{t("product.writeReview")}</span>
                     </div>
                   )}
                 </motion.div>
@@ -228,10 +240,10 @@ export default function AccountPage() {
             {wishlistProducts.length === 0 ? (
               <div className="text-center py-20 text-muted-foreground">
                 <Heart className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                <p className="font-medium">Your wishlist is empty</p>
-                <p className="text-sm mt-1">Heart items in the shop to save them here.</p>
+                <p className="font-medium">{t("wishlist.emptyTitle")}</p>
+                <p className="text-sm mt-1">{t("wishlist.emptyDesc")}</p>
                 <Link href="/shop">
-                  <PremiumButton size="sm" className="mt-6">Browse Shop</PremiumButton>
+                  <PremiumButton size="sm" className="mt-6">{t("landing.shopNow")}</PremiumButton>
                 </Link>
               </div>
             ) : (
@@ -259,7 +271,7 @@ export default function AccountPage() {
                       <p className="text-xs text-muted-foreground">{product.category}</p>
                       <div className="flex gap-2 pt-1">
                         <Link href={`/product/${product.id}`} className="flex-1">
-                          <PremiumButton size="sm" className="w-full text-xs">View Item</PremiumButton>
+                          <PremiumButton size="sm" className="w-full text-xs">{t("account.viewOrder")}</PremiumButton>
                         </Link>
                         <button
                           onClick={() => handleRemoveWishlist(product.id, product.name)}
@@ -279,10 +291,10 @@ export default function AccountPage() {
           {/* Settings Tab */}
           <TabsContent value="settings" className="max-w-lg space-y-6">
             <div className="space-y-4">
-              <h3 className="font-semibold text-foreground">Profile Information</h3>
+              <h3 className="font-semibold text-foreground">{t("account.profile")}</h3>
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Full Name</label>
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("account.fullName")}</label>
                   <Input
                     className="mt-1.5 h-11 bg-secondary/30"
                     value={name}
@@ -291,13 +303,12 @@ export default function AccountPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Username</label>
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("account.username")}</label>
                   <Input
                     className="mt-1.5 h-11 bg-secondary/30 opacity-60 cursor-not-allowed"
                     value={user?.username || ""}
                     disabled
                   />
-                  <p className="text-xs text-muted-foreground mt-1">Username cannot be changed.</p>
                 </div>
               </div>
               <PremiumButton
@@ -307,17 +318,17 @@ export default function AccountPage() {
                 data-testid="button-save-profile"
                 disabled={name === user?.name || !name.trim()}
               >
-                Save Changes
+                {t("account.saveChanges")}
               </PremiumButton>
             </div>
             <Separator />
             <div className="space-y-4">
-              <h3 className="font-semibold text-foreground">Preferences</h3>
+              <h3 className="font-semibold text-foreground">{t("account.overview")}</h3>
               <div className="space-y-3">
                 {[
                   { label: "Order confirmation emails",  checked: true  },
-                  { label: "New arrivals newsletter",     checked: false },
-                  { label: "Exclusive member offers",     checked: true  },
+                  { label: "New arrivals newsletter",    checked: false },
+                  { label: "Exclusive member offers",    checked: true  },
                 ].map((pref) => (
                   <label key={pref.label} className="flex items-center gap-3 cursor-pointer group">
                     <input

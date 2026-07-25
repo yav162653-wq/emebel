@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/use-auth";
 import { useCart } from "@/modules/furniture/hooks/use-cart";
 import { useTheme } from "@/app/providers/ThemeProvider";
@@ -8,9 +9,9 @@ import {
 import { PremiumButton } from "@/shared/components/PremiumButton";
 import { CartDrawer } from "@/modules/furniture/ui/CartDrawer";
 import { MobileNav } from "@/modules/furniture/ui/MobileNav";
+import { LanguageSwitcher } from "@/shared/components/LanguageSwitcher";
 import {
-  Heart, LayoutDashboard, LogOut, Moon, Search, ShoppingBag, Sun, User, X,
-  Menu,
+  Heart, LayoutDashboard, LogOut, Moon, Search, ShoppingBag, Sun, User, X, Menu,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -20,19 +21,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { Link } from "wouter";
 
-// All categories for navigation (subset for desktop to avoid overflow)
-const DESKTOP_NAV: { label: string; value: Category }[] = [
-  { label: "All",      value: "All"      },
-  { label: "Seating",  value: "Seating"  },
-  { label: "Tables",   value: "Tables"   },
-  { label: "Lighting", value: "Lighting" },
-  { label: "Storage",  value: "Storage"  },
-  { label: "Bedroom",  value: "Bedroom"  },
-  { label: "Outdoor",  value: "Outdoor"  },
-  { label: "Decor",    value: "Decor"    },
-];
+const NAV_KEYS = ["all", "seating", "tables", "lighting", "storage", "bedroom", "outdoor", "decor"] as const;
+const NAV_VALUES: Category[] = ["All", "Seating", "Tables", "Lighting", "Storage", "Bedroom", "Outdoor", "Decor"];
 
 export function HeroHeader() {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const { items } = useCart();
   const { theme, toggleTheme } = useTheme();
@@ -49,7 +42,6 @@ export function HeroHeader() {
   const mobileSearchRef = useRef<HTMLInputElement>(null);
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement).tagName;
@@ -97,20 +89,19 @@ export function HeroHeader() {
               SPACE.
             </button>
 
-            {/* Desktop category nav — scrollable strip */}
             <nav className="hidden lg:flex items-center gap-0.5 ml-4 overflow-x-auto scrollbar-none max-w-[480px]">
-              {DESKTOP_NAV.map(cat => (
+              {NAV_KEYS.map((key, idx) => (
                 <button
-                  key={cat.value}
-                  data-testid={`nav-${cat.value.toLowerCase()}`}
-                  onClick={() => setCategory(cat.value)}
+                  key={NAV_VALUES[idx]}
+                  data-testid={`nav-${NAV_VALUES[idx].toLowerCase()}`}
+                  onClick={() => setCategory(NAV_VALUES[idx])}
                   className={`px-3 py-1.5 rounded-sm text-sm font-medium transition-all duration-200 whitespace-nowrap ${
-                    activeCategory === cat.value
+                    activeCategory === NAV_VALUES[idx]
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                   }`}
                 >
-                  {cat.label}
+                  {t(`nav.${key}`)}
                 </button>
               ))}
             </nav>
@@ -126,7 +117,7 @@ export function HeroHeader() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder='Search furniture… (press "/")'
+                placeholder={t("search.placeholder")}
                 className="w-full h-9 pl-9 pr-8 text-sm bg-secondary/40 border border-border rounded-sm focus:outline-none focus:ring-2 focus:ring-ring/30 focus:bg-background transition-all placeholder:text-muted-foreground"
               />
               {searchQuery && (
@@ -142,7 +133,6 @@ export function HeroHeader() {
 
           {/* Right: Actions */}
           <div className="flex items-center gap-1 shrink-0">
-            {/* Mobile Search Toggle */}
             <PremiumButton
               variant="ghost" size="icon" className="md:hidden"
               onClick={() => setSearchOpen(!searchOpen)}
@@ -150,6 +140,9 @@ export function HeroHeader() {
             >
               <Search className="h-4 w-4" />
             </PremiumButton>
+
+            {/* Language Switcher */}
+            <LanguageSwitcher compact />
 
             {/* Theme Toggle */}
             <PremiumButton
@@ -224,23 +217,23 @@ export function HeroHeader() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
                 <DropdownMenuLabel>
-                  <p className="text-xs font-normal text-muted-foreground">Signed in as</p>
+                  <p className="text-xs font-normal text-muted-foreground">{t("nav.signedInAs")}</p>
                   <p className="font-semibold text-sm truncate">{user?.name || user?.username}</p>
                   {user?.role === "admin" && (
                     <span className="inline-block mt-1 px-1.5 py-0.5 rounded bg-accent/15 text-accent text-[10px] font-bold uppercase tracking-wider">
-                      Admin
+                      {t("common.admin")}
                     </span>
                   )}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <Link href="/account">
                   <DropdownMenuItem className="cursor-pointer">
-                    <User className="mr-2 h-4 w-4" /> My Account
+                    <User className="mr-2 h-4 w-4" /> {t("nav.myAccount")}
                   </DropdownMenuItem>
                 </Link>
                 <Link href="/wishlist">
                   <DropdownMenuItem className="cursor-pointer">
-                    <Heart className="mr-2 h-4 w-4" /> Wishlist
+                    <Heart className="mr-2 h-4 w-4" /> {t("nav.wishlist")}
                     {wishlist.count() > 0 && (
                       <span className="ml-auto text-xs text-muted-foreground">{wishlist.count()}</span>
                     )}
@@ -251,7 +244,7 @@ export function HeroHeader() {
                     <DropdownMenuSeparator />
                     <Link href="/admin">
                       <DropdownMenuItem className="cursor-pointer text-accent focus:text-accent">
-                        <LayoutDashboard className="mr-2 h-4 w-4" /> Admin Dashboard
+                        <LayoutDashboard className="mr-2 h-4 w-4" /> {t("nav.adminDashboard")}
                       </DropdownMenuItem>
                     </Link>
                   </>
@@ -262,7 +255,7 @@ export function HeroHeader() {
                   onClick={() => logout()}
                   className="text-destructive focus:text-destructive cursor-pointer"
                 >
-                  <LogOut className="mr-2 h-4 w-4" /> Log out
+                  <LogOut className="mr-2 h-4 w-4" /> {t("nav.logout")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -285,7 +278,7 @@ export function HeroHeader() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search furniture..."
+                  placeholder={t("search.placeholderMobile")}
                   className="w-full h-10 pl-9 pr-4 text-sm bg-secondary/40 border border-border rounded-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
                 />
               </div>
@@ -296,18 +289,18 @@ export function HeroHeader() {
         {/* Mobile Category Scroll */}
         <div className="lg:hidden border-t overflow-x-auto scrollbar-none">
           <div className="container flex gap-2 py-2.5 w-max min-w-full">
-            {DESKTOP_NAV.map(cat => (
+            {NAV_KEYS.map((key, idx) => (
               <button
-                key={cat.value}
-                data-testid={`mobile-nav-${cat.value.toLowerCase()}`}
-                onClick={() => setCategory(cat.value)}
+                key={NAV_VALUES[idx]}
+                data-testid={`mobile-nav-${NAV_VALUES[idx].toLowerCase()}`}
+                onClick={() => setCategory(NAV_VALUES[idx])}
                 className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider transition-all whitespace-nowrap ${
-                  activeCategory === cat.value
+                  activeCategory === NAV_VALUES[idx]
                     ? "bg-primary text-primary-foreground"
                     : "bg-secondary/60 text-muted-foreground hover:bg-secondary"
                 }`}
               >
-                {cat.label}
+                {t(`nav.${key}`)}
               </button>
             ))}
           </div>

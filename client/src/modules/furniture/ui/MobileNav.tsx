@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useFurnitureStore, CATEGORIES, type Category } from "../store/furniture-store";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/app/providers/ThemeProvider";
@@ -5,10 +6,14 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
+import { LanguageSwitcher } from "@/shared/components/LanguageSwitcher";
 import { Link } from "wouter";
 import { Heart, LayoutDashboard, LogOut, Moon, Sun, User } from "lucide-react";
 
+const CAT_KEYS = ["all", "seating", "tables", "lighting", "storage", "bedroom", "outdoor", "decor"] as const;
+
 export function MobileNav() {
+  const { t } = useTranslation();
   const { mobileNavOpen, setMobileNavOpen, activeCategory, setCategory } = useFurnitureStore();
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -41,7 +46,9 @@ export function MobileNav() {
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold truncate">{user.name || user.username}</p>
-                  <p className="text-xs text-muted-foreground capitalize">{user.role} account</p>
+                  <p className="text-xs text-muted-foreground capitalize">
+                    {user.role === "admin" ? t("common.admin") : t("common.user")}
+                  </p>
                 </div>
               </div>
             </div>
@@ -49,9 +56,9 @@ export function MobileNav() {
 
           <div className="px-3 py-4 space-y-1">
             <p className="px-3 text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">
-              Shop
+              {t("wishlist.shop")}
             </p>
-            {CATEGORIES.map((cat) => (
+            {CATEGORIES.map((cat, idx) => (
               <button
                 key={cat}
                 onClick={() => handleCategory(cat)}
@@ -61,7 +68,7 @@ export function MobileNav() {
                     : "text-foreground hover:bg-secondary/60"
                 }`}
               >
-                {cat}
+                {t(`nav.${CAT_KEYS[idx]}`)}
               </button>
             ))}
           </div>
@@ -70,25 +77,25 @@ export function MobileNav() {
 
           <div className="px-3 py-4 space-y-1">
             <p className="px-3 text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">
-              Account
+              {t("account.title")}
             </p>
             <Link href="/account" onClick={() => setMobileNavOpen(false)}>
               <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm font-medium text-foreground hover:bg-secondary/60 transition-colors">
                 <User className="h-4 w-4" />
-                My Account
+                {t("nav.myAccount")}
               </button>
             </Link>
             <Link href="/wishlist" onClick={() => setMobileNavOpen(false)}>
               <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm font-medium text-foreground hover:bg-secondary/60 transition-colors">
                 <Heart className="h-4 w-4" />
-                Wishlist
+                {t("nav.wishlist")}
               </button>
             </Link>
             {user?.role === "admin" && (
               <Link href="/admin" onClick={() => setMobileNavOpen(false)}>
                 <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm font-medium text-foreground hover:bg-secondary/60 transition-colors">
                   <LayoutDashboard className="h-4 w-4" />
-                  Admin Dashboard
+                  {t("nav.adminDashboard")}
                 </button>
               </Link>
             )}
@@ -96,6 +103,10 @@ export function MobileNav() {
         </div>
 
         <div className="px-3 py-4 border-t space-y-1">
+          {/* Language Switcher inline */}
+          <div className="px-3 py-2">
+            <LanguageSwitcher />
+          </div>
           <button
             onClick={toggleTheme}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm font-medium text-foreground hover:bg-secondary/60 transition-colors"
@@ -108,7 +119,7 @@ export function MobileNav() {
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
           >
             <LogOut className="h-4 w-4" />
-            Log out
+            {t("nav.logout")}
           </button>
         </div>
       </SheetContent>

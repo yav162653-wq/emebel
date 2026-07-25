@@ -1,6 +1,8 @@
 import { Link } from "wouter";
+import { useTranslation } from "react-i18next";
 import { PremiumButton } from "@/shared/components/PremiumButton";
 import { useTheme } from "@/app/providers/ThemeProvider";
+import { LanguageSwitcher } from "@/shared/components/LanguageSwitcher";
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import { useRef, useState } from "react";
 import { ArrowRight, Moon, Star, Sun, Truck, Shield, Zap } from "lucide-react";
@@ -40,6 +42,7 @@ type PublicStats = {
 };
 
 export default function LandingPage() {
+  const { t } = useTranslation();
   const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
   const heroRef = useRef<HTMLDivElement>(null);
@@ -94,10 +97,10 @@ export default function LandingPage() {
   const TAG_LABELS = ["Best Seller", "Limited", "New", "Editor's Pick"];
 
   const dynamicStats = [
-    { value: stats?.productCount ? `${stats.productCount}+` : "24+", label: "Products" },
-    { value: stats?.reviewCount ? `${stats.reviewCount}+` : "0",  label: "Reviews" },
-    { value: stats?.orderCount  ? `${stats.orderCount}+`  : "0",  label: "Orders" },
-    { value: "∞",                                                  label: "Year Warranty" },
+    { value: stats?.productCount ? `${stats.productCount}+` : "24+", label: t("product.category") },
+    { value: stats?.reviewCount ? `${stats.reviewCount}+` : "0",  label: t("product.reviewsTitle") },
+    { value: stats?.orderCount  ? `${stats.orderCount}+`  : "0",  label: t("account.totalOrders") },
+    { value: "∞",                                                  label: t("landing.warrantyLabel") },
   ];
 
   const currentYear = new Date().getFullYear();
@@ -120,8 +123,9 @@ export default function LandingPage() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
-            className="flex gap-3 items-center"
+            className="flex gap-2 items-center"
           >
+            <LanguageSwitcher />
             <button
               data-testid="button-landing-theme-toggle"
               onClick={toggleTheme}
@@ -133,7 +137,7 @@ export default function LandingPage() {
               <PremiumButton variant="ghost" size="sm" data-testid="button-login">Log In</PremiumButton>
             </Link>
             <Link href="/register">
-              <PremiumButton size="sm" data-testid="button-get-started">Get Started</PremiumButton>
+              <PremiumButton size="sm" data-testid="button-get-started">{t("landing.shopNow")}</PremiumButton>
             </Link>
           </motion.div>
         </div>
@@ -179,7 +183,7 @@ export default function LandingPage() {
             transition={{ duration: 0.8, delay: 0.9 }}
             className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto font-light leading-relaxed mb-10"
           >
-            Curated furniture for the modern minimalist. Designed with purpose, built to last.
+            {t("landing.heroDesc")}
           </motion.p>
 
           <motion.div
@@ -194,7 +198,7 @@ export default function LandingPage() {
                 className="bg-white text-black hover:bg-white/90 shadow-2xl shadow-black/30"
                 data-testid="button-hero-shop"
               >
-                Shop the Collection <ArrowRight className="ml-2 h-5 w-5" />
+                {t("landing.exploreCollection")} <ArrowRight className="ml-2 h-5 w-5" />
               </PremiumButton>
             </Link>
             <Link href="/login">
@@ -240,7 +244,7 @@ export default function LandingPage() {
         </motion.div>
       </div>
 
-      {/* ── FEATURED PRODUCTS (real data) ── */}
+      {/* ── FEATURED PRODUCTS ── */}
       <section className="py-28 bg-background">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-14">
@@ -250,8 +254,8 @@ export default function LandingPage() {
               viewport={{ once: true }}
               transition={{ duration: 0.7 }}
             >
-              <p className="text-xs font-mono uppercase tracking-[0.25em] text-accent mb-3">Our Collection</p>
-              <h2 className="font-display text-5xl md:text-6xl font-medium tracking-tight">Curated Picks</h2>
+              <p className="text-xs font-mono uppercase tracking-[0.25em] text-accent mb-3">{t("landing.collectionsLabel")}</p>
+              <h2 className="font-display text-5xl md:text-6xl font-medium tracking-tight">{t("landing.featuredTitle")}</h2>
             </motion.div>
             <motion.div
               initial={{ opacity: 0, x: 20 }}
@@ -261,7 +265,7 @@ export default function LandingPage() {
             >
               <Link href="/register">
                 <PremiumButton variant="outline" data-testid="button-view-all">
-                  View Full Collection <ArrowRight className="ml-2 h-4 w-4" />
+                  {t("landing.viewAll")} <ArrowRight className="ml-2 h-4 w-4" />
                 </PremiumButton>
               </Link>
             </motion.div>
@@ -325,8 +329,8 @@ export default function LandingPage() {
               animate={featuresInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.7 }}
             >
-              <p className="text-xs font-mono uppercase tracking-widest text-accent mb-3">Why Space</p>
-              <h2 className="font-display text-5xl font-medium">Built Different</h2>
+              <p className="text-xs font-mono uppercase tracking-widest text-accent mb-3">{t("landing.heroEyebrow")}</p>
+              <h2 className="font-display text-5xl font-medium">{t("landing.collectionsTitle")}</h2>
             </motion.div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -353,7 +357,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── REVIEWS (real data) ── */}
+      {/* ── REVIEWS ── */}
       <section className="py-24 px-6 bg-background">
         <div className="max-w-7xl mx-auto">
           <motion.div
@@ -363,8 +367,8 @@ export default function LandingPage() {
             transition={{ duration: 0.7 }}
             className="text-center mb-14"
           >
-            <p className="text-xs font-mono uppercase tracking-widest text-accent mb-3">Testimonials</p>
-            <h2 className="font-display text-5xl font-medium">What They Say</h2>
+            <p className="text-xs font-mono uppercase tracking-widest text-accent mb-3">{t("landing.testimonialsTitle")}</p>
+            <h2 className="font-display text-5xl font-medium">{t("product.reviewsTitle")}</h2>
           </motion.div>
 
           {reviewsLoading ? (
@@ -404,9 +408,9 @@ export default function LandingPage() {
           ) : (
             <div className="text-center py-16 text-muted-foreground">
               <Star className="h-10 w-10 mx-auto mb-4 text-muted-foreground/20" />
-              <p className="text-sm">Reviews will appear here once customers share their experiences.</p>
+              <p className="text-sm">{t("product.noReviews")}</p>
               <Link href="/register">
-                <PremiumButton variant="outline" className="mt-6">Be the first to review</PremiumButton>
+                <PremiumButton variant="outline" className="mt-6">{t("product.writeReview")}</PremiumButton>
               </Link>
             </div>
           )}
@@ -433,29 +437,22 @@ export default function LandingPage() {
                   viewport={{ once: true }} transition={{ duration: 0.7 }}
                   className="font-mono text-xs uppercase tracking-widest text-white/40"
                 >
-                  Philosophy
+                  {t("landing.ourStory")}
                 </motion.p>
                 <motion.h2
                   initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.1 }}
                   className="font-display text-4xl md:text-5xl font-medium leading-tight"
                 >
-                  Defined by Detail
+                  {t("landing.collectionsDesc")}
                 </motion.h2>
-                <motion.p
-                  initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.2 }}
-                  className="text-white/65 leading-relaxed text-sm"
-                >
-                  Every curve, joint, and finish is considered. We believe furniture should be as functional as it is beautiful.
-                </motion.p>
                 <motion.div
                   initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.3 }}
                 >
                   <Link href="/register">
                     <PremiumButton className="bg-white text-black hover:bg-white/90">
-                      Explore Craft <ArrowRight className="ml-2 h-4 w-4" />
+                      {t("landing.exploreCollection")} <ArrowRight className="ml-2 h-4 w-4" />
                     </PremiumButton>
                   </Link>
                 </motion.div>
@@ -465,7 +462,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── STATS (real data) ── */}
+      {/* ── STATS ── */}
       <section className="py-20 px-6 bg-primary text-primary-foreground">
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
           {dynamicStats.map((stat, i) => (
@@ -492,14 +489,13 @@ export default function LandingPage() {
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
           >
-            <p className="text-xs font-mono uppercase tracking-[0.3em] text-accent mb-4">Designer Club</p>
+            <p className="text-xs font-mono uppercase tracking-[0.3em] text-accent mb-4">{t("landing.newsletterTitle")}</p>
             <h2 className="font-display text-6xl font-medium tracking-tight">Ready to Elevate?</h2>
             <p className="text-muted-foreground leading-relaxed mt-4">
-              Join thousands of design-forward homeowners who trust Space Furniture.
+              {t("landing.newsletterDesc")}
             </p>
           </motion.div>
 
-          {/* Newsletter form */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
@@ -516,7 +512,7 @@ export default function LandingPage() {
               <div className="flex gap-2 max-w-sm mx-auto">
                 <Input
                   type="email"
-                  placeholder="your@email.com"
+                  placeholder={t("landing.newsletterPlaceholder")}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && email && subscribeMutation.mutate(email)}
@@ -529,7 +525,7 @@ export default function LandingPage() {
                   disabled={!email}
                   data-testid="button-newsletter-join"
                 >
-                  Join
+                  {t("landing.newsletterCta")}
                 </PremiumButton>
               </div>
             )}
@@ -537,7 +533,7 @@ export default function LandingPage() {
             <div className="flex gap-4 justify-center flex-wrap mt-4">
               <Link href="/register">
                 <PremiumButton size="lg">
-                  Create Free Account <ArrowRight className="ml-2 h-5 w-5" />
+                  {t("landing.exploreCollection")} <ArrowRight className="ml-2 h-5 w-5" />
                 </PremiumButton>
               </Link>
               <Link href="/login">
@@ -557,13 +553,12 @@ export default function LandingPage() {
           </p>
           <div className="flex gap-6 text-xs text-muted-foreground">
             <Link href="/shop">
-              <span className="hover:text-foreground transition-colors cursor-pointer">Shop</span>
+              <span className="hover:text-foreground transition-colors cursor-pointer">{t("wishlist.shop")}</span>
             </Link>
             <Link href="/login">
-              <span className="hover:text-foreground transition-colors cursor-pointer">Account</span>
+              <span className="hover:text-foreground transition-colors cursor-pointer">{t("nav.myAccount")}</span>
             </Link>
             <a href="mailto:hello@spacefurniture.com" className="hover:text-foreground transition-colors">Contact</a>
-            <a href="https://spacefurniture.com/about" className="hover:text-foreground transition-colors">About</a>
           </div>
         </div>
       </footer>

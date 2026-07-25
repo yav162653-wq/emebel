@@ -2,9 +2,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link } from "wouter";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/app/providers/ThemeProvider";
 import { PremiumButton } from "@/shared/components/PremiumButton";
+import { LanguageSwitcher } from "@/shared/components/LanguageSwitcher";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { insertUserSchema } from "@shared/schema";
@@ -19,6 +21,7 @@ const registerSchema = insertUserSchema
   });
 
 export default function Register() {
+  const { t } = useTranslation();
   const { register, isRegistering } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
@@ -51,14 +54,10 @@ export default function Register() {
         </div>
         <div className="relative z-10 space-y-6">
           <h2 className="font-display text-4xl font-medium leading-snug">
-            Your next favorite piece of furniture is waiting.
+            {t("landing.heroTitle").replace("\n", " ")}
           </h2>
           <div className="flex flex-col gap-3">
-            {[
-              "Access to 14+ exclusive collections",
-              "Early drops & member-only pricing",
-              "Free white-glove delivery",
-            ].map((item) => (
+            {(t("auth.registerBenefits", { returnObjects: true }) as string[]).map((item) => (
               <div key={item} className="flex items-center gap-3">
                 <div className="h-1.5 w-1.5 rounded-full bg-accent shrink-0" />
                 <span className="text-primary-foreground/80 text-sm">{item}</span>
@@ -68,7 +67,7 @@ export default function Register() {
         </div>
         <div className="relative z-10">
           <p className="text-primary-foreground/40 text-xs font-mono uppercase tracking-widest">
-            © 2025 Space Furniture
+            © {new Date().getFullYear()} Space Furniture
           </p>
         </div>
       </div>
@@ -80,7 +79,8 @@ export default function Register() {
           <Link href="/" className="lg:hidden">
             <span className="font-display text-xl font-bold tracking-tighter">SPACE.</span>
           </Link>
-          <div className="lg:ml-auto flex items-center gap-4">
+          <div className="lg:ml-auto flex items-center gap-2">
+            <LanguageSwitcher />
             <button
               onClick={toggleTheme}
               data-testid="button-theme-toggle"
@@ -89,9 +89,9 @@ export default function Register() {
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
             <span className="text-sm text-muted-foreground">
-              Have an account?{" "}
+              {t("auth.haveAccount")}{" "}
               <Link href="/login" className="font-semibold text-foreground hover:text-accent transition-colors">
-                Sign in
+                {t("auth.signIn")}
               </Link>
             </span>
           </div>
@@ -106,8 +106,8 @@ export default function Register() {
             className="w-full max-w-sm space-y-8"
           >
             <div className="space-y-2">
-              <h1 className="font-display text-4xl font-bold text-foreground">Create account</h1>
-              <p className="text-muted-foreground text-sm">Join thousands of design-forward shoppers.</p>
+              <h1 className="font-display text-4xl font-bold text-foreground">{t("auth.createAccount")}</h1>
+              <p className="text-muted-foreground text-sm">{t("auth.registerDesc")}</p>
             </div>
 
             <Form {...form}>
@@ -118,7 +118,7 @@ export default function Register() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        Full Name
+                        {t("auth.fullName")}
                       </FormLabel>
                       <FormControl>
                         <Input
@@ -139,7 +139,7 @@ export default function Register() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        Username
+                        {t("auth.username")}
                       </FormLabel>
                       <FormControl>
                         <Input
@@ -160,7 +160,7 @@ export default function Register() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        Password
+                        {t("auth.password")}
                       </FormLabel>
                       <FormControl>
                         <Input
@@ -181,7 +181,7 @@ export default function Register() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        Confirm Password
+                        {t("auth.confirmPassword")}
                       </FormLabel>
                       <FormControl>
                         <Input
@@ -204,17 +204,17 @@ export default function Register() {
                   size="lg"
                   isLoading={isRegistering}
                 >
-                  Create Account
+                  {t("auth.createAccountBtn")}
                 </PremiumButton>
 
                 <p className="text-center text-xs text-muted-foreground">
-                  By creating an account you agree to our{" "}
+                  {t("auth.termsText")}{" "}
                   <a href="#" className="underline underline-offset-2 hover:text-foreground transition-colors">
-                    Terms of Service
+                    {t("auth.termsOfService")}
                   </a>{" "}
-                  and{" "}
+                  {t("auth.and")}{" "}
                   <a href="#" className="underline underline-offset-2 hover:text-foreground transition-colors">
-                    Privacy Policy
+                    {t("auth.privacyPolicy")}
                   </a>.
                 </p>
               </form>

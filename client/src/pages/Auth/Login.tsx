@@ -2,24 +2,27 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link } from "wouter";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/app/providers/ThemeProvider";
 import { PremiumButton } from "@/shared/components/PremiumButton";
+import { LanguageSwitcher } from "@/shared/components/LanguageSwitcher";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { motion } from "framer-motion";
 import { Moon, Sun, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 
-const loginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
-  password: z.string().min(1, "Password is required"),
-});
-
 export default function Login() {
+  const { t } = useTranslation();
   const { login, isLoggingIn } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [showPassword, setShowPassword] = useState(false);
+
+  const loginSchema = z.object({
+    username: z.string().min(1, t("auth.username") + " is required"),
+    password: z.string().min(1, t("auth.password") + " is required"),
+  });
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -49,14 +52,14 @@ export default function Login() {
         </div>
         <div className="relative z-10 space-y-4">
           <blockquote className="font-display text-3xl font-medium leading-snug">
-            "Design is not just what it looks like — design is how it works."
+            {t("auth.quote")}
           </blockquote>
           <p className="text-primary-foreground/60 text-sm font-mono uppercase tracking-widest">
-            — Steve Jobs
+            {t("auth.quoteAuthor")}
           </p>
         </div>
         <div className="relative z-10 flex gap-8">
-          {[["14+", "Collections"], ["98%", "Satisfaction"], ["∞", "Warranty"]].map(([val, label]) => (
+          {[["14+", t("landing.collectionsLabel")], ["98%", t("landing.satisfactionLabel")], ["∞", t("landing.warrantyLabel")]].map(([val, label]) => (
             <div key={label}>
               <p className="font-display text-2xl font-bold">{val}</p>
               <p className="text-primary-foreground/60 text-xs font-mono uppercase tracking-wider">{label}</p>
@@ -72,7 +75,8 @@ export default function Login() {
           <Link href="/" className="lg:hidden">
             <span className="font-display text-xl font-bold tracking-tighter">SPACE.</span>
           </Link>
-          <div className="lg:ml-auto flex items-center gap-4">
+          <div className="lg:ml-auto flex items-center gap-2">
+            <LanguageSwitcher />
             <button
               onClick={toggleTheme}
               data-testid="button-theme-toggle"
@@ -81,9 +85,9 @@ export default function Login() {
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
             <span className="text-sm text-muted-foreground">
-              No account?{" "}
+              {t("auth.noAccount")}{" "}
               <Link href="/register" className="font-semibold text-foreground hover:text-accent transition-colors">
-                Sign up
+                {t("auth.signUp")}
               </Link>
             </span>
           </div>
@@ -98,8 +102,8 @@ export default function Login() {
             className="w-full max-w-sm space-y-8"
           >
             <div className="space-y-2">
-              <h1 className="font-display text-4xl font-bold text-foreground">Welcome back</h1>
-              <p className="text-muted-foreground text-sm">Enter your credentials to access your account.</p>
+              <h1 className="font-display text-4xl font-bold text-foreground">{t("auth.welcomeBack")}</h1>
+              <p className="text-muted-foreground text-sm">{t("auth.loginDesc")}</p>
             </div>
 
             <Form {...form}>
@@ -110,7 +114,7 @@ export default function Login() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        Username
+                        {t("auth.username")}
                       </FormLabel>
                       <FormControl>
                         <Input
@@ -132,13 +136,13 @@ export default function Login() {
                     <FormItem>
                       <div className="flex items-center justify-between">
                         <FormLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                          Password
+                          {t("auth.password")}
                         </FormLabel>
                         <button
                           type="button"
                           className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                         >
-                          Forgot password?
+                          {t("auth.forgotPassword")}
                         </button>
                       </div>
                       <FormControl>
@@ -171,7 +175,7 @@ export default function Login() {
                   size="lg"
                   isLoading={isLoggingIn}
                 >
-                  Sign In
+                  {t("auth.signIn")}
                 </PremiumButton>
               </form>
             </Form>
@@ -182,15 +186,15 @@ export default function Login() {
               </div>
               <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-background px-3 text-muted-foreground tracking-widest font-mono">
-                  Demo Credentials
+                  {t("auth.demoCredentials")}
                 </span>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               {[
-                { label: "Admin", username: "nasa_admin", password: "password" },
-                { label: "User", username: "user", password: "password" },
+                { label: t("common.admin"), username: "nasa_admin", password: "password" },
+                { label: t("common.user"), username: "user", password: "password" },
               ].map((cred) => (
                 <button
                   key={cred.label}

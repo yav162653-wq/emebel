@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useCart } from "../hooks/use-cart";
 import { useFurnitureStore } from "../store/furniture-store";
 import { PremiumButton } from "@/shared/components/PremiumButton";
@@ -13,6 +14,7 @@ import { useEffect } from "react";
 const FREE_SHIPPING_THRESHOLD = 50000;
 
 export function CartDrawer() {
+  const { t } = useTranslation();
   const { cartDrawerOpen, setCartDrawerOpen } = useFurnitureStore();
   const { items, total, removeFromCart, updateQuantity, isUpdating } = useCart();
 
@@ -38,7 +40,7 @@ export function CartDrawer() {
           <div className="flex items-center justify-between">
             <SheetTitle className="font-display text-xl font-medium flex items-center gap-2">
               <ShoppingBag className="h-5 w-5" />
-              Your Bag
+              {t("cart.yourBag")}
               {cartCount > 0 && (
                 <span className="ml-1 inline-flex items-center justify-center h-5 w-5 rounded-full bg-accent text-accent-foreground text-[10px] font-bold">
                   {cartCount}
@@ -47,7 +49,7 @@ export function CartDrawer() {
             </SheetTitle>
           </div>
           <SheetDescription className="sr-only">
-            Your shopping bag with {cartCount} items.
+            {t("cart.yourBag")} — {cartCount} {t("cart.items", { count: cartCount })}
           </SheetDescription>
         </SheetHeader>
 
@@ -63,11 +65,11 @@ export function CartDrawer() {
                     animate={{ opacity: 1, y: 0 }}
                     className="text-green-600 dark:text-green-400 font-semibold"
                   >
-                    🎉 You've unlocked free shipping!
+                    {t("cart.freeShippingUnlocked")}
                   </motion.span>
                 ) : (
                   <span className="text-muted-foreground">
-                    Add <span className="font-semibold text-foreground">${(remaining / 100).toFixed(0)}</span> more for free shipping
+                    {t("cart.freeShippingProgress", { amount: `$${(remaining / 100).toFixed(0)}` }).replace("<b>", "").replace("</b>", "")}
                   </span>
                 )}
               </div>
@@ -96,13 +98,11 @@ export function CartDrawer() {
                   <Package className="h-10 w-10 text-muted-foreground/40" />
                 </div>
                 <div>
-                  <p className="font-medium text-foreground">Your bag is empty</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Discover our curated furniture collection.
-                  </p>
+                  <p className="font-medium text-foreground">{t("cart.emptyTitle")}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{t("cart.emptyDesc")}</p>
                 </div>
                 <PremiumButton size="sm" onClick={() => setCartDrawerOpen(false)}>
-                  Continue Shopping
+                  {t("cart.continueShopping")}
                 </PremiumButton>
               </motion.div>
             ) : (
@@ -137,7 +137,6 @@ export function CartDrawer() {
                       <p className="text-xs text-muted-foreground">{item.product.category}</p>
 
                       <div className="flex items-center justify-between mt-auto">
-                        {/* Quantity controls */}
                         <div className="flex items-center border border-border rounded-sm">
                           <button
                             data-testid={`button-decrease-${item.id}`}
@@ -191,33 +190,33 @@ export function CartDrawer() {
           <div className="shrink-0 border-t p-6 space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Subtotal ({cartCount} items)</span>
+                <span>{t("cart.subtotal")} ({cartCount} {t("cart.items", { count: cartCount })})</span>
                 <span className="font-mono">${(total / 100).toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Shipping</span>
+                <span>{t("cart.shipping")}</span>
                 <span className="font-mono">
                   {shipping === 0 ? (
-                    <span className="text-green-600 dark:text-green-400 font-semibold">Free</span>
+                    <span className="text-green-600 dark:text-green-400 font-semibold">{t("cart.free")}</span>
                   ) : `$${(shipping / 100).toFixed(2)}`}
                 </span>
               </div>
               <Separator />
               <div className="flex justify-between font-semibold text-foreground">
-                <span>Total</span>
+                <span>{t("cart.total")}</span>
                 <span className="font-mono text-lg">${(grandTotal / 100).toFixed(2)}</span>
               </div>
             </div>
             <Link href="/checkout" onClick={() => setCartDrawerOpen(false)}>
               <PremiumButton className="w-full" size="lg" data-testid="button-checkout">
-                Checkout <ArrowRight className="ml-2 h-4 w-4" />
+                {t("cart.checkout")} <ArrowRight className="ml-2 h-4 w-4" />
               </PremiumButton>
             </Link>
             <button
               onClick={() => setCartDrawerOpen(false)}
               className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              Continue Shopping
+              {t("cart.continueShopping")}
             </button>
           </div>
         )}
