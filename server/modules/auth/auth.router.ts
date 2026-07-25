@@ -7,16 +7,21 @@ import { requireAuth } from "../../middleware/auth";
 
 const router = Router();
 
+// ── Validation schemas ────────────────────────────────────────────────────
+
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
   password: z.string().min(1, "Password is required"),
 });
 
 const registerSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters").max(50),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  name: z.string().min(1, "Name is required").max(100),
+  username: z.string().min(3).max(50),
+  password: z.string().min(6),
+  name:     z.string().min(1).max(100),
+  email:    z.string().email().optional(),
 });
+
+// ── Local auth ────────────────────────────────────────────────────────────
 
 // POST /api/auth/login
 router.post(
@@ -42,6 +47,23 @@ router.post(
   })
 );
 
+// POST /api/auth/logout
+router.post(
+  "/logout",
+  asyncHandler(async (req, res) => {
+    const requestId: string = res.locals["requestId"] ?? "unknown";
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ error: "Logout failed", code: "INTERNAL_ERROR", requestId });
+      }
+      res.clearCookie("connect.sid");
+      res.sendStatus(200);
+    });
+  })
+);
+
+// ── Session / profile ─────────────────────────────────────────────────────
+
 // GET /api/auth/me
 router.get(
   "/me",
@@ -63,26 +85,32 @@ router.patch(
   requireAuth,
   asyncHandler(async (req, res) => {
     const data = z
-      .object({ name: z.string().min(1).max(100).optional() })
+      .object({
+        name:  z.string().min(1).max(100).optional(),
+        email: z.string().email().optional(),
+      })
       .parse(req.body);
     const user = await AuthService.updateProfile(req.session.userId!, data);
     res.json(user);
   })
 );
 
-// POST /api/auth/logout
-router.post(
-  "/logout",
+// GET /api/auth/identities — linked OAuth providers for the logged-in user
+router.get(
+  "/identities",
+  requireAuth,
   asyncHandler(async (req, res) => {
-    const requestId: string = res.locals["requestId"] ?? "unknown";
-    req.session.destroy((err) => {
-      if (err) {
-        return res.status(500).json({ error: "Logout failed", code: "INTERNAL_ERROR", requestId });
-      }
-      res.clearCookie("connect.sid");
-      res.sendStatus(200);
-    });
+    const identities = await AuthService.getIdentities(req.session.userId!);
+    res.json(identities);
   })
 );
+
+// ── OAuth stubs (wired up when strategy credentials are configured) ────────
+//
+// GET /api/auth/google          → passport.authenticate('google', { scope: ['profile','email'] })
+// GET /api/auth/google/callback → passport.authenticate('google', { failureRedirect: '/login' })
+// GET /api/auth/telegram/callback
+// GET /api/auth/github          → passport.authenticate('github', { scope: ['user:email'] })
+// GET /api/auth/github/callback
 
 export default router;

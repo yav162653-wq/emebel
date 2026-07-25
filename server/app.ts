@@ -4,6 +4,7 @@ import cors from "cors";
 import session from "express-session";
 import MemoryStore from "memorystore";
 import pinoHttp from "pino-http";
+import passport from "./config/passport";
 
 import { env } from "./config/env";
 import { logger } from "./config/logger";
@@ -22,16 +23,15 @@ import statsRouter      from "./modules/stats/stats.router";
 import newsletterRouter from "./modules/newsletter/newsletter.router";
 
 const SessionStore = MemoryStore(session);
-
 const isProd = env.NODE_ENV === "production";
 
 export function createApp() {
   const app = express();
 
-  // ── Trust proxy (Replit sits behind a reverse proxy) ─────────────────
+  // ── Trust proxy (Replit sits behind a reverse proxy) ──────────────────
   app.set("trust proxy", 1);
 
-  // ── Request ID (must come first so all downstream middleware can use it)
+  // ── Request ID (must come first) ──────────────────────────────────────
   app.use(requestIdMiddleware);
 
   // ── Security headers ──────────────────────────────────────────────────
@@ -41,17 +41,11 @@ export function createApp() {
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          // Dev: allow 'unsafe-inline' for Vite HMR injections.
-          // Prod: no unsafe-inline — scripts must come from self only.
-          scriptSrc: isProd
-            ? ["'self'"]
-            : ["'self'", "'unsafe-inline'"],
-          styleSrc:   ["'self'", "'unsafe-inline'"],   // Tailwind inline styles (both envs)
+          scriptSrc:  isProd ? ["'self'"] : ["'self'", "'unsafe-inline'"],
+          styleSrc:   ["'self'", "'unsafe-inline'"],
           imgSrc:     ["'self'", "data:", "https://images.unsplash.com"],
           fontSrc:    ["'self'", "data:"],
-          connectSrc: isProd
-            ? ["'self'"]
-            : ["'self'", "ws:", "wss:"],               // Vite WS hot-reload (dev only)
+          connectSrc: isProd ? ["'self'"] : ["'self'", "ws:", "wss:"],
           frameSrc:   ["'none'"],
           objectSrc:  ["'none'"],
         },
@@ -61,9 +55,7 @@ export function createApp() {
 
   app.use(
     cors({
-      origin: isProd
-        ? env.APP_ORIGIN!.split(",")
-        : true,
+      origin:      isProd ? env.APP_ORIGIN!.split(",") : true,
       credentials: true,
     })
   );
@@ -75,25 +67,28 @@ export function createApp() {
   // ── Session ───────────────────────────────────────────────────────────
   app.use(
     session({
-      secret: env.SESSION_SECRET,
-      resave: false,
+      secret:           env.SESSION_SECRET,
+      resave:           false,
       saveUninitialized: false,
       cookie: {
-        maxAge: 24 * 60 * 60 * 1000,
+        maxAge:   24 * 60 * 60 * 1000,
         httpOnly: true,
-        secure: isProd,
+        secure:   isProd,
         sameSite: "lax",
       },
       store: new SessionStore({ checkPeriod: 86_400_000 }),
     })
   );
 
-  // ── Auth context (populate res.locals.userId after session loads) ─────
+  // ── Passport (must come after session) ────────────────────────────────
+  // initialize() sets up req.user; session() syncs with express-session.
+  app.use(passport.initialize());
+  app.use(passport.session());
+
+  // ── Auth context (populate res.locals.userId) ─────────────────────────
   app.use(authContextMiddleware);
 
-  // ── HTTP request logging — after session+auth so userId is set ────────
-  // customProps is called at response-end; placing pinoHttp here guarantees
-  // res.locals.userId is populated before any log line is written.
+  // ── HTTP request logging ──────────────────────────────────────────────
   app.use(
     pinoHttp({
       logger,
@@ -112,20 +107,15 @@ export function createApp() {
     })
   );
 
-  // ── Rate Limiting (only /api/* — never block Vite/static files) ──────
+  // ── Rate Limiting ─────────────────────────────────────────────────────
   app.use("/api", globalLimiter);
 
   // ── Health Check ──────────────────────────────────────────────────────
   app.get("/api/health", (_req, res) => {
-    res.json({
-      status: "ok",
-      env: env.NODE_ENV,
-      timestamp: new Date().toISOString(),
-    });
+    res.json({ status: "ok", env: env.NODE_ENV, timestamp: new Date().toISOString() });
   });
 
   // ── API Routes ────────────────────────────────────────────────────────
-  // Note: authLimiter is applied per-route inside auth.router.ts (login + register only).
   app.use("/api/auth",       authRouter);
   app.use("/api/products",   productsRouter);
   app.use("/api/cart",       cartRouter);
@@ -135,10 +125,8 @@ export function createApp() {
   app.use("/api/stats",      statsRouter);
   app.use("/api/newsletter", newsletterRouter);
 
-  // ── 404 for unmatched API routes (frontend routes handled by Vite) ────
+  // ── 404 + error handlers ──────────────────────────────────────────────
   app.use("/api/*", notFoundHandler);
-
-  // ── Global Error Handler ──────────────────────────────────────────────
   app.use(errorHandler);
 
   return app;

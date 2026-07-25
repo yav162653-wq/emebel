@@ -15,17 +15,45 @@ async function seed() {
 
   logger.info("🌱 Seeding database...");
 
+  // ── Demo users + local identities ────────────────────────────────────
   const adminHash = await bcrypt.hash("password", SALT_ROUNDS);
   const userHash  = await bcrypt.hash("password", SALT_ROUNDS);
 
-  await db.user.createMany({
-    data: [
-      { username: "nasa_admin", password: adminHash, name: "NASA Admin", role: "admin" },
-      { username: "user",       password: userHash,  name: "Test User",  role: "user"  },
-    ],
-    skipDuplicates: true,
+  const admin = await db.user.upsert({
+    where:  { username: "nasa_admin" },
+    update: {},
+    create: { username: "nasa_admin", name: "NASA Admin", role: "admin" },
   });
 
+  await db.identity.upsert({
+    where:  { provider_providerId: { provider: "local", providerId: "nasa_admin" } },
+    update: {},
+    create: {
+      userId:      admin.id,
+      provider:    "local",
+      providerId:  "nasa_admin",
+      credentials: { hash: adminHash },
+    },
+  });
+
+  const user = await db.user.upsert({
+    where:  { username: "user" },
+    update: {},
+    create: { username: "user", name: "Test User", role: "user" },
+  });
+
+  await db.identity.upsert({
+    where:  { provider_providerId: { provider: "local", providerId: "user" } },
+    update: {},
+    create: {
+      userId:      user.id,
+      provider:    "local",
+      providerId:  "user",
+      credentials: { hash: userHash },
+    },
+  });
+
+  // ── Products ──────────────────────────────────────────────────────────
   await db.product.createMany({
     data: [
       // SEATING
@@ -34,10 +62,7 @@ async function seed() {
         description: "Hand-stitched full-grain leather with a solid walnut frame. Designed for the deliberate sitter.",
         price: 189000, category: "Seating",
         image: "https://images.unsplash.com/photo-1592078615290-033ee584e267?auto=format&fit=crop&q=80&w=800",
-        stock: 8,
-        material: "Full-Grain Leather",
-        warranty: "Lifetime",
-        origin: "Italy",
+        stock: 8, material: "Full-Grain Leather", warranty: "Lifetime", origin: "Italy",
         colors: ["Walnut", "Onyx", "Cognac"],
       },
       {
@@ -45,10 +70,7 @@ async function seed() {
         description: "Bouclé fabric on a powder-coated steel base. A sculptural piece that works in any room.",
         price: 97500, category: "Seating",
         image: "https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?auto=format&fit=crop&q=80&w=800",
-        stock: 12,
-        material: "Bouclé / Steel",
-        warranty: "5 Years",
-        origin: "Denmark",
+        stock: 12, material: "Bouclé / Steel", warranty: "5 Years", origin: "Denmark",
         colors: ["Cream", "Slate", "Charcoal"],
       },
       {
@@ -56,10 +78,7 @@ async function seed() {
         description: "Bent plywood seat with matte black steel legs. Stackable, elegant, enduring.",
         price: 42000, category: "Seating",
         image: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&q=80&w=800",
-        stock: 30,
-        material: "Bent Plywood / Steel",
-        warranty: "3 Years",
-        origin: "Germany",
+        stock: 30, material: "Bent Plywood / Steel", warranty: "3 Years", origin: "Germany",
         colors: ["Natural Oak", "Onyx", "White"],
       },
       {
@@ -67,10 +86,7 @@ async function seed() {
         description: "Handwoven natural rattan over a powder-coated iron frame. Brings warmth to any corner.",
         price: 64500, category: "Seating",
         image: "https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?auto=format&fit=crop&q=80&w=800",
-        stock: 14,
-        material: "Natural Rattan / Iron",
-        warranty: "3 Years",
-        origin: "Indonesia",
+        stock: 14, material: "Natural Rattan / Iron", warranty: "3 Years", origin: "Indonesia",
         colors: ["Natural", "Honey", "Bleached"],
       },
       // TABLES
@@ -79,10 +95,7 @@ async function seed() {
         description: "Tempered glass top suspended on a sculptural matte steel frame. Floats above any floor.",
         price: 112000, category: "Tables",
         image: "https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?auto=format&fit=crop&q=80&w=800",
-        stock: 5,
-        material: "Tempered Glass / Steel",
-        warranty: "5 Years",
-        origin: "Sweden",
+        stock: 5, material: "Tempered Glass / Steel", warranty: "5 Years", origin: "Sweden",
         colors: ["Clear / Matte Black", "Smoked / Brass"],
       },
       {
@@ -90,10 +103,7 @@ async function seed() {
         description: "Live-edge American walnut slab on raw steel trestles. Each table is one of a kind.",
         price: 345000, category: "Tables",
         image: "https://images.unsplash.com/photo-1577140917170-285929fb55b7?auto=format&fit=crop&q=80&w=800",
-        stock: 3,
-        material: "American Walnut / Steel",
-        warranty: "Lifetime",
-        origin: "USA",
+        stock: 3, material: "American Walnut / Steel", warranty: "Lifetime", origin: "USA",
         colors: ["Natural Walnut", "Ebonized"],
       },
       {
@@ -101,10 +111,7 @@ async function seed() {
         description: "Powder-coated aluminum grid structure with a honed marble top. Minimal and refined.",
         price: 58000, category: "Tables",
         image: "https://images.unsplash.com/photo-1538688525198-9b88f6f53126?auto=format&fit=crop&q=80&w=800",
-        stock: 15,
-        material: "Aluminum / Marble",
-        warranty: "5 Years",
-        origin: "Italy",
+        stock: 15, material: "Aluminum / Marble", warranty: "5 Years", origin: "Italy",
         colors: ["White Marble / Black", "Grey Marble / Brass"],
       },
       {
@@ -112,10 +119,7 @@ async function seed() {
         description: "Solid Italian travertine top on polished brass hairpin legs. A statement entry piece.",
         price: 228000, category: "Tables",
         image: "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&q=80&w=800",
-        stock: 4,
-        material: "Italian Travertine / Brass",
-        warranty: "Lifetime",
-        origin: "Italy",
+        stock: 4, material: "Italian Travertine / Brass", warranty: "Lifetime", origin: "Italy",
         colors: ["Travertine / Gold Brass", "Travertine / Matte Black"],
       },
       // LIGHTING
@@ -124,10 +128,7 @@ async function seed() {
         description: "Hand-blown opal glass with an antique brass canopy. Casts a warm, diffused glow.",
         price: 68000, category: "Lighting",
         image: "https://images.unsplash.com/photo-1507473883581-20963378120f?auto=format&fit=crop&q=80&w=800",
-        stock: 20,
-        material: "Hand-Blown Glass / Brass",
-        warranty: "2 Years",
-        origin: "Czech Republic",
+        stock: 20, material: "Hand-Blown Glass / Brass", warranty: "2 Years", origin: "Czech Republic",
         colors: ["Opal / Antique Brass", "Smoke / Matte Black"],
       },
       {
@@ -135,10 +136,7 @@ async function seed() {
         description: "A sweeping satin brass arc reaching 1.9m. Brings gallery-level light to living spaces.",
         price: 52000, category: "Lighting",
         image: "https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?auto=format&fit=crop&q=80&w=800",
-        stock: 10,
-        material: "Satin Brass / Marble Base",
-        warranty: "2 Years",
-        origin: "Netherlands",
+        stock: 10, material: "Satin Brass / Marble Base", warranty: "2 Years", origin: "Netherlands",
         colors: ["Satin Brass", "Matte Black", "Chrome"],
       },
       {
@@ -146,10 +144,7 @@ async function seed() {
         description: "Linen shade over a turned oak base. Warm and architectural. Pairs with any palette.",
         price: 28500, category: "Lighting",
         image: "https://images.unsplash.com/photo-1540932239986-30128078f3c5?auto=format&fit=crop&q=80&w=800",
-        stock: 25,
-        material: "Linen / Turned Oak",
-        warranty: "2 Years",
-        origin: "Japan",
+        stock: 25, material: "Linen / Turned Oak", warranty: "2 Years", origin: "Japan",
         colors: ["Natural Linen", "Ivory", "Charcoal"],
       },
       {
@@ -157,10 +152,7 @@ async function seed() {
         description: "Brushed nickel wall-mounted dome with a frosted glass diffuser. Ideal for layered lighting.",
         price: 34000, category: "Lighting",
         image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&q=80&w=800",
-        stock: 18,
-        material: "Brushed Nickel / Glass",
-        warranty: "2 Years",
-        origin: "USA",
+        stock: 18, material: "Brushed Nickel / Glass", warranty: "2 Years", origin: "USA",
         colors: ["Brushed Nickel", "Matte Black", "Antique Brass"],
       },
       // STORAGE
@@ -169,10 +161,7 @@ async function seed() {
         description: "Open steel shelving with solid oak planks. Scales from single to full wall configuration.",
         price: 138000, category: "Storage",
         image: "https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&q=80&w=800",
-        stock: 7,
-        material: "Solid Oak / Powder-Coated Steel",
-        warranty: "10 Years",
-        origin: "Norway",
+        stock: 7, material: "Solid Oak / Powder-Coated Steel", warranty: "10 Years", origin: "Norway",
         colors: ["Oak / Black", "Oak / White", "Walnut / Brass"],
       },
       {
@@ -180,10 +169,7 @@ async function seed() {
         description: "Smoked oak veneer with push-to-open doors. Invisible hardware, pure form.",
         price: 224000, category: "Storage",
         image: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&q=80&w=800",
-        stock: 4,
-        material: "Smoked Oak Veneer",
-        warranty: "10 Years",
-        origin: "Denmark",
+        stock: 4, material: "Smoked Oak Veneer", warranty: "10 Years", origin: "Denmark",
         colors: ["Smoked Oak", "White Oak", "Ebony"],
       },
       {
@@ -191,10 +177,7 @@ async function seed() {
         description: "Full-height wardrobe in matte white with integrated handles. Seamless, minimal, room-defining.",
         price: 386000, category: "Storage",
         image: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?auto=format&fit=crop&q=80&w=800",
-        stock: 3,
-        material: "MDF / Lacquered Finish",
-        warranty: "10 Years",
-        origin: "Germany",
+        stock: 3, material: "MDF / Lacquered Finish", warranty: "10 Years", origin: "Germany",
         colors: ["Matte White", "Matte Black", "Stone Grey"],
       },
       // BEDROOM
@@ -203,10 +186,7 @@ async function seed() {
         description: "Solid white oak with a low-slung silhouette. Upholstered headboard in dove grey linen.",
         price: 285000, category: "Bedroom",
         image: "https://images.unsplash.com/photo-1505693314120-0d443867891c?auto=format&fit=crop&q=80&w=800",
-        stock: 6,
-        material: "Solid White Oak / Linen",
-        warranty: "Lifetime",
-        origin: "Japan",
+        stock: 6, material: "Solid White Oak / Linen", warranty: "Lifetime", origin: "Japan",
         colors: ["White Oak / Grey Linen", "Walnut / Cream Linen"],
       },
       {
@@ -214,10 +194,7 @@ async function seed() {
         description: "Wall-mounted white oak with a single push-to-open drawer. Designed to disappear.",
         price: 44000, category: "Bedroom",
         image: "https://images.unsplash.com/photo-1556228578-8c89e6adf883?auto=format&fit=crop&q=80&w=800",
-        stock: 18,
-        material: "Solid White Oak",
-        warranty: "5 Years",
-        origin: "Japan",
+        stock: 18, material: "Solid White Oak", warranty: "5 Years", origin: "Japan",
         colors: ["White Oak", "Walnut", "Ebonized"],
       },
       {
@@ -225,10 +202,7 @@ async function seed() {
         description: "Deep-filled down-alternative cushioning wrapped in performance linen. Sinks perfectly every time.",
         price: 76000, category: "Bedroom",
         image: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&q=80&w=800",
-        stock: 9,
-        material: "Performance Linen / Down-Alt",
-        warranty: "3 Years",
-        origin: "Portugal",
+        stock: 9, material: "Performance Linen / Down-Alt", warranty: "3 Years", origin: "Portugal",
         colors: ["Natural Linen", "Slate Blue", "Blush"],
       },
       // OUTDOOR
@@ -237,10 +211,7 @@ async function seed() {
         description: "Grade A teak with a seven-position recline mechanism. Built for decades of outdoor use.",
         price: 142000, category: "Outdoor",
         image: "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&q=80&w=800",
-        stock: 6,
-        material: "Grade A Teak",
-        warranty: "10 Years",
-        origin: "Indonesia",
+        stock: 6, material: "Grade A Teak", warranty: "10 Years", origin: "Indonesia",
         colors: ["Natural Teak", "Weathered Grey"],
       },
       {
@@ -248,10 +219,7 @@ async function seed() {
         description: "UV-resistant olefin rope over a powder-coated aluminum frame. Outdoor luxury redefined.",
         price: 234000, category: "Outdoor",
         image: "https://images.unsplash.com/photo-1600566752355-35792bedcfea?auto=format&fit=crop&q=80&w=800",
-        stock: 4,
-        material: "Olefin Rope / Aluminum",
-        warranty: "5 Years",
-        origin: "Spain",
+        stock: 4, material: "Olefin Rope / Aluminum", warranty: "5 Years", origin: "Spain",
         colors: ["White / Sand", "Charcoal / Dark Grey"],
       },
       {
@@ -259,10 +227,7 @@ async function seed() {
         description: "Cast stone planters in three graduated sizes. Frost-resistant and beautifully textured.",
         price: 38500, category: "Outdoor",
         image: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&q=80&w=800",
-        stock: 20,
-        material: "Cast Stone",
-        warranty: "Lifetime",
-        origin: "UK",
+        stock: 20, material: "Cast Stone", warranty: "Lifetime", origin: "UK",
         colors: ["Portland Stone", "Slate", "Sandstone"],
       },
       // DECOR
@@ -271,10 +236,7 @@ async function seed() {
         description: "Full-length arched mirror with a thin solid brass frame. Reflects light, adds volume.",
         price: 89000, category: "Decor",
         image: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&q=80&w=800",
-        stock: 11,
-        material: "Glass / Solid Brass",
-        warranty: "5 Years",
-        origin: "France",
+        stock: 11, material: "Glass / Solid Brass", warranty: "5 Years", origin: "France",
         colors: ["Antique Brass", "Matte Black", "Chrome"],
       },
       {
@@ -282,10 +244,7 @@ async function seed() {
         description: "Hand-thrown stoneware in matte sand glaze. Each piece subtly unique, intentionally imperfect.",
         price: 22000, category: "Decor",
         image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&q=80&w=800",
-        stock: 30,
-        material: "Stoneware",
-        warranty: "N/A",
-        origin: "Japan",
+        stock: 30, material: "Stoneware", warranty: "N/A", origin: "Japan",
         colors: ["Sand", "Fog", "Dusk"],
       },
       {
@@ -293,16 +252,13 @@ async function seed() {
         description: "100% Belgian linen with a natural fringe border. Drape, wrap, or display.",
         price: 18500, category: "Decor",
         image: "https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?auto=format&fit=crop&q=80&w=800",
-        stock: 40,
-        material: "100% Belgian Linen",
-        warranty: "N/A",
-        origin: "Belgium",
+        stock: 40, material: "100% Belgian Linen", warranty: "N/A", origin: "Belgium",
         colors: ["Natural", "Stone", "Dune", "Slate"],
       },
     ],
   });
 
-  logger.info("✅ Database seeded: 2 users + 24 products.");
+  logger.info("✅ Seeded: 2 users + 2 local identities + 24 products.");
 }
 
 seed()

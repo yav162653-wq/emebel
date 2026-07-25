@@ -7,18 +7,42 @@ datasource db {
   provider = "postgresql"
 }
 
+// ─── Auth ────────────────────────────────────────────────────────────────────
+
 model User {
-  id        Int        @id @default(autoincrement())
-  username  String     @unique
-  password  String
-  name      String
-  role      String     @default("user")
-  cartItems CartItem[]
-  orders    Order[]
-  reviews   Review[]
+  id         Int        @id @default(autoincrement())
+  username   String?    @unique              // local users set this; OAuth users may not
+  name       String
+  email      String?    @unique              // populated from OAuth; optional for local
+  role       String     @default("user")
+  createdAt  DateTime   @default(now())
+
+  identities Identity[]
+  cartItems  CartItem[]
+  orders     Order[]
+  reviews    Review[]
 
   @@map("users")
 }
+
+model Identity {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  provider    String   // 'local' | 'google' | 'telegram' | 'github'
+  providerId  String   // username for local; sub/id for OAuth providers
+  credentials Json     @default("{}")
+  // local:    { "hash": "$2b$..." }
+  // google:   { "accessToken": "...", "refreshToken": "..." }
+  // telegram: { "telegramId": 123456 }
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
+  @@map("identities")
+}
+
+// ─── Catalogue ───────────────────────────────────────────────────────────────
 
 model Product {
   id          Int        @id @default(autoincrement())
@@ -39,13 +63,7 @@ model Product {
   @@map("products")
 }
 
-model Newsletter {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  createdAt DateTime @default(now())
-
-  @@map("newsletters")
-}
+// ─── Commerce ────────────────────────────────────────────────────────────────
 
 model CartItem {
   id        Int     @id @default(autoincrement())
@@ -96,4 +114,14 @@ model Review {
 
   @@unique([productId, userId])
   @@map("reviews")
+}
+
+// ─── Marketing ───────────────────────────────────────────────────────────────
+
+model Newsletter {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  createdAt DateTime @default(now())
+
+  @@map("newsletters")
 }
