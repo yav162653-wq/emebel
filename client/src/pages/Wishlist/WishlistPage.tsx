@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, ShoppingBag, Trash2, ArrowLeft, Sparkles } from "lucide-react";
 import { Link } from "wouter";
-import { useWishlistStore } from "@/modules/furniture/store/furniture-store";
+import { useWishlist } from "@/modules/furniture/hooks/use-wishlist";
 import { useFurniture } from "@/modules/furniture/hooks/use-furniture";
 import { useCart } from "@/modules/furniture/hooks/use-cart";
 import { useFurnitureStore } from "@/modules/furniture/store/furniture-store";
@@ -14,7 +14,7 @@ import type { Product } from "@shared/schema";
 
 function WishlistCard({ product, index }: { product: Product; index: number }) {
   const { t } = useTranslation();
-  const { toggle } = useWishlistStore();
+  const { toggle } = useWishlist();
   const { addToCart, isAdding } = useCart();
   const { setCartDrawerOpen } = useFurnitureStore();
   const { toast } = useToast();
@@ -113,8 +113,9 @@ function WishlistCard({ product, index }: { product: Product; index: number }) {
 export default function WishlistPage() {
   const { t } = useTranslation();
   usePageTitle(t("wishlist.title"));
-  const { items: wishlistIds, clear } = useWishlistStore();
-  const { data: allProducts, isLoading } = useFurniture();
+  const { items: wishlistIds, clear, isLoading: wishlistLoading } = useWishlist();
+  const { data: allProducts, isLoading: productsLoading } = useFurniture();
+  const isLoading = productsLoading || wishlistLoading;
   const { toast } = useToast();
 
   const wishlisted = allProducts?.filter((p) => wishlistIds.includes(p.id)) ?? [];

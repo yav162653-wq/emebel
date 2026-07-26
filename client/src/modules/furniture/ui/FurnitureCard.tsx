@@ -4,7 +4,7 @@ import { type Product } from "@shared/schema";
 import { PremiumButton } from "@/shared/components/PremiumButton";
 import { Eye, Heart, ShoppingBag } from "lucide-react";
 import { useCart } from "../hooks/use-cart";
-import { useWishlistStore } from "../store/furniture-store";
+import { useWishlist } from "../hooks/use-wishlist";
 import { useToast } from "@/hooks/use-toast";
 import { QuickView } from "./QuickView";
 import { Link } from "wouter";
@@ -16,7 +16,7 @@ interface FurnitureCardProps {
 
 export function FurnitureCard({ product, index = 0 }: FurnitureCardProps) {
   const { addToCart, isAdding } = useCart();
-  const { has, toggle } = useWishlistStore();
+  const { has, toggle } = useWishlist();
   const { toast } = useToast();
   const [imgLoaded, setImgLoaded] = useState(false);
   const [quickViewOpen, setQuickViewOpen] = useState(false);

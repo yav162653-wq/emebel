@@ -21,6 +21,7 @@ import ordersRouter     from "./modules/orders/orders.router";
 import reviewsRouter    from "./modules/reviews/reviews.router";
 import statsRouter      from "./modules/stats/stats.router";
 import newsletterRouter from "./modules/newsletter/newsletter.router";
+import wishlistRouter   from "./modules/wishlist/wishlist.router";
 
 const SessionStore = MemoryStore(session);
 const isProd = env.NODE_ENV === "production";
@@ -124,6 +125,7 @@ export function createApp() {
   app.use("/api/reviews",    reviewsRouter);
   app.use("/api/stats",      statsRouter);
   app.use("/api/newsletter", newsletterRouter);
+  app.use("/api/wishlist",   wishlistRouter);
 
   // ── 404 + error handlers ──────────────────────────────────────────────
   app.use("/api/*", notFoundHandler);
