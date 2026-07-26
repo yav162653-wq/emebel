@@ -59,7 +59,7 @@ export function AdminSidebar({ active, onSelect }: AdminSidebarProps) {
           <p className="text-[11px] text-muted-foreground truncate">@{user?.username}</p>
         </div>
         <button
-          onClick={logout}
+          onClick={() => logout()}
           className="w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
           data-testid="button-admin-logout"
         >
