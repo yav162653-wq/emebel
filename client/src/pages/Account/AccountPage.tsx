@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/use-auth";
-import { useWishlistStore } from "@/modules/furniture/store/furniture-store";
+import { useWishlist } from "@/modules/furniture/hooks/use-wishlist";
 import { useFurniture } from "@/modules/furniture/hooks/use-furniture";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useToast } from "@/hooks/use-toast";
@@ -32,7 +32,7 @@ function formatDate(iso: string) {
 export default function AccountPage() {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
-  const { items: wishlistIds, toggle, count } = useWishlistStore();
+  const { items: wishlistIds, toggle, count } = useWishlist();
   const { data: products } = useFurniture();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -131,7 +131,7 @@ export default function AccountPage() {
                 <p className="text-xs text-muted-foreground">{t("account.totalOrders")}</p>
               </div>
               <div className="text-center">
-                <p className="font-bold text-foreground">{count()}</p>
+                <p className="font-bold text-foreground">{count}</p>
                 <p className="text-xs text-muted-foreground">{t("account.wishlistItems")}</p>
               </div>
               <div className="text-center">
@@ -158,7 +158,7 @@ export default function AccountPage() {
               <Package className="h-4 w-4" /> {t("account.orders")} ({ordersLoading ? "…" : orders.length})
             </TabsTrigger>
             <TabsTrigger value="wishlist" className="rounded-sm gap-2" data-testid="tab-wishlist">
-              <Heart className="h-4 w-4" /> {t("account.wishlist")} ({count()})
+              <Heart className="h-4 w-4" /> {t("account.wishlist")} ({count})
             </TabsTrigger>
             <TabsTrigger value="settings" className="rounded-sm gap-2" data-testid="tab-settings">
               <Settings className="h-4 w-4" /> {t("account.profile")}

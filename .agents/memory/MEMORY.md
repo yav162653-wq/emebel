@@ -3,3 +3,4 @@
 - [Prisma schema change workflow](prisma-schema-change.md) — After any Prisma model change: run prisma db push then prisma generate; skipping generate causes 500 errors at runtime.
 - [Reviews module](reviews-module.md) — Review model has @@unique([productId, userId]); upsert via productId_userId compound key; router at /api/reviews/:productId with summary + mine sub-routes.
 - [Identity-centric auth](identity-auth.md) — User+Identity two-table auth: User has no password; Identity stores provider+providerId+credentials(Json). Local: credentials={hash}. Passport.js + sessions for web; JWT util ready for mobile/bot.
+- [Wishlist state boundary](wishlist-state-boundary.md) — UI uses the unified wishlist hook; local Zustand is only for guests and login-time migration.

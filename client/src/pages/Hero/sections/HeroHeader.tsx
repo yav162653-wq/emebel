@@ -4,8 +4,9 @@ import { useAuth } from "@/hooks/use-auth";
 import { useCart } from "@/modules/furniture/hooks/use-cart";
 import { useTheme } from "@/app/providers/ThemeProvider";
 import {
-  useFurnitureStore, CATEGORIES, type Category, useWishlistStore,
+  useFurnitureStore, CATEGORIES, type Category,
 } from "@/modules/furniture/store/furniture-store";
+import { useWishlist } from "@/modules/furniture/hooks/use-wishlist";
 import { PremiumButton } from "@/shared/components/PremiumButton";
 import { CartDrawer } from "@/modules/furniture/ui/CartDrawer";
 import { MobileNav } from "@/modules/furniture/ui/MobileNav";
@@ -35,7 +36,7 @@ export function HeroHeader() {
     cartDrawerOpen, setCartDrawerOpen,
     mobileNavOpen, setMobileNavOpen,
   } = useFurnitureStore();
-  const wishlist = useWishlistStore();
+  const wishlist = useWishlist();
 
   const [searchOpen, setSearchOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -177,12 +178,12 @@ export function HeroHeader() {
               <PremiumButton variant="ghost" size="icon" className="relative" data-testid="button-wishlist-nav">
                 <Heart className="h-5 w-5" />
                 <AnimatePresence>
-                  {wishlist.count() > 0 && (
+                  {wishlist.count > 0 && (
                     <motion.span key="wb"
                       initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
                       transition={{ type: "spring", stiffness: 400, damping: 20 }}
                       className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-accent-foreground">
-                      {wishlist.count()}
+                      {wishlist.count}
                     </motion.span>
                   )}
                 </AnimatePresence>
@@ -234,8 +235,8 @@ export function HeroHeader() {
                 <Link href="/wishlist">
                   <DropdownMenuItem className="cursor-pointer">
                     <Heart className="mr-2 h-4 w-4" /> {t("nav.wishlist")}
-                    {wishlist.count() > 0 && (
-                      <span className="ml-auto text-xs text-muted-foreground">{wishlist.count()}</span>
+                    {wishlist.count > 0 && (
+                      <span className="ml-auto text-xs text-muted-foreground">{wishlist.count}</span>
                     )}
                   </DropdownMenuItem>
                 </Link>

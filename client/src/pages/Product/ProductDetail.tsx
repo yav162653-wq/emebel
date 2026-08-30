@@ -2,7 +2,8 @@ import { useEffect, useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useFurniture, useFurnitureItem } from "@/modules/furniture/hooks/use-furniture";
 import { useCart } from "@/modules/furniture/hooks/use-cart";
-import { useWishlistStore, useFurnitureStore } from "@/modules/furniture/store/furniture-store";
+import { useWishlist } from "@/modules/furniture/hooks/use-wishlist";
+import { useFurnitureStore } from "@/modules/furniture/store/furniture-store";
 import { useRecentlyViewedStore } from "@/hooks/use-recently-viewed";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useToast } from "@/hooks/use-toast";
@@ -321,7 +322,7 @@ export default function ProductDetail() {
   const { data: product, isLoading } = useFurnitureItem(productId);
   const { data: allProducts } = useFurniture();
   const { addToCart, isAdding } = useCart();
-  const { has, toggle } = useWishlistStore();
+  const { has, toggle } = useWishlist();
   const { setCartDrawerOpen } = useFurnitureStore();
   const { add: addRecentlyViewed, ids: recentIds } = useRecentlyViewedStore();
   const { toast } = useToast();

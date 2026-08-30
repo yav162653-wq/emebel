@@ -1,6 +1,7 @@
 import { type Product } from "@shared/schema";
 import { useCart } from "../hooks/use-cart";
-import { useWishlistStore, useFurnitureStore } from "../store/furniture-store";
+import { useWishlist } from "../hooks/use-wishlist";
+import { useFurnitureStore } from "../store/furniture-store";
 import { useToast } from "@/hooks/use-toast";
 import { PremiumButton } from "@/shared/components/PremiumButton";
 import {
@@ -10,6 +11,8 @@ import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { ArrowRight, Heart, RotateCcw, Shield, ShoppingBag, Star, Truck, X } from "lucide-react";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import type { ReviewSummary } from "@shared/schema";
 
 interface QuickViewProps {
   product: Product | null;
@@ -18,11 +21,20 @@ interface QuickViewProps {
 
 export function QuickView({ product, onClose }: QuickViewProps) {
   const { addToCart, isAdding } = useCart();
-  const { has, toggle } = useWishlistStore();
+  const { has, toggle } = useWishlist();
   const { setCartDrawerOpen } = useFurnitureStore();
   const { toast } = useToast();
   const [quantity, setQuantity] = useState(1);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const { data: reviewSummary } = useQuery<ReviewSummary>({
+    queryKey: ["/api/reviews", product?.id, "summary"],
+    queryFn: async () => {
+      const res = await fetch(`/api/reviews/${product!.id}/summary`);
+      if (!res.ok) throw new Error("Failed to load review summary");
+      return res.json();
+    },
+    enabled: !!product,
+  });
 
   if (!product) return null;
 
@@ -93,9 +105,20 @@ export function QuickView({ product, onClose }: QuickViewProps) {
             {/* Rating */}
             <div className="flex items-center gap-1.5">
               {[1,2,3,4,5].map((s) => (
-                <Star key={s} className="h-3.5 w-3.5 fill-accent text-accent" />
+                <Star
+                  key={s}
+                  className={`h-3.5 w-3.5 ${
+                    reviewSummary && s <= Math.round(reviewSummary.average)
+                      ? "fill-accent text-accent"
+                      : "text-muted-foreground/30"
+                  }`}
+                />
               ))}
-              <span className="text-xs text-muted-foreground ml-1">48 reviews</span>
+              <span className="text-xs text-muted-foreground ml-1">
+                {reviewSummary?.count
+                  ? `${reviewSummary.count} review${reviewSummary.count !== 1 ? "s" : ""}`
+                  : "No reviews yet"}
+              </span>
             </div>
 
             {/* Name + Price */}
@@ -111,8 +134,8 @@ export function QuickView({ product, onClose }: QuickViewProps) {
               {[
                 { label: "Category", value: product.category },
                 { label: "Stock", value: isOutOfStock ? "Sold Out" : `${product.stock} units` },
-                { label: "Assembly", value: "White Glove" },
-                { label: "Warranty", value: "Lifetime" },
+                { label: "Assembly", value: product.assembly },
+                { label: "Warranty", value: product.warranty },
               ].map(({ label, value }) => (
                 <div key={label}>
                   <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">{label}</p>

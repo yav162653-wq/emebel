@@ -43,9 +43,9 @@ export function createApp() {
         directives: {
           defaultSrc: ["'self'"],
           scriptSrc:  isProd ? ["'self'"] : ["'self'", "'unsafe-inline'"],
-          styleSrc:   ["'self'", "'unsafe-inline'"],
-          imgSrc:     ["'self'", "data:", "https://images.unsplash.com"],
-          fontSrc:    ["'self'", "data:"],
+           styleSrc:   ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+           imgSrc:     ["'self'", "data:", "https://images.unsplash.com"],
+           fontSrc:    ["'self'", "data:", "https://fonts.gstatic.com"],
           connectSrc: isProd ? ["'self'"] : ["'self'", "ws:", "wss:"],
           frameSrc:   ["'none'"],
           objectSrc:  ["'none'"],

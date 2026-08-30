@@ -58,7 +58,12 @@ export default function LandingPage() {
   const [subscribed, setSubscribed] = useState(false);
 
   const { data: products, isLoading: productsLoading } = useQuery<Product[]>({
-    queryKey: ["/api/products"],
+    queryKey: ["/api/products", { limit: 4 }],
+    queryFn: async () => {
+      const res = await fetch("/api/products?limit=4");
+      if (!res.ok) throw new Error("Failed to load products");
+      return res.json();
+    },
   });
 
   const { data: latestReviews = [], isLoading: reviewsLoading } = useQuery<LatestReview[]>({
@@ -97,9 +102,9 @@ export default function LandingPage() {
   const TAG_LABELS = ["Best Seller", "Limited", "New", "Editor's Pick"];
 
   const dynamicStats = [
-    { value: stats?.productCount ? `${stats.productCount}+` : "24+", label: t("product.category") },
-    { value: stats?.reviewCount ? `${stats.reviewCount}+` : "0",  label: t("product.reviewsTitle") },
-    { value: stats?.orderCount  ? `${stats.orderCount}+`  : "0",  label: t("account.totalOrders") },
+    { value: stats ? `${stats.productCount}+` : "—", label: t("product.category") },
+    { value: stats ? `${stats.reviewCount}+` : "—",  label: t("product.reviewsTitle") },
+    { value: stats ? `${stats.orderCount}+`  : "—",  label: t("account.totalOrders") },
     { value: "∞",                                                  label: t("landing.warrantyLabel") },
   ];
 

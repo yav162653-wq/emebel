@@ -10,8 +10,11 @@ const router = Router();
 router.get(
   "/",
   apiLimiter,
-  asyncHandler(async (_req, res) => {
-    const products = await ProductsService.getAll();
+  asyncHandler(async (req, res) => {
+    const parsedLimit = req.query.limit === undefined
+      ? undefined
+      : z.coerce.number().int().positive().max(100).parse(req.query.limit);
+    const products = await ProductsService.getAll(parsedLimit);
     res.json(products);
   })
 );

@@ -2,8 +2,11 @@ import { db } from "../../db/client";
 import { NotFoundError } from "../../utils/errors";
 
 export const ProductsService = {
-  async getAll() {
-    return db.product.findMany({ orderBy: { id: "asc" } });
+  async getAll(limit?: number) {
+    return db.product.findMany({
+      orderBy: { id: "asc" },
+      ...(limit ? { take: limit } : {}),
+    });
   },
 
   async getById(id: number) {
