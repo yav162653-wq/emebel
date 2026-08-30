@@ -13,17 +13,16 @@ import { insertUserSchema } from "@shared/schema";
 import { motion } from "framer-motion";
 import { Moon, Sun } from "lucide-react";
 
-const registerSchema = insertUserSchema
-  .extend({ confirmPassword: z.string() })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ["confirmPassword"],
-  });
-
 export default function Register() {
   const { t } = useTranslation();
   const { register, isRegistering } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const registerSchema = insertUserSchema
+    .extend({ confirmPassword: z.string() })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: t("auth.passwordMismatch"),
+      path: ["confirmPassword"],
+    });
 
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),

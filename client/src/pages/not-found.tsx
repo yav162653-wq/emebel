@@ -2,8 +2,10 @@ import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { ArrowLeft, PackageSearch } from "lucide-react";
 import { PremiumButton } from "@/shared/components/PremiumButton";
+import { useTranslation } from "react-i18next";
 
 export default function NotFound() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
       <motion.div
@@ -17,20 +19,20 @@ export default function NotFound() {
         </div>
         <div className="space-y-2">
           <p className="font-mono text-xs uppercase tracking-[0.3em] text-accent">Error 404</p>
-          <h1 className="font-display text-5xl font-medium tracking-tight">Page Not Found</h1>
+          <h1 className="font-display text-5xl font-medium tracking-tight">{t("common.pageNotFound")}</h1>
           <p className="text-muted-foreground leading-relaxed">
-            The page you're looking for doesn't exist or has been moved.
+            {t("common.pageNotFoundDesc")}
           </p>
         </div>
         <div className="flex gap-3 justify-center">
           <Link href="/">
             <PremiumButton variant="outline">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Go Home
+              {t("common.goHome")}
             </PremiumButton>
           </Link>
           <Link href="/shop">
-            <PremiumButton>Browse Shop</PremiumButton>
+            <PremiumButton>{t("common.browseShop")}</PremiumButton>
           </Link>
         </div>
       </motion.div>

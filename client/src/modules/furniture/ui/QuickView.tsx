@@ -13,6 +13,7 @@ import { ArrowRight, Heart, RotateCcw, Shield, ShoppingBag, Star, Truck, X } fro
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { ReviewSummary } from "@shared/schema";
+import { useTranslation } from "react-i18next";
 
 interface QuickViewProps {
   product: Product | null;
@@ -20,6 +21,7 @@ interface QuickViewProps {
 }
 
 export function QuickView({ product, onClose }: QuickViewProps) {
+  const { t } = useTranslation();
   const { addToCart, isAdding } = useCart();
   const { has, toggle } = useWishlist();
   const { setCartDrawerOpen } = useFurnitureStore();
@@ -60,7 +62,7 @@ export function QuickView({ product, onClose }: QuickViewProps) {
   return (
     <Dialog open={!!product} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-3xl p-0 overflow-hidden gap-0 border border-border/50 shadow-2xl">
-        <DialogTitle className="sr-only">{product.name} — Quick View</DialogTitle>
+        <DialogTitle className="sr-only">{product.name} — {t("product.quickView")}</DialogTitle>
         <DialogDescription className="sr-only">
           {product.description}. Price: {formattedPrice}. Category: {product.category}.
         </DialogDescription>
@@ -94,7 +96,7 @@ export function QuickView({ product, onClose }: QuickViewProps) {
             {isLowStock && (
               <div className="absolute bottom-4 left-4">
                 <span className="inline-flex items-center rounded-full bg-accent/90 px-2.5 py-0.5 text-[10px] font-bold text-accent-foreground">
-                  Only {product.stock} left
+                  {t("product.onlyLeft", { count: product.stock })}
                 </span>
               </div>
             )}
@@ -132,10 +134,10 @@ export function QuickView({ product, onClose }: QuickViewProps) {
             {/* Specs */}
             <div className="grid grid-cols-2 gap-x-4 gap-y-3 py-3 border-y border-border">
               {[
-                { label: "Category", value: product.category },
-                { label: "Stock", value: isOutOfStock ? "Sold Out" : `${product.stock} units` },
-                { label: "Assembly", value: product.assembly },
-                { label: "Warranty", value: product.warranty },
+                { label: t("product.category"), value: product.category },
+                { label: t("product.stock"), value: isOutOfStock ? t("product.soldOut") : t("product.stockUnits", { count: product.stock }) },
+                { label: t("product.assembly"), value: product.assembly },
+                { label: t("product.warranty"), value: product.warranty },
               ].map(({ label, value }) => (
                 <div key={label}>
                   <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">{label}</p>
@@ -155,7 +157,7 @@ export function QuickView({ product, onClose }: QuickViewProps) {
                   size="lg"
                 >
                   <ShoppingBag className="mr-2 h-4 w-4" />
-                  {isOutOfStock ? "Out of Stock" : "Add to Bag"}
+                  {isOutOfStock ? t("product.outOfStock") : t("product.addToBag")}
                 </PremiumButton>
                 <PremiumButton
                   variant="outline" size="lg"
@@ -168,7 +170,7 @@ export function QuickView({ product, onClose }: QuickViewProps) {
 
               <Link href={`/product/${product.id}`} onClick={onClose}>
                 <button className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1.5 group">
-                  View Full Details
+                  {t("product.viewFullDetails")}
                   <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
                 </button>
               </Link>
@@ -177,9 +179,9 @@ export function QuickView({ product, onClose }: QuickViewProps) {
             {/* Trust */}
             <div className="flex gap-3">
               {[
-                { icon: Truck, text: "Free delivery" },
-                { icon: Shield, text: "Lifetime warranty" },
-                { icon: RotateCcw, text: "30-day returns" },
+                { icon: Truck, text: t("product.freeDelivery") },
+                { icon: Shield, text: t("product.lifetimeWarranty") },
+                { icon: RotateCcw, text: t("product.thirtyDayReturns") },
               ].map(({ icon: Icon, text }) => (
                 <div key={text} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                   <Icon className="h-3 w-3 text-accent shrink-0" />

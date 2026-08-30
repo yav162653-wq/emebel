@@ -325,10 +325,10 @@ export default function AccountPage() {
             <div className="space-y-4">
               <h3 className="font-semibold text-foreground">{t("account.overview")}</h3>
               <div className="space-y-3">
-                {[
-                  { label: "Order confirmation emails",  checked: true  },
-                  { label: "New arrivals newsletter",    checked: false },
-                  { label: "Exclusive member offers",    checked: true  },
+                  {[
+                   { label: t("account.orderConfirmationEmails"), checked: true  },
+                   { label: t("account.newArrivalsNewsletter"),   checked: false },
+                   { label: t("account.exclusiveMemberOffers"),   checked: true  },
                 ].map((pref) => (
                   <label key={pref.label} className="flex items-center gap-3 cursor-pointer group">
                     <input

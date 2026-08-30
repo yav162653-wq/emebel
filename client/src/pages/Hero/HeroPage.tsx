@@ -5,8 +5,10 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 export default function HeroPage() {
+  const { t } = useTranslation();
   usePageTitle("Shop");
   const { toast } = useToast();
   const [email, setEmail] = useState("");
@@ -15,11 +17,11 @@ export default function HeroPage() {
     mutationFn: (email: string) =>
       apiRequest("POST", "/api/newsletter", { email }),
     onSuccess: () => {
-      toast({ title: "Welcome to the club!", description: "You're on the list for early access and exclusive drops.", duration: 4000 });
+      toast({ title: t("landing.newsletterWelcomeTitle"), description: t("landing.newsletterWelcomeDesc"), duration: 4000 });
       setEmail("");
     },
     onError: () => {
-      toast({ title: "Already subscribed", description: "This email is already on the list.", variant: "destructive", duration: 3000 });
+      toast({ title: t("landing.newsletterAlreadyTitle"), description: t("landing.newsletterAlreadyDesc"), variant: "destructive", duration: 3000 });
     },
   });
 
@@ -44,20 +46,20 @@ export default function HeroPage() {
           </div>
           <div className="relative">
             <p className="text-xs font-mono uppercase tracking-[0.3em] text-primary-foreground/50 mb-3">
-              Designer Club
+               {t("landing.designerClub")}
             </p>
             <h2 className="font-display text-3xl md:text-4xl font-medium text-primary-foreground">
-              Exclusive Access Awaits
+               {t("landing.exclusiveAccess")}
             </h2>
             <p className="max-w-md mx-auto text-primary-foreground/60 mt-3 text-sm leading-relaxed">
-              Early drops, limited editions, and personalized design consultation — reserved for members.
+               {t("landing.exclusiveAccessDesc")}
             </p>
             <form onSubmit={handleNewsletter} className="flex max-w-sm mx-auto gap-2 mt-8">
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
+                 placeholder={t("landing.newsletterPlaceholder")}
                 data-testid="input-newsletter-email-shop"
                 required
                 className="flex-1 px-4 py-2.5 rounded-sm text-sm bg-primary-foreground/10 border border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/30 focus:outline-none focus:ring-2 focus:ring-primary-foreground/30"
@@ -68,7 +70,7 @@ export default function HeroPage() {
                 data-testid="button-newsletter-subscribe-shop"
                 className="px-5 py-2.5 bg-primary-foreground text-primary rounded-sm font-semibold text-xs uppercase tracking-wider hover:bg-primary-foreground/90 transition-colors disabled:opacity-60"
               >
-                {newsletterMutation.isPending ? "…" : "Join"}
+                 {newsletterMutation.isPending ? "…" : t("landing.join")}
               </button>
             </form>
           </div>
@@ -82,9 +84,9 @@ export default function HeroPage() {
             © {new Date().getFullYear()} Space Furniture. All rights reserved.
           </p>
           <div className="flex gap-6 text-xs text-muted-foreground">
-            <a href="mailto:hello@spacefurniture.com" className="hover:text-foreground transition-colors">Contact</a>
-            <a href="https://spacefurniture.com/shipping" className="hover:text-foreground transition-colors">Shipping</a>
-            <a href="https://spacefurniture.com/returns" className="hover:text-foreground transition-colors">Returns</a>
+             <a href="mailto:hello@spacefurniture.com" className="hover:text-foreground transition-colors">{t("landing.contact")}</a>
+             <a href="https://spacefurniture.com/shipping" className="hover:text-foreground transition-colors">{t("landing.shipping")}</a>
+             <a href="https://spacefurniture.com/returns" className="hover:text-foreground transition-colors">{t("landing.returns")}</a>
           </div>
         </div>
       </footer>

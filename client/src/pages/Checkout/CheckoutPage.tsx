@@ -70,7 +70,7 @@ export default function CheckoutPage() {
       setOrderNumber(`SP-${String(order.id).padStart(5, "0")}`);
       setStep("success");
     } catch {
-      toast({ variant: "destructive", title: "Order failed", description: "Please try again." });
+      toast({ variant: "destructive", title: t("checkout.orderFailed"), description: t("checkout.tryAgain") });
     } finally {
       setIsProcessing(false);
     }

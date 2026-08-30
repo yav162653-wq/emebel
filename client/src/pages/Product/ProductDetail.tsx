@@ -20,6 +20,7 @@ import { Link, useParams } from "wouter";
 import { FurnitureCard } from "@/modules/furniture/ui/FurnitureCard";
 import type { Review, ReviewSummary } from "@shared/schema";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 // ── Star Rating Picker ────────────────────────────────────────────────────────
 function StarPicker({ value, onChange }: { value: number; onChange: (v: number) => void }) {
@@ -95,6 +96,7 @@ function ReviewCard({ review }: { review: Review }) {
 
 // ── Reviews Section ───────────────────────────────────────────────────────────
 function ReviewsSection({ productId }: { productId: number }) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -163,8 +165,8 @@ function ReviewsSection({ productId }: { productId: number }) {
     <section className="mt-20 space-y-8">
       <div className="flex items-end justify-between">
         <div>
-          <p className="text-xs font-mono uppercase tracking-widest text-accent mb-2">Verified Buyers</p>
-          <h2 className="font-display text-3xl font-medium">Customer Reviews</h2>
+          <p className="text-xs font-mono uppercase tracking-widest text-accent mb-2">{t("product.verifiedBuyers")}</p>
+          <h2 className="font-display text-3xl font-medium">{t("product.reviewsTitle")}</h2>
         </div>
 
         {summary && summary.count > 0 && (
@@ -183,7 +185,7 @@ function ReviewsSection({ productId }: { productId: number }) {
               ))}
               <span className="ml-1.5 font-bold text-lg">{avgStars.toFixed(1)}</span>
             </div>
-            <p className="text-sm text-muted-foreground">{summary.count} review{summary.count !== 1 ? "s" : ""}</p>
+            <p className="text-sm text-muted-foreground">{t("product.reviewCount", { count: summary.count })}</p>
           </div>
         )}
       </div>
@@ -196,7 +198,7 @@ function ReviewsSection({ productId }: { productId: number }) {
           className="flex items-center gap-2 text-sm font-medium text-accent hover:underline transition-colors"
         >
           <MessageSquare className="h-4 w-4" />
-          {myReview ? "Edit your review" : "Write a review"}
+          {myReview ? t("product.editYourReview") : t("product.writeReview")}
         </button>
       )}
 
@@ -210,21 +212,21 @@ function ReviewsSection({ productId }: { productId: number }) {
             className="overflow-hidden"
           >
             <div className="p-6 rounded-sm border border-accent/20 bg-accent/5 space-y-5">
-              <h3 className="font-semibold">{myReview ? "Update your review" : "Leave a review"}</h3>
+              <h3 className="font-semibold">{myReview ? t("product.updateYourReview") : t("product.leaveReview")}</h3>
 
               <div className="space-y-1.5">
-                <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Rating</p>
+                <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">{t("product.rating")}</p>
                 <StarPicker value={rating} onChange={setRating} />
               </div>
 
               <div className="space-y-1.5">
                 <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
-                  Comment <span className="normal-case">(optional)</span>
+                  {t("product.commentOptional")}
                 </p>
                 <Textarea
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
-                  placeholder="Share your experience with this piece..."
+                  placeholder={t("product.shareExperience")}
                   data-testid="input-review-body"
                   className="resize-none h-24 bg-background"
                   maxLength={1000}
@@ -239,14 +241,14 @@ function ReviewsSection({ productId }: { productId: number }) {
                   data-testid="button-submit-review"
                 >
                   <Check className="mr-2 h-4 w-4" />
-                  {myReview ? "Update Review" : "Submit Review"}
+                  {myReview ? t("product.updateReview") : t("product.submitReview")}
                 </PremiumButton>
                 <PremiumButton
                   variant="outline"
                   onClick={() => setShowForm(false)}
                   data-testid="button-cancel-review"
                 >
-                  Cancel
+                  {t("product.cancel")}
                 </PremiumButton>
               </div>
             </div>
@@ -258,9 +260,9 @@ function ReviewsSection({ productId }: { productId: number }) {
       {!user && (
         <p className="text-sm text-muted-foreground">
           <Link href="/login">
-            <span className="text-accent underline cursor-pointer hover:no-underline">Sign in</span>
+              <span className="text-accent underline cursor-pointer hover:no-underline">{t("auth.signIn")}</span>
           </Link>{" "}
-          to leave a review.
+          {t("product.loginToReviewHint")}
         </p>
       )}
 
@@ -272,7 +274,7 @@ function ReviewsSection({ productId }: { productId: number }) {
       ) : reviews.length === 0 ? (
         <div className="py-12 text-center border border-dashed border-border rounded-sm">
           <Star className="h-8 w-8 text-muted-foreground/20 mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">No reviews yet. Be the first!</p>
+          <p className="text-sm text-muted-foreground">{t("product.noReviewsShort")}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -317,6 +319,7 @@ function getColorHex(colorName: string): string {
 
 // ── Main ProductDetail ────────────────────────────────────────────────────────
 export default function ProductDetail() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const productId = Number(id);
   const { data: product, isLoading } = useFurnitureItem(productId);
@@ -394,9 +397,9 @@ export default function ProductDetail() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
           <Package className="h-16 w-16 text-muted-foreground/30 mx-auto" />
-          <h2 className="font-display text-3xl font-medium">Product Not Found</h2>
-          <p className="text-muted-foreground">This item may have been removed or doesn't exist.</p>
-          <Link href="/shop"><PremiumButton>Back to Shop</PremiumButton></Link>
+          <h2 className="font-display text-3xl font-medium">{t("product.productNotFound")}</h2>
+          <p className="text-muted-foreground">{t("product.removedOrMissing")}</p>
+          <Link href="/shop"><PremiumButton>{t("common.backToShop")}</PremiumButton></Link>
         </div>
       </div>
     );
@@ -453,7 +456,7 @@ export default function ProductDetail() {
               {isLowStock && (
                 <div className="absolute top-4 right-4">
                   <span className="inline-flex items-center rounded-full bg-accent/90 backdrop-blur-sm px-3 py-1 text-xs font-bold text-accent-foreground">
-                    Only {product.stock} left
+                    {t("product.onlyLeft", { count: product.stock })}
                   </span>
                 </div>
               )}
@@ -484,8 +487,8 @@ export default function ProductDetail() {
               ))}
               <span className="text-sm text-muted-foreground ml-1" data-testid="text-review-count">
                 {reviewCount > 0
-                  ? `${avgStars.toFixed(1)} (${reviewCount} review${reviewCount !== 1 ? "s" : ""})`
-                  : "No reviews yet"}
+                  ? `${avgStars.toFixed(1)} (${t("product.reviewCount", { count: reviewCount })})`
+                  : t("product.noReviewsShort")}
               </span>
             </div>
 
@@ -501,10 +504,10 @@ export default function ProductDetail() {
                   {formattedPrice}
                 </span>
                 {isLowStock && (
-                  <span className="text-sm font-medium text-accent">Only {product.stock} in stock</span>
+                  <span className="text-sm font-medium text-accent">{t("product.onlyInStock", { count: product.stock })}</span>
                 )}
                 {isOutOfStock && (
-                  <span className="text-sm font-medium text-destructive">Out of Stock</span>
+                  <span className="text-sm font-medium text-destructive">{t("product.outOfStock")}</span>
                 )}
               </div>
             </div>
@@ -516,12 +519,12 @@ export default function ProductDetail() {
             {/* Specs — real data from DB */}
             <div className="grid grid-cols-2 gap-x-6 gap-y-4">
               {[
-                { label: "Category", value: product.category },
-                { label: "Stock",    value: isOutOfStock ? "Sold Out" : `${product.stock} units` },
-                { label: "Material", value: product.material },
-                { label: "Warranty", value: product.warranty },
-                { label: "Assembly", value: product.assembly },
-                { label: "Origin",   value: product.origin },
+                { label: t("product.category"), value: product.category },
+                { label: t("product.stock"),    value: isOutOfStock ? t("product.soldOut") : t("product.stockUnits", { count: product.stock }) },
+                { label: t("product.material"), value: product.material },
+                { label: t("product.warranty"), value: product.warranty },
+                { label: t("product.assembly"), value: product.assembly },
+                { label: t("product.origin"),   value: product.origin },
               ].map(({ label, value }) => (
                 <div key={label}>
                   <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">{label}</p>
@@ -536,7 +539,7 @@ export default function ProductDetail() {
             {product.colors && product.colors.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Finish</p>
+                  <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">{t("product.finish")}</p>
                   <p className="text-sm font-semibold text-foreground truncate max-w-[160px]">{selectedColor}</p>
                 </div>
                 <div className="flex flex-wrap gap-3">
@@ -563,7 +566,7 @@ export default function ProductDetail() {
             {/* Quantity */}
             {!isOutOfStock && (
               <div className="flex items-center gap-4">
-                <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground shrink-0">Qty</span>
+                <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground shrink-0">{t("product.quantity")}</span>
                 <div className="flex items-center border border-border rounded-sm">
                   <button
                     data-testid="button-qty-decrease"
@@ -600,7 +603,7 @@ export default function ProductDetail() {
                 size="lg"
               >
                 <ShoppingBag className="mr-2 h-4 w-4" />
-                {isOutOfStock ? "Out of Stock" : "Add to Bag"}
+                {isOutOfStock ? t("product.outOfStock") : t("product.addToBag")}
               </PremiumButton>
               <PremiumButton
                 data-testid="button-wishlist"
@@ -616,9 +619,9 @@ export default function ProductDetail() {
             {/* Trust Badges */}
             <div className="grid grid-cols-3 gap-3">
               {[
-                { icon: Truck, label: "Free Delivery", sub: "White glove" },
-                { icon: Shield, label: "Lifetime Warranty", sub: "No asterisks" },
-                { icon: RotateCcw, label: "30-Day Returns", sub: "Hassle free" },
+                { icon: Truck, label: t("product.freeDelivery"), sub: t("product.whiteGlove") },
+                { icon: Shield, label: t("product.lifetimeWarranty"), sub: t("product.noAsterisks") },
+                { icon: RotateCcw, label: t("product.thirtyDayReturns"), sub: t("product.hassleFree") },
               ].map(({ icon: Icon, label, sub }) => (
                 <div key={label} className="flex flex-col items-center text-center gap-1.5 p-3 rounded-sm bg-secondary/30 hover:bg-secondary/50 transition-colors">
                   <Icon className="h-4 w-4 text-accent" />
@@ -638,12 +641,12 @@ export default function ProductDetail() {
           <section className="mt-24 space-y-8">
             <div className="flex items-end justify-between">
               <div>
-                <p className="text-xs font-mono uppercase tracking-widest text-accent mb-2">You May Also Like</p>
-                <h2 className="font-display text-3xl font-medium">More in {product.category}</h2>
+                <p className="text-xs font-mono uppercase tracking-widest text-accent mb-2">{t("product.relatedLabel")}</p>
+                <h2 className="font-display text-3xl font-medium">{t("product.moreIn", { category: product.category })}</h2>
               </div>
               <Link href="/shop">
                 <button className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  View all →
+                  {t("product.viewAll")}
                 </button>
               </Link>
             </div>
@@ -660,7 +663,7 @@ export default function ProductDetail() {
           <section className="mt-20 space-y-8">
             <div className="flex items-center gap-2">
               <Eye className="h-4 w-4 text-muted-foreground" />
-              <h2 className="font-display text-2xl font-medium">Recently Viewed</h2>
+              <h2 className="font-display text-2xl font-medium">{t("product.recentlyViewed")}</h2>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-10">
               {recentlyViewed.map((p, i) => (

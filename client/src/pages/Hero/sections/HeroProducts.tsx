@@ -16,15 +16,10 @@ import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
 import { useState } from "react";
-
-const SORT_OPTIONS: { value: SortOption; label: string }[] = [
-  { value: "featured",   label: "Featured"          },
-  { value: "price-asc",  label: "Price: Low → High" },
-  { value: "price-desc", label: "Price: High → Low" },
-  { value: "name-asc",   label: "Name: A–Z"         },
-];
+import { useTranslation } from "react-i18next";
 
 export function HeroProducts() {
+  const { t } = useTranslation();
   const { data: products, isLoading } = useFurniture();
   const {
     activeCategory, searchQuery, sortOption, priceRange,
@@ -33,6 +28,19 @@ export function HeroProducts() {
   const [filterOpen, setFilterOpen] = useState(false);
 
   const activeRange = PRICE_RANGES.find(r => r.value === priceRange)!;
+  const rangeLabels: Record<PriceRange, string> = {
+    all: t("shop.allPrices"),
+    "under-500": t("shop.under500"),
+    "500-1000": t("shop.price5001000"),
+    "1000-2000": t("shop.price10002000"),
+    "over-2000": t("shop.over2000"),
+  };
+  const sortOptions: { value: SortOption; label: string }[] = [
+    { value: "featured",   label: t("shop.featured") },
+    { value: "price-asc",  label: t("shop.priceLowHigh") },
+    { value: "price-desc", label: t("shop.priceHighLow") },
+    { value: "name-asc",   label: t("shop.nameAZ") },
+  ];
 
   const filtered = (products ?? [])
     .filter(p => activeCategory === "All" || p.category === activeCategory)
@@ -68,16 +76,16 @@ export function HeroProducts() {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <p className="text-xs font-mono uppercase tracking-[0.25em] text-accent mb-2">
-            Collection {new Date().getFullYear()}
+             {t("shop.collectionYear", { year: new Date().getFullYear() })}
           </p>
           <h2 className="font-display text-4xl md:text-5xl font-medium tracking-tight">
-            {activeCategory === "All" ? "All Products" : activeCategory}
+             {activeCategory === "All" ? t("shop.allProducts") : t(`nav.${activeCategory.toLowerCase()}`)}
           </h2>
           {!isLoading && (
             <p className="text-muted-foreground mt-2 text-sm">
               {searchQuery
-                ? `${filtered.length} result${filtered.length !== 1 ? "s" : ""} for "${searchQuery}"`
-                : `${filtered.length} piece${filtered.length !== 1 ? "s" : ""} available`}
+                 ? t("shop.resultsFor", { count: filtered.length, query: searchQuery })
+                 : t("shop.piecesAvailable", { count: filtered.length })}
             </p>
           )}
         </div>
@@ -97,7 +105,7 @@ export function HeroProducts() {
                 }`}
               >
                 <SlidersHorizontal className="h-4 w-4" />
-                <span>Price</span>
+                 <span>{t("shop.price")}</span>
                 {priceRange !== "all" && (
                   <span className="ml-0.5 inline-flex items-center justify-center h-4 w-4 rounded-full bg-accent text-[9px] font-bold text-accent-foreground">
                     1
@@ -107,7 +115,7 @@ export function HeroProducts() {
             </PopoverTrigger>
             <PopoverContent align="end" className="w-52 p-2 space-y-1">
               <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground px-2 py-1">
-                Price Range
+                 {t("shop.priceRange")}
               </p>
               {PRICE_RANGES.map(range => (
                 <button
@@ -119,7 +127,7 @@ export function HeroProducts() {
                       : "hover:bg-secondary/60 text-foreground"
                   }`}
                 >
-                  {range.label}
+                   {rangeLabels[range.value]}
                 </button>
               ))}
             </PopoverContent>
@@ -134,7 +142,7 @@ export function HeroProducts() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {SORT_OPTIONS.map(opt => (
+               {sortOptions.map(opt => (
                 <SelectItem key={opt.value} value={opt.value}>
                   {opt.label}
                 </SelectItem>
@@ -156,7 +164,7 @@ export function HeroProducts() {
           >
             {priceRange !== "all" && (
               <span className="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1 rounded-full bg-accent/10 border border-accent/30 text-accent text-xs font-medium">
-                {activeRange.label}
+                 {rangeLabels[priceRange]}
                 <button
                   onClick={() => setPriceRange("all")}
                   className="hover:bg-accent/20 rounded-full p-0.5 transition-colors"
@@ -181,7 +189,7 @@ export function HeroProducts() {
                 onClick={clearFilters}
                 className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
               >
-                Clear all
+                 {t("shop.clearAll")}
               </button>
             )}
           </motion.div>
@@ -216,18 +224,18 @@ export function HeroProducts() {
             <PackageSearch className="h-10 w-10 text-muted-foreground/30" />
           </div>
           <div>
-            <p className="font-medium text-foreground text-lg">No items found</p>
+             <p className="font-medium text-foreground text-lg">{t("shop.noItems")}</p>
             <p className="text-sm text-muted-foreground mt-1 max-w-xs">
               {searchQuery
-                ? `No results for "${searchQuery}". Try different keywords.`
-                : "No products match these filters. Try adjusting your selection."}
+                 ? t("shop.noSearchResults", { query: searchQuery })
+                 : t("shop.noFilterResults")}
             </p>
           </div>
           <button
             onClick={clearFilters}
             className="text-sm text-accent hover:underline font-medium"
           >
-            Clear all filters
+             {t("shop.clearAllFilters")}
           </button>
         </motion.div>
       ) : (

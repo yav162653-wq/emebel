@@ -99,7 +99,6 @@ export default function LandingPage() {
   });
 
   const featuredProducts = products?.slice(0, 4) ?? [];
-  const TAG_LABELS = ["Best Seller", "Limited", "New", "Editor's Pick"];
 
   const dynamicStats = [
     { value: stats ? `${stats.productCount}+` : "—", label: t("product.category") },
@@ -139,7 +138,7 @@ export default function LandingPage() {
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
             <Link href="/login">
-              <PremiumButton variant="ghost" size="sm" data-testid="button-login">Log In</PremiumButton>
+              <PremiumButton variant="ghost" size="sm" data-testid="button-login">{t("landing.logIn")}</PremiumButton>
             </Link>
             <Link href="/register">
               <PremiumButton size="sm" data-testid="button-get-started">{t("landing.shopNow")}</PremiumButton>
@@ -177,7 +176,7 @@ export default function LandingPage() {
 
           <div className="font-display text-6xl md:text-8xl font-medium tracking-tight leading-[1.05] mb-8 overflow-hidden"
             style={{ perspective: "1000px" }}>
-            {["Elevate", "Your", "Living", "Space"].map((word, i) => (
+            {t("landing.heroTitle").split("\n").flatMap((line) => line.split(" ")).map((word, i) => (
               <AnimatedWord key={word} word={word} delay={0.3 + i * 0.12} />
             ))}
           </div>
@@ -208,7 +207,7 @@ export default function LandingPage() {
             </Link>
             <Link href="/login">
               <PremiumButton size="lg" variant="ghost" className="text-white border-white/30 hover:bg-white/10">
-                Sign In
+                {t("landing.signIn")}
               </PremiumButton>
             </Link>
           </motion.div>
@@ -218,7 +217,7 @@ export default function LandingPage() {
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2 }}
           className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2"
         >
-          <span className="text-white/30 text-[10px] font-mono uppercase tracking-widest">Scroll</span>
+           <span className="text-white/30 text-[10px] font-mono uppercase tracking-widest">{t("landing.scroll")}</span>
           <motion.div
             animate={{ y: [0, 10, 0] }}
             transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
@@ -236,13 +235,13 @@ export default function LandingPage() {
         >
           {Array.from({ length: 6 }).map((_, i) => (
             <span key={i} className="flex items-center gap-8 text-xs font-mono uppercase tracking-widest opacity-70">
-              <span>Free White-Glove Delivery</span>
+               <span>{t("landing.freeWhiteGloveDelivery")}</span>
               <span className="text-primary-foreground/30">✦</span>
-              <span>Lifetime Warranty</span>
+               <span>{t("landing.lifetimeWarranty")}</span>
               <span className="text-primary-foreground/30">✦</span>
-              <span>30-Day Returns</span>
+               <span>{t("landing.thirtyDayReturns")}</span>
               <span className="text-primary-foreground/30">✦</span>
-              <span>Studio Crafted</span>
+               <span>{t("landing.studioCrafted")}</span>
               <span className="text-primary-foreground/30">✦</span>
             </span>
           ))}
@@ -304,7 +303,12 @@ export default function LandingPage() {
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                         <div className="absolute top-3 left-3">
                           <span className="inline-flex items-center rounded-full bg-background/90 backdrop-blur-sm px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
-                            {TAG_LABELS[i % TAG_LABELS.length]}
+                           {[
+                             t("landing.tagBestSeller"),
+                             t("landing.tagLimited"),
+                             t("landing.tagNew"),
+                             t("landing.tagEditorsPick"),
+                           ][i % 4]}
                           </span>
                         </div>
                       </div>
@@ -339,10 +343,10 @@ export default function LandingPage() {
             </motion.div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { icon: Star,   title: "Premium Quality",      desc: "Hand-picked materials and expert craftsmanship from studios around the world." },
-              { icon: Truck,  title: "White Glove Delivery", desc: "We handle heavy lifting, assembly, placement, and cleanup. Zero stress for you." },
-              { icon: Shield, title: "Lifetime Warranty",    desc: "We stand behind everything we sell, forever. No asterisks, no fine print." },
+              {[
+               { icon: Star,   title: t("landing.qualityTitle"),  desc: t("landing.qualityDesc") },
+               { icon: Truck,  title: t("landing.deliveryTitle"), desc: t("landing.deliveryDesc") },
+               { icon: Shield, title: t("landing.warrantyTitle"), desc: t("landing.warrantyDesc") },
             ].map((feature, i) => (
               <motion.div
                 key={i}
@@ -495,7 +499,7 @@ export default function LandingPage() {
             transition={{ duration: 0.8 }}
           >
             <p className="text-xs font-mono uppercase tracking-[0.3em] text-accent mb-4">{t("landing.newsletterTitle")}</p>
-            <h2 className="font-display text-6xl font-medium tracking-tight">Ready to Elevate?</h2>
+            <h2 className="font-display text-6xl font-medium tracking-tight">{t("landing.readyToElevate")}</h2>
             <p className="text-muted-foreground leading-relaxed mt-4">
               {t("landing.newsletterDesc")}
             </p>
@@ -511,7 +515,7 @@ export default function LandingPage() {
             {subscribed ? (
               <div className="flex items-center justify-center gap-2 text-accent font-medium text-sm py-3 px-6 rounded-full border border-accent/30 bg-accent/5 w-fit mx-auto">
                 <Zap className="h-4 w-4" />
-                You're in the club! Watch your inbox.
+                 {t("landing.clubSuccess")}
               </div>
             ) : (
               <div className="flex gap-2 max-w-sm mx-auto">
@@ -542,7 +546,7 @@ export default function LandingPage() {
                 </PremiumButton>
               </Link>
               <Link href="/login">
-                <PremiumButton size="lg" variant="outline">Sign In</PremiumButton>
+               <PremiumButton size="lg" variant="outline">{t("landing.signIn")}</PremiumButton>
               </Link>
             </div>
           </motion.div>
@@ -563,7 +567,7 @@ export default function LandingPage() {
             <Link href="/login">
               <span className="hover:text-foreground transition-colors cursor-pointer">{t("nav.myAccount")}</span>
             </Link>
-            <a href="mailto:hello@spacefurniture.com" className="hover:text-foreground transition-colors">Contact</a>
+             <a href="mailto:hello@spacefurniture.com" className="hover:text-foreground transition-colors">{t("landing.contact")}</a>
           </div>
         </div>
       </footer>
