@@ -36,6 +36,7 @@ server/
 - **Session-based auth** — express-session + PostgreSQL store (no in-memory session state).
 - **Shared schema** — pure Zod types in shared/schema.ts, no Drizzle dependency. Frontend uses these types.
 - **Observability** — Pino is the only request/application logger; OpenTelemetry auto-instrumentation is enabled and exports only when an OTLP endpoint is configured.
+- **Express 5 routing** — catch-all middleware uses function handlers rather than `*` route strings, which are no longer valid with Express 5's path parser.
 - **Idempotent seed** — checks `db.product.count()` before seeding; safe to run multiple times.
 - **Deprecated files** — server/routes.ts, server/storage.ts, server/db.ts kept as empty stubs to avoid import errors.
 

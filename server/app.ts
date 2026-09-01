@@ -12,6 +12,7 @@ import { requestIdMiddleware } from "./middleware/requestId";
 import { authContextMiddleware } from "./middleware/authContext";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { globalLimiter } from "./middleware/rateLimiter";
+import { ForbiddenError } from "./utils/errors";
 
 import authRouter       from "./modules/auth/auth.router";
 import productsRouter   from "./modules/products/products.router";
@@ -68,7 +69,7 @@ export function createApp() {
             if (!origin || allowedOrigins.has(origin)) {
               callback(null, true);
             } else {
-              callback(new Error("CORS origin not allowed"));
+              callback(new ForbiddenError("CORS origin not allowed"));
             }
           }
         : true,
@@ -143,7 +144,7 @@ export function createApp() {
   app.use("/api/wishlist",   wishlistRouter);
 
   // ── 404 + error handlers ──────────────────────────────────────────────
-  app.use("/api/*", notFoundHandler);
+  app.use("/api", notFoundHandler);
   app.use(errorHandler);
 
   return app;

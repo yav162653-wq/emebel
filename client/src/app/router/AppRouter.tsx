@@ -2,17 +2,18 @@ import { Route, Switch, useLocation } from "wouter";
 import { useAuthContext } from "@/app/providers/AuthProvider";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
+import { lazy, Suspense } from "react";
 
-import LandingPage from "@/pages/Landing/LandingPage";
-import Login from "@/pages/Auth/Login";
-import Register from "@/pages/Auth/Register";
-import HeroPage from "@/pages/Hero/HeroPage";
-import ProductDetail from "@/pages/Product/ProductDetail";
-import CheckoutPage from "@/pages/Checkout/CheckoutPage";
-import AccountPage from "@/pages/Account/AccountPage";
-import AdminDashboard from "@/pages/Admin/AdminDashboard";
-import WishlistPage from "@/pages/Wishlist/WishlistPage";
-import NotFound from "@/pages/not-found";
+const LandingPage = lazy(() => import("@/pages/Landing/LandingPage"));
+const Login = lazy(() => import("@/pages/Auth/Login"));
+const Register = lazy(() => import("@/pages/Auth/Register"));
+const HeroPage = lazy(() => import("@/pages/Hero/HeroPage"));
+const ProductDetail = lazy(() => import("@/pages/Product/ProductDetail"));
+const CheckoutPage = lazy(() => import("@/pages/Checkout/CheckoutPage"));
+const AccountPage = lazy(() => import("@/pages/Account/AccountPage"));
+const AdminDashboard = lazy(() => import("@/pages/Admin/AdminDashboard"));
+const WishlistPage = lazy(() => import("@/pages/Wishlist/WishlistPage"));
+const NotFound = lazy(() => import("@/pages/not-found"));
 
 const pageVariants = {
   initial: { opacity: 0, y: 10 },
@@ -45,7 +46,17 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
     return null;
   }
 
-  return <Component />;
+  return (
+    <Suspense
+      fallback={
+        <div className="h-screen w-screen flex items-center justify-center bg-background">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      }
+    >
+      <Component />
+    </Suspense>
+  );
 }
 
 export function AppRouter() {
@@ -54,30 +65,38 @@ export function AppRouter() {
   return (
     <AnimatePresence mode="wait" initial={false}>
       <PageTransition key={location}>
-        <Switch location={location}>
-          <Route path="/" component={LandingPage} />
-          <Route path="/login" component={Login} />
-          <Route path="/register" component={Register} />
-          <Route path="/shop">
-            <ProtectedRoute component={HeroPage} />
-          </Route>
-          <Route path="/product/:id">
-            {() => <ProtectedRoute component={ProductDetail} />}
-          </Route>
-          <Route path="/checkout">
-            {() => <ProtectedRoute component={CheckoutPage} />}
-          </Route>
-          <Route path="/account">
-            {() => <ProtectedRoute component={AccountPage} />}
-          </Route>
-          <Route path="/admin">
-            {() => <ProtectedRoute component={AdminDashboard} />}
-          </Route>
-          <Route path="/wishlist">
-            {() => <ProtectedRoute component={WishlistPage} />}
-          </Route>
-          <Route component={NotFound} />
-        </Switch>
+        <Suspense
+          fallback={
+            <div className="h-screen w-screen flex items-center justify-center bg-background">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          }
+        >
+          <Switch location={location}>
+            <Route path="/" component={LandingPage} />
+            <Route path="/login" component={Login} />
+            <Route path="/register" component={Register} />
+            <Route path="/shop">
+              <ProtectedRoute component={HeroPage} />
+            </Route>
+            <Route path="/product/:id">
+              {() => <ProtectedRoute component={ProductDetail} />}
+            </Route>
+            <Route path="/checkout">
+              {() => <ProtectedRoute component={CheckoutPage} />}
+            </Route>
+            <Route path="/account">
+              {() => <ProtectedRoute component={AccountPage} />}
+            </Route>
+            <Route path="/admin">
+              {() => <ProtectedRoute component={AdminDashboard} />}
+            </Route>
+            <Route path="/wishlist">
+              {() => <ProtectedRoute component={WishlistPage} />}
+            </Route>
+            <Route component={NotFound} />
+          </Switch>
+        </Suspense>
       </PageTransition>
     </AnimatePresence>
   );
