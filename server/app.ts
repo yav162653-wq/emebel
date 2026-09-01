@@ -2,12 +2,12 @@ import express from "express";
 import helmet from "helmet";
 import cors from "cors";
 import session from "express-session";
-import MemoryStore from "memorystore";
 import pinoHttp from "pino-http";
 import passport from "./config/passport";
 
 import { env } from "./config/env";
 import { logger } from "./config/logger";
+import { sessionStore } from "./config/session";
 import { requestIdMiddleware } from "./middleware/requestId";
 import { authContextMiddleware } from "./middleware/authContext";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
@@ -23,7 +23,6 @@ import statsRouter      from "./modules/stats/stats.router";
 import newsletterRouter from "./modules/newsletter/newsletter.router";
 import wishlistRouter   from "./modules/wishlist/wishlist.router";
 
-const SessionStore = MemoryStore(session);
 const isProd = env.NODE_ENV === "production";
 
 export function createApp() {
@@ -31,6 +30,7 @@ export function createApp() {
 
   // ── Trust proxy (Replit sits behind a reverse proxy) ──────────────────
   app.set("trust proxy", 1);
+  app.disable("x-powered-by");
 
   // ── Request ID (must come first) ──────────────────────────────────────
   app.use(requestIdMiddleware);
@@ -54,16 +54,31 @@ export function createApp() {
     })
   );
 
+  const allowedOrigins = new Set(
+    (env.APP_ORIGIN ?? "")
+      .split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean)
+  );
+
   app.use(
     cors({
-      origin:      isProd ? env.APP_ORIGIN!.split(",") : true,
+      origin: isProd
+        ? (origin, callback) => {
+            if (!origin || allowedOrigins.has(origin)) {
+              callback(null, true);
+            } else {
+              callback(new Error("CORS origin not allowed"));
+            }
+          }
+        : true,
       credentials: true,
     })
   );
 
   // ── Body Parsing ──────────────────────────────────────────────────────
   app.use(express.json({ limit: "10kb" }));
-  app.use(express.urlencoded({ extended: false }));
+  app.use(express.urlencoded({ extended: false, limit: "10kb" }));
 
   // ── Session ───────────────────────────────────────────────────────────
   app.use(
@@ -77,7 +92,7 @@ export function createApp() {
         secure:   isProd,
         sameSite: "lax",
       },
-      store: new SessionStore({ checkPeriod: 86_400_000 }),
+       store: sessionStore,
     })
   );
 

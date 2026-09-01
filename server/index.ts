@@ -1,9 +1,12 @@
 import "./config/env"; // Validate env first — exits on invalid config
+import "./config/telemetry";
 import { createServer } from "http";
 import { createApp } from "./app";
 import { env } from "./config/env";
 import { logger } from "./config/logger";
 import { db } from "./db/client";
+import { closeSessionStore } from "./config/session";
+import { shutdownTelemetry } from "./config/telemetry";
 
 async function bootstrap() {
   const app = createApp();
@@ -27,6 +30,8 @@ async function bootstrap() {
   const shutdown = async (signal: string) => {
     logger.info(`${signal} received — shutting down gracefully`);
     await db.$disconnect();
+    await closeSessionStore();
+    await shutdownTelemetry();
     httpServer.close(() => {
       logger.info("HTTP server closed");
       process.exit(0);
