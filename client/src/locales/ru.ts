@@ -69,6 +69,8 @@ export default {
     continueToPayment: "Перейти к оплате",
     placeOrder: "Оформить заказ",
     demoNotice: "Это демо-режим. Реальные платежи не обрабатываются.",
+    secureCheckoutNotice: "Адрес доставки и варианты доставки будут безопасно собраны на странице Shopify.",
+    securePaymentNotice: "Вы перейдёте в защищённый checkout Shopify для проверки доставки, налогов и оплаты.",
     fullName: "Полное имя",
     email: "Эл. почта",
     streetAddress: "Адрес",

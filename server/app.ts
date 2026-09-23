@@ -23,6 +23,7 @@ import reviewsRouter    from "./modules/reviews/reviews.router";
 import statsRouter      from "./modules/stats/stats.router";
 import newsletterRouter from "./modules/newsletter/newsletter.router";
 import wishlistRouter   from "./modules/wishlist/wishlist.router";
+import shopifyRouter    from "./modules/shopify/shopify.router";
 
 const isProd = env.NODE_ENV === "production";
 
@@ -142,6 +143,7 @@ export function createApp() {
   app.use("/api/stats",      statsRouter);
   app.use("/api/newsletter", newsletterRouter);
   app.use("/api/wishlist",   wishlistRouter);
+  app.use("/api/shopify",    shopifyRouter);
 
   // ── 404 + error handlers ──────────────────────────────────────────────
   app.use("/api", notFoundHandler);

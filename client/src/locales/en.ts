@@ -69,6 +69,8 @@ export default {
     continueToPayment: "Continue to Payment",
     placeOrder: "Place Order",
     demoNotice: "This is a demo. No real payment is processed.",
+    secureCheckoutNotice: "Shipping address and delivery options are collected securely in Shopify checkout.",
+    securePaymentNotice: "You will be redirected to Shopify's secure checkout to review delivery, tax, and payment.",
     fullName: "Full Name",
     email: "Email",
     streetAddress: "Street Address",

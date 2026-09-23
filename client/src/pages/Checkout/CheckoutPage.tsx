@@ -4,36 +4,28 @@ import { useCart } from "@/modules/furniture/hooks/use-cart";
 import { PremiumButton } from "@/shared/components/PremiumButton";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
-import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ArrowRight, Check, CreditCard, MapPin, ShoppingBag, Truck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 
-type Step = "cart" | "shipping" | "payment" | "success";
+type Step = "cart" | "shipping" | "payment";
 
-const stepIndex = (s: Step) => ["cart", "shipping", "payment", "success"].indexOf(s);
+const stepIndex = (s: Step) => ["cart", "shipping", "payment"].indexOf(s);
 
 export default function CheckoutPage() {
   const { t } = useTranslation();
   const [step, setStep] = useState<Step>("cart");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [orderNumber, setOrderNumber] = useState("");
   const { items, total } = useCart();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   const shipping = total > 50000 ? 0 : 2900;
   const tax      = Math.round(total * 0.08);
   const grandTotal = total + shipping + tax;
 
-  const [shippingData, setShippingData] = useState({
-    fullName: "", email: "", address: "", city: "", state: "", zip: "", country: "United States",
-  });
-  const [paymentData, setPaymentData] = useState({
-    cardName: "", cardNumber: "", expiry: "", cvv: "",
-  });
+  const [shippingData, setShippingData] = useState({ email: "" });
 
   const STEPS: { key: Step; labelKey: string; icon: typeof ShoppingBag }[] = [
     { key: "cart",     labelKey: "checkout.review",   icon: ShoppingBag },
@@ -44,16 +36,11 @@ export default function CheckoutPage() {
   const handlePlaceOrder = async () => {
     setIsProcessing(true);
     try {
-      const address = [
-        shippingData.address, shippingData.city,
-        shippingData.state, shippingData.zip, shippingData.country,
-      ].filter(Boolean).join(", ");
-
-      const res = await fetch("/api/orders", {
+      const res = await fetch("/api/shopify/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          address: address || "Not provided",
+          ...(shippingData.email ? { email: shippingData.email } : {}),
           items: items.map((item) => ({
             productId: item.product.id,
             quantity: item.quantity,
@@ -61,14 +48,12 @@ export default function CheckoutPage() {
         }),
       });
 
-      if (!res.ok) throw new Error("Order failed");
-      const order = await res.json();
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok || !payload.checkoutUrl) {
+        throw new Error(payload.error ?? "Checkout failed");
+      }
 
-      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/orders/my"] });
-
-      setOrderNumber(`SP-${String(order.id).padStart(5, "0")}`);
-      setStep("success");
+      window.location.assign(payload.checkoutUrl);
     } catch {
       toast({ variant: "destructive", title: t("checkout.orderFailed"), description: t("checkout.tryAgain") });
     } finally {
@@ -76,7 +61,7 @@ export default function CheckoutPage() {
     }
   };
 
-  if (items.length === 0 && step !== "success") {
+  if (items.length === 0) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -85,41 +70,6 @@ export default function CheckoutPage() {
           <p className="text-muted-foreground">{t("checkout.emptyBagDesc")}</p>
           <Link href="/shop"><PremiumButton>{t("checkout.browseShop")}</PremiumButton></Link>
         </div>
-      </div>
-    );
-  }
-
-  if (step === "success") {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-6">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-center space-y-6 max-w-md"
-        >
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.1 }}
-            className="mx-auto w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center"
-          >
-            <Check className="h-10 w-10 text-green-600 dark:text-green-400" />
-          </motion.div>
-          <div className="space-y-2">
-            <p className="font-mono text-xs uppercase tracking-widest text-accent">{t("checkout.orderConfirmed")}</p>
-            <h1 className="font-display text-4xl font-medium">{t("checkout.thankYou")}</h1>
-            <p className="text-muted-foreground leading-relaxed">{t("checkout.orderPlacedDesc")}</p>
-            <p className="font-mono text-sm text-muted-foreground mt-2">Order {orderNumber}</p>
-          </div>
-          <div className="flex items-center gap-2 bg-secondary/40 rounded-sm px-4 py-3 text-sm text-muted-foreground">
-            <Truck className="h-4 w-4 shrink-0 text-accent" />
-            <span>{t("checkout.estimatedDelivery")}</span>
-          </div>
-          <div className="flex gap-3 justify-center">
-            <Link href="/shop"><PremiumButton>{t("checkout.continueShoppingBtn")}</PremiumButton></Link>
-            <Link href="/account"><PremiumButton variant="outline">{t("checkout.viewOrders")}</PremiumButton></Link>
-          </div>
-        </motion.div>
       </div>
     );
   }
@@ -204,27 +154,19 @@ export default function CheckoutPage() {
               {step === "shipping" && (
                 <motion.div key="shipping" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-6">
                   <h2 className="font-display text-2xl font-medium">{t("checkout.shippingInformation")}</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {[
-                      { key: "fullName", labelKey: "checkout.fullName",      placeholder: "John Doe",         col: 2 },
-                      { key: "email",    labelKey: "checkout.email",          placeholder: "john@example.com", col: 2 },
-                      { key: "address",  labelKey: "checkout.streetAddress",  placeholder: "123 Main St",      col: 2 },
-                      { key: "city",     labelKey: "checkout.city",           placeholder: "New York",         col: 1 },
-                      { key: "state",    labelKey: "checkout.state",          placeholder: "NY",               col: 1 },
-                      { key: "zip",      labelKey: "checkout.zipCode",        placeholder: "10001",            col: 1 },
-                      { key: "country",  labelKey: "checkout.country",        placeholder: "United States",    col: 1 },
-                    ].map((field) => (
-                      <div key={field.key} className={field.col === 2 ? "sm:col-span-2" : ""}>
-                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t(field.labelKey)}</Label>
-                        <Input
-                          className="mt-1.5 h-11 bg-secondary/20 rounded-sm"
-                          placeholder={field.placeholder}
-                          value={(shippingData as any)[field.key]}
-                          onChange={(e) => setShippingData((d) => ({ ...d, [field.key]: e.target.value }))}
-                          data-testid={`input-${field.key}`}
-                        />
-                      </div>
-                    ))}
+                  <div className="rounded-sm border border-border bg-secondary/20 p-4 text-sm text-muted-foreground leading-relaxed">
+                    {t("checkout.secureCheckoutNotice")}
+                  </div>
+                  <div>
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("checkout.email")}</Label>
+                    <Input
+                      type="email"
+                      className="mt-1.5 h-11 bg-secondary/20 rounded-sm"
+                      placeholder="john@example.com"
+                      value={shippingData.email}
+                      onChange={(e) => setShippingData({ email: e.target.value })}
+                      data-testid="input-email"
+                    />
                   </div>
                   <div className="flex gap-3">
                     <PremiumButton variant="outline" onClick={() => setStep("cart")}>
@@ -242,31 +184,7 @@ export default function CheckoutPage() {
                   <h2 className="font-display text-2xl font-medium">{t("checkout.paymentDetails")}</h2>
                   <div className="p-4 rounded-sm border border-border bg-secondary/20 text-sm text-muted-foreground flex items-center gap-2">
                     <CreditCard className="h-4 w-4 shrink-0" />
-                    {t("checkout.demoNotice")}
-                  </div>
-                  <div className="space-y-4">
-                    <div>
-                      <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("checkout.nameOnCard")}</Label>
-                      <Input className="mt-1.5 h-11 bg-secondary/20 rounded-sm" placeholder="John Doe"
-                        value={paymentData.cardName} onChange={(e) => setPaymentData(d => ({ ...d, cardName: e.target.value }))} />
-                    </div>
-                    <div>
-                      <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("checkout.cardNumber")}</Label>
-                      <Input className="mt-1.5 h-11 bg-secondary/20 rounded-sm font-mono" placeholder="4242 4242 4242 4242"
-                        value={paymentData.cardNumber} onChange={(e) => setPaymentData(d => ({ ...d, cardNumber: e.target.value }))} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("checkout.expiry")}</Label>
-                        <Input className="mt-1.5 h-11 bg-secondary/20 rounded-sm font-mono" placeholder="MM / YY"
-                          value={paymentData.expiry} onChange={(e) => setPaymentData(d => ({ ...d, expiry: e.target.value }))} />
-                      </div>
-                      <div>
-                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("checkout.cvv")}</Label>
-                        <Input className="mt-1.5 h-11 bg-secondary/20 rounded-sm font-mono" placeholder="•••"
-                          value={paymentData.cvv} onChange={(e) => setPaymentData(d => ({ ...d, cvv: e.target.value }))} />
-                      </div>
-                    </div>
+                    {t("checkout.securePaymentNotice")}
                   </div>
                   <div className="flex gap-3">
                     <PremiumButton variant="outline" onClick={() => setStep("shipping")}>

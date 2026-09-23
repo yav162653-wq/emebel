@@ -69,6 +69,8 @@ export default {
     continueToPayment: "To'lovga o'tish",
     placeOrder: "Buyurtma berish",
     demoNotice: "Bu demo rejim. Hech qanday haqiqiy to'lov amalga oshirilmaydi.",
+    secureCheckoutNotice: "Yetkazib berish manzili va variantlari Shopify’ning xavfsiz checkout sahifasida olinadi.",
+    securePaymentNotice: "Yetkazib berish, soliq va to‘lovni tasdiqlash uchun Shopify’ning xavfsiz checkout sahifasiga o‘tasiz.",
     fullName: "To'liq ism",
     email: "Elektron pochta",
     streetAddress: "Ko'cha manzili",
