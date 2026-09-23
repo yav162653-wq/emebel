@@ -12,8 +12,13 @@ const traceEndpoint = configuredEndpoint
     : `${configuredEndpoint.replace(/\/$/, "")}/v1/traces`
   : undefined;
 
+const configuredExporter = process.env.OTEL_TRACES_EXPORTER;
+const telemetryEnabled =
+  Boolean(traceEndpoint) &&
+  configuredExporter !== "none";
+
 // Do not let the SDK silently attempt localhost exports when no collector is configured.
-if (!traceEndpoint && !process.env.OTEL_TRACES_EXPORTER) {
+if (!traceEndpoint && !configuredExporter) {
   process.env.OTEL_TRACES_EXPORTER = "none";
 }
 
@@ -22,11 +27,15 @@ const sdk = new NodeSDK({
   ...(traceEndpoint
     ? { traceExporter: new OTLPTraceExporter({ url: traceEndpoint }) }
     : {}),
-  instrumentations: [
-    getNodeAutoInstrumentations({
-      "@opentelemetry/instrumentation-fs": { enabled: false },
-    }),
-  ],
+  // Auto-instrumentation without an exporter can crash the bundled pg/OpenTelemetry
+  // stack during requests. Keep instrumentation opt-in to an actual exporter.
+  instrumentations: telemetryEnabled
+    ? [
+        getNodeAutoInstrumentations({
+          "@opentelemetry/instrumentation-fs": { enabled: false },
+        }),
+      ]
+    : [],
 });
 
 let started = false;
@@ -36,13 +45,13 @@ try {
   started = true;
   logger.info(
     {
-      telemetry: "opentelemetry",
+      telemetry: telemetryEnabled ? "opentelemetry" : "disabled",
       serviceName,
       exporter: traceEndpoint ? "otlp" : "none",
     },
-    traceEndpoint
+    telemetryEnabled
       ? "OpenTelemetry tracing enabled"
-      : "OpenTelemetry instrumentation enabled without an exporter"
+      : "OpenTelemetry disabled without an exporter"
   );
 } catch (err) {
   logger.error({ err }, "OpenTelemetry failed to start");

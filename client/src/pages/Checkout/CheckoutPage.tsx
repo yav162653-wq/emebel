@@ -35,7 +35,13 @@ export default function CheckoutPage() {
 
   const handlePlaceOrder = async () => {
     setIsProcessing(true);
+    const checkoutWindow = window.open("about:blank", "_blank");
     try {
+      if (!checkoutWindow) {
+        throw new Error("Please allow popups to continue to secure checkout");
+      }
+      checkoutWindow.opener = null;
+
       const res = await fetch("/api/shopify/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -53,8 +59,9 @@ export default function CheckoutPage() {
         throw new Error(payload.error ?? "Checkout failed");
       }
 
-      window.location.assign(payload.checkoutUrl);
+      checkoutWindow.location.replace(payload.checkoutUrl);
     } catch {
+      checkoutWindow?.close();
       toast({ variant: "destructive", title: t("checkout.orderFailed"), description: t("checkout.tryAgain") });
     } finally {
       setIsProcessing(false);
