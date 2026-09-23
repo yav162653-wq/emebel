@@ -5,3 +5,4 @@
 - [Identity-centric auth](identity-auth.md) — User+Identity two-table auth: User has no password; Identity stores provider+providerId+credentials(Json). Local: credentials={hash}. Passport.js + sessions for web; JWT util ready for mobile/bot.
 - [Wishlist state boundary](wishlist-state-boundary.md) — UI uses the unified wishlist hook; local Zustand is only for guests and login-time migration.
 - [Shopify Admin mutation quirks](shopify-admin-api-quirks.md) — current Admin API requires field-level idempotency keys and guarded inventory quantity writes.
+- [Production run mode](production-run-mode.md) — deployment commands must set NODE_ENV=production; build-time replacement does not populate env parsing from process.env.
