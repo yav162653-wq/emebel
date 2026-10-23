@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Order } from "@shared/schema";
 import { cn } from "@/lib/utils";
+import { ExternalAuthButtons } from "@/shared/components/ExternalAuthButtons";
 
 const STATUS_COLORS: Record<string, string> = {
   Delivered:  "bg-green-100  text-green-800  dark:bg-green-900/30  dark:text-green-400",
@@ -348,6 +349,8 @@ export default function AccountPage() {
                 {t("account.saveChanges")}
               </PremiumButton>
             </div>
+            <Separator />
+            <ExternalAuthButtons mode="link" />
             <Separator />
             <div className="space-y-4">
               <div>

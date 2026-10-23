@@ -270,15 +270,10 @@ export class IdentityService {
           "Sign in to the existing account before linking this provider",
         );
       }
-      await this.dependencies.repository.addIdentity({
-        userId: existingAccount.id,
-        provider: profile.provider,
-        providerId: profile.providerId,
-        credentials: profile.credentials,
-      });
-      const refreshed = await this.getById(existingAccount.id);
-      if (!refreshed) throw new DomainError("ACCOUNT_NOT_FOUND", "Account not found");
-      return refreshed;
+      throw new DomainError(
+        "ACCOUNT_LINK_REQUIRES_SIGN_IN",
+        "Sign in to the existing account and link this provider from account settings",
+      );
     }
 
     const account = await this.dependencies.repository.createExternalAccount({
@@ -290,6 +285,60 @@ export class IdentityService {
       credentials: profile.credentials ?? {},
     });
     return toPublicUser(account);
+  }
+
+  async linkExternal(
+    userId: number,
+    profileInput: ExternalIdentityProfile,
+  ): Promise<PublicUser> {
+    const profile = normalizeExternalProfile(profileInput);
+    const account = await this.requireAccount(userId);
+    const existingIdentity = await this.dependencies.repository.findIdentity(
+      profile.provider,
+      profile.providerId,
+    );
+    if (existingIdentity) {
+      if (existingIdentity.userId !== userId) {
+        throw new DomainError(
+          "IDENTITY_ALREADY_LINKED",
+          "This provider account is already linked to another user",
+        );
+      }
+      await this.dependencies.repository.touchIdentity(existingIdentity.id);
+      const current = await this.getById(userId);
+      if (!current) throw new DomainError("ACCOUNT_NOT_FOUND", "Account not found");
+      return current;
+    }
+
+    if (profile.email && profile.emailVerified) {
+      const emailOwner = await this.dependencies.repository.findUserByEmail(profile.email);
+      if (emailOwner && emailOwner.id !== userId) {
+        throw new DomainError("EMAIL_IN_USE", "This verified email belongs to another account");
+      }
+    }
+
+    try {
+      await this.dependencies.repository.addIdentity({
+        userId,
+        provider: profile.provider,
+        providerId: profile.providerId,
+      });
+    } catch {
+      const racedIdentity = await this.dependencies.repository.findIdentity(
+        profile.provider,
+        profile.providerId,
+      );
+      if (racedIdentity?.userId !== userId) {
+        throw new DomainError(
+          "IDENTITY_ALREADY_LINKED",
+          "This provider account is already linked to another user",
+        );
+      }
+    }
+
+    const refreshed = await this.getById(account.id);
+    if (!refreshed) throw new DomainError("ACCOUNT_NOT_FOUND", "Account not found");
+    return refreshed;
   }
 
   private async consumeToken(rawToken: string, type: string) {

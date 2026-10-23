@@ -12,6 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { motion } from "framer-motion";
 import { Moon, Sun, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
+import { ExternalAuthButtons } from "@/shared/components/ExternalAuthButtons";
 
 export default function Login() {
   const { t } = useTranslation();
@@ -182,6 +183,8 @@ export default function Login() {
                 </PremiumButton>
               </form>
             </Form>
+
+            <ExternalAuthButtons />
 
             {showMagicLink && (
               <div className="space-y-4 rounded-sm border border-border bg-secondary/20 p-4">

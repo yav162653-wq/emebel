@@ -104,6 +104,27 @@ export function createApp() {
   app.use(
     pinoHttp({
       logger,
+      serializers: {
+        req(req) {
+          const requestUrl = typeof req.url === "string" ? req.url : "/";
+          const path = requestUrl.split("?", 1)[0];
+          const isExternalAuthCallback =
+            /^\/api\/auth\/external\/(google|github|telegram)\/callback$/.test(path);
+          return {
+            id: req.id,
+            method: req.method,
+            url: isExternalAuthCallback ? path : requestUrl,
+            ...(isExternalAuthCallback ? { query: "[REDACTED]" } : {}),
+            headers: {
+              host: req.headers?.host,
+              "user-agent": req.headers?.["user-agent"],
+              "content-type": req.headers?.["content-type"],
+            },
+            remoteAddress: req.socket?.remoteAddress,
+            remotePort: req.socket?.remotePort,
+          };
+        },
+      },
       customProps: (_req, res) => ({
         requestId: res.locals["requestId"],
         userId:    res.locals["userId"] ?? undefined,

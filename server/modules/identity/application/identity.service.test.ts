@@ -338,7 +338,7 @@ test("password login checks the stored credential and returns a stable user", as
   assert.equal(user.workspaces.length, 1);
 });
 
-test("external identity only auto-links to a verified existing account", async () => {
+test("external sign-in requires explicit linking for an existing account", async () => {
   const repository = new FakeRepository();
   const verified = repository.seedAccount({
     username: "verified-user",
@@ -360,7 +360,14 @@ test("external identity only auto-links to a verified existing account", async (
     email: "verified@example.com",
     emailVerified: true,
   };
-  const linked = await service.signInExternal(verifiedProfile);
+  await assert.rejects(
+    () => service.signInExternal(verifiedProfile),
+    (error: unknown) =>
+      error instanceof DomainError && error.code === "ACCOUNT_LINK_REQUIRES_SIGN_IN",
+  );
+  assert.equal((await service.listIdentities(verified.id)).length, 0);
+
+  const linked = await service.linkExternal(verified.id, verifiedProfile);
   assert.equal(linked.id, verified.id);
   assert.equal((await service.listIdentities(verified.id)).length, 1);
 

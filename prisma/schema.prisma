@@ -22,6 +22,7 @@ model User {
   identities  Identity[]
   memberships Membership[]
   authTokens  AuthToken[]
+  externalAuthTransactions ExternalAuthTransaction[]
   cartItems  CartItem[]
   orders     Order[]
   reviews    Review[]
@@ -92,6 +93,21 @@ model AuthToken {
   @@index([email, type])
   @@index([userId, type])
   @@map("auth_tokens")
+}
+
+model ExternalAuthTransaction {
+  id         String    @id @default(cuid())
+  provider   String
+  stateHash  String    @unique
+  userId     Int?
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+  user       User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([provider, expiresAt])
+  @@index([consumedAt])
+  @@map("external_auth_transactions")
 }
 
 // Managed by connect-pg-simple; mapped here so Prisma db push never drops sessions.

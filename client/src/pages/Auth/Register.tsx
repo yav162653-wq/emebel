@@ -12,6 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { insertUserSchema } from "@shared/schema";
 import { motion } from "framer-motion";
 import { Moon, Sun } from "lucide-react";
+import { ExternalAuthButtons } from "@/shared/components/ExternalAuthButtons";
 
 export default function Register() {
   const { t } = useTranslation();
@@ -241,6 +242,7 @@ export default function Register() {
                 </p>
               </form>
             </Form>
+            <ExternalAuthButtons />
           </motion.div>
         </div>
       </div>

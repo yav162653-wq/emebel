@@ -11,6 +11,12 @@ const baseSchema = z.object({
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
   AUTH_MAGIC_LINK_TTL_MINUTES: z.coerce.number().int().min(1).max(60).default(15),
   AUTH_EMAIL_FROM: z.string().trim().min(3).optional(),
+  GOOGLE_CLIENT_ID: z.string().trim().min(1).optional(),
+  GOOGLE_CLIENT_SECRET: z.string().trim().min(1).optional(),
+  GITHUB_CLIENT_ID: z.string().trim().min(1).optional(),
+  GITHUB_CLIENT_SECRET: z.string().trim().min(1).optional(),
+  TELEGRAM_CLIENT_ID: z.string().trim().min(1).optional(),
+  TELEGRAM_CLIENT_SECRET: z.string().trim().min(1).optional(),
 });
 
 const parsed = baseSchema.safeParse(process.env);

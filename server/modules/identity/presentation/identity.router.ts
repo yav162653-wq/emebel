@@ -11,7 +11,8 @@ import { AppError, UnauthorizedError } from "../../../utils/errors";
 import { asyncHandler } from "../../../utils/asyncHandler";
 import { authLimiter } from "../../../middleware/rateLimiter";
 import { requireAuth } from "../../../middleware/auth";
-import { identityService } from "../composition";
+import { logger } from "../../../config/logger";
+import { externalAuthService, identityAppOrigin, identityService } from "../composition";
 
 function mapIdentityError(error: unknown): unknown {
   if (!(error instanceof DomainError)) return error;
@@ -27,6 +28,12 @@ function mapIdentityError(error: unknown): unknown {
     EMAIL_SENDER_NOT_CONFIGURED: 503,
     EMAIL_DELIVERY_FAILED: 503,
     UNSUPPORTED_IDENTITY_PROVIDER: 400,
+    EXTERNAL_AUTH_NOT_CONFIGURED: 503,
+    EXTERNAL_AUTH_PROVIDER_UNAVAILABLE: 503,
+    EXTERNAL_AUTH_PROVIDER_FAILED: 401,
+    INVALID_EXTERNAL_AUTH_STATE: 400,
+    EXTERNAL_AUTH_SESSION_CHANGED: 401,
+    IDENTITY_ALREADY_LINKED: 409,
     INVALID_EMAIL: 400,
     INVALID_USERNAME: 400,
   };
@@ -56,6 +63,99 @@ function establishSession(req: Request, userId: number): Promise<void> {
 }
 
 const router = Router();
+
+function routeParam(value: string | string[] | undefined): string {
+  return typeof value === "string" ? value : value?.[0] ?? "";
+}
+
+router.get(
+  "/external/providers",
+  route(async (_req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    res.json({ providers: externalAuthService.availableProviders() });
+  }),
+);
+
+router.get(
+  "/external/:provider",
+  authLimiter,
+  route(async (req, res) => {
+    const authorizationUrl = await externalAuthService.begin(routeParam(req.params.provider));
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Referrer-Policy", "no-referrer");
+    res.redirect(302, authorizationUrl);
+  }),
+);
+
+router.get(
+  "/external/:provider/link",
+  requireAuth,
+  authLimiter,
+  route(async (req, res) => {
+    const authorizationUrl = await externalAuthService.begin(
+      routeParam(req.params.provider),
+      req.session.userId!,
+    );
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Referrer-Policy", "no-referrer");
+    res.redirect(302, authorizationUrl);
+  }),
+);
+
+function queryString(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function safeAuthRedirect(path: "/login" | "/shop" | "/account", error?: string): string {
+  const url = new URL(path, identityAppOrigin);
+  if (error) url.searchParams.set("auth_error", error);
+  return url.toString();
+}
+
+router.get(
+  "/external/:provider/callback",
+  authLimiter,
+  asyncHandler(async (req, res) => {
+    res.setHeader("Cache-Control", "no-store, max-age=0");
+    res.setHeader("Referrer-Policy", "no-referrer");
+
+    const provider = routeParam(req.params.provider);
+    const state = queryString(req.query.state);
+    const isAuthenticated = Boolean(req.session.userId);
+
+    try {
+      if (queryString(req.query.error)) {
+        const linked = await externalAuthService.cancel(provider, state ?? "");
+        res.redirect(302, safeAuthRedirect(linked ? "/account" : "/login", "cancelled"));
+        return;
+      }
+
+      const code = queryString(req.query.code);
+      if (!code || !state) {
+        throw new DomainError("INVALID_EXTERNAL_AUTH_STATE", "Invalid external sign-in response");
+      }
+
+      const result = await externalAuthService.complete(provider, {
+        code,
+        state,
+        currentUserId: req.session.userId,
+      });
+      await establishSession(req, result.user.id);
+      res.redirect(302, safeAuthRedirect(result.linked ? "/account" : "/shop"));
+    } catch (error) {
+      const errorCode = error instanceof DomainError ? error.code : "EXTERNAL_AUTH_FAILED";
+      logger.warn({ provider, errorCode }, "External identity sign-in failed");
+      const redirectPath = isAuthenticated ? "/account" : "/login";
+      const redirectCode =
+        errorCode === "ACCOUNT_LINK_REQUIRES_SIGN_IN"
+          ? "link_required"
+          : errorCode === "IDENTITY_ALREADY_LINKED"
+            ? "identity_in_use"
+            : "provider_failed";
+      res.redirect(302, safeAuthRedirect(redirectPath, redirectCode));
+    }
+  }),
+);
 
 router.post(
   "/login",
