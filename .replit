@@ -50,3 +50,6 @@ waitForPort = 5000
 
 [userenv.production]
 APP_ORIGIN = "https://nasa-talab--yav162653.replit.app"
+
+[userenv.shared]
+AUTH_EMAIL_FROM = "onboarding@resend.dev"
