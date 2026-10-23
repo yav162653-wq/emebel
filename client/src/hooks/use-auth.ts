@@ -98,6 +98,25 @@ export function useAuth() {
     },
   });
 
+  const magicLinkMutation = useMutation({
+    mutationFn: async (email: string) => {
+      const res = await fetch("/api/auth/magic-link/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Could not request a sign-in link");
+      return data;
+    },
+    onSuccess: (data) => {
+      toast({ title: "Check your email", description: data.message });
+    },
+    onError: (error: Error) => {
+      toast({ variant: "destructive", title: "Magic link failed", description: error.message });
+    },
+  });
+
   return {
     user,
     isLoading,
@@ -108,5 +127,7 @@ export function useAuth() {
     register:     registerMutation.mutate,
     isRegistering: registerMutation.isPending,
     logout:       logoutMutation.mutate,
+    requestMagicLink: magicLinkMutation.mutate,
+    isRequestingMagicLink: magicLinkMutation.isPending,
   };
 }

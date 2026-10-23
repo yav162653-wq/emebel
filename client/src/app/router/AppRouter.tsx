@@ -7,6 +7,7 @@ import { lazy, Suspense } from "react";
 const LandingPage = lazy(() => import("@/pages/Landing/LandingPage"));
 const Login = lazy(() => import("@/pages/Auth/Login"));
 const Register = lazy(() => import("@/pages/Auth/Register"));
+const MagicLinkPage = lazy(() => import("@/pages/Auth/AuthLinkPage"));
 const HeroPage = lazy(() => import("@/pages/Hero/HeroPage"));
 const ProductDetail = lazy(() => import("@/pages/Product/ProductDetail"));
 const CheckoutPage = lazy(() => import("@/pages/Checkout/CheckoutPage"));
@@ -76,6 +77,12 @@ export function AppRouter() {
             <Route path="/" component={LandingPage} />
             <Route path="/login" component={Login} />
             <Route path="/register" component={Register} />
+            <Route path="/auth/magic-link">
+              {() => <MagicLinkPage kind="magic" />}
+            </Route>
+            <Route path="/auth/account-link">
+              {() => <MagicLinkPage kind="account" />}
+            </Route>
             <Route path="/shop">
               <ProtectedRoute component={HeroPage} />
             </Route>

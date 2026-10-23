@@ -3,7 +3,7 @@ import { z } from "zod";
 // ── User ──────────────────────────────────────────────────────────────────────
 export const insertUserSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters").max(50),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
   name: z.string().min(1, "Name is required").max(100),
   role: z.enum(["user", "admin"]).default("user"),
 });
@@ -13,9 +13,11 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 // API-safe User — no password field returned from the server
 export type User = {
   id: number;
-  username: string;
+  username: string | null;
   name: string;
   role: string;
+  email?: string | null;
+  emailVerified?: boolean;
 };
 
 // ── Product ───────────────────────────────────────────────────────────────────

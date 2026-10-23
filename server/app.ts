@@ -3,7 +3,6 @@ import helmet from "helmet";
 import cors from "cors";
 import session from "express-session";
 import pinoHttp from "pino-http";
-import passport from "./config/passport";
 
 import { env } from "./config/env";
 import { logger } from "./config/logger";
@@ -14,7 +13,7 @@ import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { globalLimiter } from "./middleware/rateLimiter";
 import { ForbiddenError } from "./utils/errors";
 
-import authRouter       from "./modules/auth/auth.router";
+import authRouter       from "./modules/identity/presentation/identity.router";
 import productsRouter   from "./modules/products/products.router";
 import cartRouter       from "./modules/cart/cart.router";
 import adminRouter      from "./modules/admin/admin.router";
@@ -97,11 +96,6 @@ export function createApp() {
        store: sessionStore,
     })
   );
-
-  // ── Passport (must come after session) ────────────────────────────────
-  // initialize() sets up req.user; session() syncs with express-session.
-  app.use(passport.initialize());
-  app.use(passport.session());
 
   // ── Auth context (populate res.locals.userId) ─────────────────────────
   app.use(authContextMiddleware);

@@ -15,9 +15,11 @@ import { useState } from "react";
 
 export default function Login() {
   const { t } = useTranslation();
-  const { login, isLoggingIn } = useAuth();
+  const { login, isLoggingIn, requestMagicLink, isRequestingMagicLink } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [showPassword, setShowPassword] = useState(false);
+  const [showMagicLink, setShowMagicLink] = useState(false);
+  const [magicEmail, setMagicEmail] = useState("");
 
   const loginSchema = z.object({
     username: z.string().min(1, t("auth.username") + " is required"),
@@ -140,9 +142,10 @@ export default function Login() {
                         </FormLabel>
                         <button
                           type="button"
+                          onClick={() => setShowMagicLink((value) => !value)}
                           className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                         >
-                          {t("auth.forgotPassword")}
+                          {showMagicLink ? t("auth.usePassword") : t("auth.forgotPassword")}
                         </button>
                       </div>
                       <FormControl>
@@ -179,6 +182,33 @@ export default function Login() {
                 </PremiumButton>
               </form>
             </Form>
+
+            {showMagicLink && (
+              <div className="space-y-4 rounded-sm border border-border bg-secondary/20 p-4">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{t("auth.magicLinkTitle")}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{t("auth.magicLinkDesc")}</p>
+                </div>
+                <Input
+                  type="email"
+                  value={magicEmail}
+                  onChange={(event) => setMagicEmail(event.target.value)}
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                  className="h-11 bg-background border-border rounded-sm"
+                />
+                <PremiumButton
+                  type="button"
+                  className="w-full"
+                  variant="outline"
+                  isLoading={isRequestingMagicLink}
+                  disabled={!magicEmail.trim()}
+                  onClick={() => requestMagicLink(magicEmail.trim())}
+                >
+                  {t("auth.sendMagicLink")}
+                </PremiumButton>
+              </div>
+            )}
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
