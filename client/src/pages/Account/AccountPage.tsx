@@ -40,6 +40,7 @@ export default function AccountPage() {
   usePageTitle(t("account.title"));
 
   const [name, setName] = useState(user?.name || "");
+  const [authEmail, setAuthEmail] = useState(user?.email || "");
 
   const { data: orders = [], isLoading: ordersLoading } = useQuery<Order[]>({
     queryKey: ["/api/orders/my"],
@@ -66,6 +67,32 @@ export default function AccountPage() {
     },
     onError: () => {
       toast({ variant: "destructive", title: t("common.error"), description: t("common.retry") });
+    },
+  });
+
+  const accountLinkMutation = useMutation({
+    mutationFn: async (email: string) => {
+      const res = await fetch("/api/auth/account-link/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Could not send confirmation email");
+      return data;
+    },
+    onSuccess: () => {
+      toast({
+        title: t("account.emailVerificationSent"),
+        description: t("account.checkEmailToVerify"),
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: t("common.error"),
+        description: error.message,
+      });
     },
   });
 
@@ -319,6 +346,36 @@ export default function AccountPage() {
                 disabled={name === user?.name || !name.trim()}
               >
                 {t("account.saveChanges")}
+              </PremiumButton>
+            </div>
+            <Separator />
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-semibold text-foreground">{t("account.signInEmail")}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {user?.emailVerified
+                    ? t("account.emailVerified")
+                    : t("account.emailNotVerified")}
+                </p>
+              </div>
+              <Input
+                type="email"
+                autoComplete="email"
+                value={authEmail}
+                onChange={(event) => setAuthEmail(event.target.value)}
+                placeholder="you@example.com"
+                className="h-11 bg-secondary/30"
+                data-testid="input-account-email"
+              />
+              <PremiumButton
+                size="sm"
+                variant="outline"
+                isLoading={accountLinkMutation.isPending}
+                disabled={!authEmail.trim()}
+                onClick={() => accountLinkMutation.mutate(authEmail.trim())}
+                data-testid="button-verify-account-email"
+              >
+                {t("account.sendVerification")}
               </PremiumButton>
             </div>
             <Separator />

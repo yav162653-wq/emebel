@@ -26,7 +26,7 @@ export default function Register() {
 
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { username: "", password: "", name: "", confirmPassword: "" },
+    defaultValues: { username: "", password: "", name: "", email: "", confirmPassword: "" },
   });
 
   const onSubmit = (data: z.infer<typeof registerSchema>) => {
@@ -126,6 +126,29 @@ export default function Register() {
                           placeholder="John Doe"
                           autoComplete="name"
                           {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        {t("auth.email")} <span className="normal-case tracking-normal">({t("auth.optional")})</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          data-testid="input-register-email"
+                          type="email"
+                          className="h-12 bg-secondary/30 border-border focus:border-primary/50 rounded-sm"
+                          placeholder="you@example.com"
+                          autoComplete="email"
+                          {...field}
+                          value={field.value ?? ""}
                         />
                       </FormControl>
                       <FormMessage />

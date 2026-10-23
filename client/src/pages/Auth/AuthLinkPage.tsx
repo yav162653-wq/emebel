@@ -13,11 +13,16 @@ export default function AuthLinkPage({ kind }: { kind: "magic" | "account" }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = new URLSearchParams(window.location.search).get("token");
+    const token = new URLSearchParams(window.location.hash.slice(1)).get("token");
     if (!token) {
       setError("This authentication link is incomplete.");
       return;
     }
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${window.location.pathname}${window.location.search}`,
+    );
 
     const endpoint =
       kind === "magic"

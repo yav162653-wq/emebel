@@ -1,6 +1,5 @@
 import {
   emailSchema,
-  externalIdentitySchema,
   loginSchema,
   profileSchema,
   publicIdentitySchema,

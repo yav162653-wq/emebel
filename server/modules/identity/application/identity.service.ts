@@ -114,12 +114,13 @@ export class IdentityService {
 
   async getById(id: number): Promise<PublicUser | null> {
     const account = await this.dependencies.repository.findUserById(id);
-    if (account) {
+    if (account && account.memberships.length === 0) {
       await this.dependencies.repository.ensurePersonalWorkspace(id);
     }
-    const refreshed = account
-      ? await this.dependencies.repository.findUserById(id)
-      : null;
+    const refreshed =
+      account?.memberships.length === 0
+        ? await this.dependencies.repository.findUserById(id)
+        : account;
     return refreshed ? toPublicUser(refreshed) : null;
   }
 
@@ -156,13 +157,14 @@ export class IdentityService {
       expiresAt,
     });
 
-    const link = `${this.dependencies.appOrigin}/auth/magic-link?token=${encodeURIComponent(token.raw)}`;
+    const link = `${this.dependencies.appOrigin}/auth/magic-link#token=${encodeURIComponent(token.raw)}`;
     await this.dependencies.emailSender.send({
       to: email,
       kind: "magic_login",
       subject: "Your secure sign-in link",
       text: link,
       html: `<p>Use this secure sign-in link. It expires soon:</p><p><a href="${link}">Sign in</a></p>`,
+      idempotencyKey: token.hash,
     });
   }
 
@@ -212,13 +214,14 @@ export class IdentityService {
       expiresAt,
     });
 
-    const link = `${this.dependencies.appOrigin}/auth/account-link?token=${encodeURIComponent(token.raw)}`;
+    const link = `${this.dependencies.appOrigin}/auth/account-link#token=${encodeURIComponent(token.raw)}`;
     await this.dependencies.emailSender.send({
       to: email,
       kind: "account_link",
       subject: "Confirm your account email",
       text: link,
       html: `<p>Confirm this email for your account:</p><p><a href="${link}">Confirm email</a></p>`,
+      idempotencyKey: token.hash,
     });
   }
 

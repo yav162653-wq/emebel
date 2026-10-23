@@ -9,7 +9,8 @@ const baseSchema = z.object({
   LOG_LEVEL:      z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
   OTEL_SERVICE_NAME: z.string().min(1).default("space-furniture"),
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
-  AUTH_MAGIC_LINK_TTL_MINUTES: z.coerce.number().int().positive().default(15),
+  AUTH_MAGIC_LINK_TTL_MINUTES: z.coerce.number().int().min(1).max(60).default(15),
+  AUTH_EMAIL_FROM: z.string().trim().min(3).optional(),
 });
 
 const parsed = baseSchema.safeParse(process.env);

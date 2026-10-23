@@ -19,6 +19,7 @@ export interface EmailMessage {
   text: string;
   html?: string;
   kind: "magic_login" | "account_link" | "verification";
+  idempotencyKey: string;
 }
 
 export interface EmailSender {

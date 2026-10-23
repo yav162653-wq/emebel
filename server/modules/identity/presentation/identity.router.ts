@@ -24,6 +24,8 @@ function mapIdentityError(error: unknown): unknown {
     EMAIL_IN_USE: 409,
     ACCOUNT_LINK_REQUIRES_SIGN_IN: 409,
     EMAIL_DELIVERY_NOT_CONFIGURED: 503,
+    EMAIL_SENDER_NOT_CONFIGURED: 503,
+    EMAIL_DELIVERY_FAILED: 503,
     UNSUPPORTED_IDENTITY_PROVIDER: 400,
     INVALID_EMAIL: 400,
     INVALID_USERNAME: 400,
@@ -43,8 +45,14 @@ function route(handler: Handler) {
   });
 }
 
-function establishSession(req: Request, userId: number): void {
-  req.session.userId = userId;
+function establishSession(req: Request, userId: number): Promise<void> {
+  return new Promise((resolve, reject) => {
+    req.session.regenerate((regenerateError) => {
+      if (regenerateError) return reject(regenerateError);
+      req.session.userId = userId;
+      req.session.save((saveError) => (saveError ? reject(saveError) : resolve()));
+    });
+  });
 }
 
 const router = Router();
@@ -55,7 +63,7 @@ router.post(
   route(async (req, res) => {
     const input = loginSchema.parse(req.body);
     const user = await identityService.login(input.username, input.password);
-    establishSession(req, user.id);
+    await establishSession(req, user.id);
     res.json(user);
   }),
 );
@@ -66,7 +74,7 @@ router.post(
   route(async (req, res) => {
     const input = registerSchema.parse(req.body);
     const user = await identityService.register(input);
-    establishSession(req, user.id);
+    await establishSession(req, user.id);
     res.status(201).json(user);
   }),
 );
@@ -130,7 +138,7 @@ router.post(
   route(async (req, res) => {
     const { token } = tokenSchema.parse(req.body);
     const user = await identityService.consumeMagicLink(token);
-    establishSession(req, user.id);
+    await establishSession(req, user.id);
     res.json(user);
   }),
 );
@@ -152,7 +160,7 @@ router.post(
   route(async (req, res) => {
     const { token } = tokenSchema.parse(req.body);
     const user = await identityService.consumeAccountLink(token);
-    establishSession(req, user.id);
+    await establishSession(req, user.id);
     res.json(user);
   }),
 );

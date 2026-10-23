@@ -1,35 +1,13 @@
 ---
 name: Identity-centric auth architecture
-description: User+Identity two-table pattern replacing direct password on User. Covers schema, passport, service, and migration approach.
+description: Security invariants for keeping multiple authentication providers attached to one canonical account.
 ---
 
-## Rule
-Never store passwords directly on the User model. All credentials live in the `Identity` table keyed by (provider, providerId).
+## Security invariants
+- Never auto-link a provider account solely because its claimed email matches an existing user. The provider must attest that the email is verified.
+- Linking a new provider to an existing account must be an explicit authenticated action; do not silently transfer an identity that is already owned by another user.
+- Keep secrets and provider credentials attached to the provider identity, not on the canonical user profile.
 
-## Schema
-- `User`: id, username (nullable — OAuth users may have none), name, email (nullable), role, createdAt
-- `Identity`: id, userId, provider ('local'|'google'|'telegram'|'github'), providerId, credentials (Json), createdAt
-  - local: credentials = `{ hash: "$2b$..." }`
-  - google/github/telegram: credentials = `{ accessToken, refreshToken }` etc.
-  - Unique constraint: `@@unique([provider, providerId])`
+**Why:** Automatically joining accounts on unverified or ambiguous email can let an attacker take over an existing account.
 
-## Lookup pattern (Prisma)
-```ts
-db.identity.findUnique({
-  where: { provider_providerId: { provider: "local", providerId: username } },
-  include: { user: true },
-})
-```
-
-## Files
-- `server/config/passport.ts` — LocalStrategy; serialize/deserialize by userId
-- `server/utils/jwt.ts` — JwtUtil.sign/verify/decode; uses SESSION_SECRET; for mobile/bot clients
-- `server/modules/auth/auth.service.ts` — login/register/findOrCreateOAuth/getIdentities
-- `server/app.ts` — passport.initialize() + passport.session() after express-session
-
-## Migration pattern
-When existing users have passwords but no Identity records: write a one-off `migrate-identities.ts` script, run with `npx tsx`, then delete the script.
-
-**Why:** Separating credentials from identity enables multi-provider login, account linking, and stateless JWT for bots without breaking web sessions.
-
-**How to apply:** Any new OAuth provider (Google, Telegram, GitHub) calls `AuthService.findOrCreateOAuth({ provider, providerId, name, email, credentials })` — no User model changes needed.
+**How to apply:** For each new login provider, distinguish first-time account creation, verified-email matching, and explicit account linking. Enforce provider identity uniqueness and keep the canonical user ID stable across login methods.

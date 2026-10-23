@@ -261,7 +261,7 @@ export class PrismaIdentityRepository implements IdentityRepository {
         userId: input.userId,
         provider: input.provider,
         providerId: input.providerId,
-          credentials: (input.credentials ?? {}) as Prisma.InputJsonValue,
+        credentials: (input.credentials ?? {}) as Prisma.InputJsonValue,
       },
     });
     return mapIdentity(identity);

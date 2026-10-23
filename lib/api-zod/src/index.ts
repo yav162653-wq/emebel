@@ -38,7 +38,10 @@ export const registerSchema = z.object({
   username: z.string().trim().min(3).max(50),
   password: z.string().min(8),
   name: z.string().trim().min(1).max(100),
-  email: z.string().trim().email().optional(),
+  email: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().trim().email().optional(),
+  ),
 });
 
 export const profileSchema = z.object({
