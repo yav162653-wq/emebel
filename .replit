@@ -56,3 +56,7 @@ AUTH_EMAIL_FROM = "onboarding@resend.dev"
 
 [userenv.development]
 APP_ORIGIN = "https://e6af10c7-a264-41fe-a3e9-b39b0d1ab9cc-00-2c3so5zxmjqyt.riker.replit.dev"
+
+[postMerge]
+path = "script/post-merge.sh"
+timeoutMs = 180000
