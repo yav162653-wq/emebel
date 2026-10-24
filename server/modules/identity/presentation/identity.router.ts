@@ -12,7 +12,8 @@ import { asyncHandler } from "../../../utils/asyncHandler";
 import { authLimiter } from "../../../middleware/rateLimiter";
 import { requireAuth } from "../../../middleware/auth";
 import { logger } from "../../../config/logger";
-import { externalAuthService, identityAppOrigin, identityService } from "../composition";
+import type { ExternalAuthService } from "../application/external-auth.service";
+import type { IdentityService } from "../application/identity.service";
 
 function mapIdentityError(error: unknown): unknown {
   if (!(error instanceof DomainError)) return error;
@@ -42,6 +43,26 @@ function mapIdentityError(error: unknown): unknown {
 
 type Handler = (req: Request, res: Response, next: NextFunction) => Promise<void>;
 
+export interface IdentityRouterDependencies {
+  externalAuthService: Pick<
+    ExternalAuthService,
+    "availableProviders" | "begin" | "complete" | "cancel"
+  >;
+  identityAppOrigin: string;
+  identityService: Pick<
+    IdentityService,
+    | "login"
+    | "register"
+    | "getById"
+    | "updateProfile"
+    | "listIdentities"
+    | "requestMagicLink"
+    | "consumeMagicLink"
+    | "requestAccountLink"
+    | "consumeAccountLink"
+  >;
+}
+
 function route(handler: Handler) {
   return asyncHandler(async (req, res, next) => {
     try {
@@ -62,11 +83,13 @@ function establishSession(req: Request, userId: number): Promise<void> {
   });
 }
 
-const router = Router();
-
 function routeParam(value: string | string[] | undefined): string {
   return typeof value === "string" ? value : value?.[0] ?? "";
 }
+
+export function createIdentityRouter(dependencies: IdentityRouterDependencies): Router {
+  const router = Router();
+  const { externalAuthService, identityAppOrigin, identityService } = dependencies;
 
 router.get(
   "/external/providers",
@@ -267,8 +290,5 @@ router.post(
   }),
 );
 
-export function createIdentityRouter(): Router {
   return router;
 }
-
-export default router;

@@ -8,7 +8,7 @@
     "build": "tsx script/build.ts",
     "start": "NODE_ENV=production node dist/index.cjs",
     "check": "tsc",
-    "test": "tsx --test server/modules/identity/application/identity.service.test.ts server/modules/identity/application/external-auth.service.test.ts server/modules/identity/infrastructure/external-auth.provider.test.ts",
+    "test": "tsx --test server/modules/identity/application/identity.service.test.ts server/modules/identity/application/external-auth.service.test.ts server/modules/identity/infrastructure/external-auth.provider.test.ts server/modules/identity/presentation/identity.router.test.ts",
     "db:push": "prisma db push"
   },
   "dependencies": {

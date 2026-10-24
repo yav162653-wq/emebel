@@ -1,8 +1,10 @@
 import pino from "pino";
+import pinoHttp from "pino-http";
+import type { Response as ExpressResponse } from "express";
 
 const isDev = process.env.NODE_ENV !== "production";
 
-export const logger = pino({
+const loggerOptions: pino.LoggerOptions = {
   level: process.env.LOG_LEVEL ?? (isDev ? "debug" : "info"),
   redact: {
     paths: [
@@ -26,16 +28,66 @@ export const logger = pino({
     ],
     censor: "[REDACTED]",
   },
-  ...(isDev
-    ? {
-        transport: {
-          target: "pino-pretty",
-          options: {
-            colorize: true,
-            translateTime: "HH:MM:ss",
-            ignore: "pid,hostname",
+};
+
+export function createLogger(destination?: pino.DestinationStream) {
+  return pino({
+    ...loggerOptions,
+    ...(isDev && !destination
+      ? {
+          transport: {
+            target: "pino-pretty",
+            options: {
+              colorize: true,
+              translateTime: "HH:MM:ss",
+              ignore: "pid,hostname",
+            },
           },
-        },
-      }
-    : {}),
-});
+        }
+      : {}),
+  }, destination);
+}
+
+export const logger = createLogger();
+
+export function createHttpRequestLogger(requestLogger = logger) {
+  return pinoHttp({
+    logger: requestLogger,
+    serializers: {
+      req(req) {
+        const requestUrl = typeof req.url === "string" ? req.url : "/";
+        const path = requestUrl.split("?", 1)[0];
+        const isExternalAuthCallback =
+          /^\/api\/auth\/external\/(google|github|telegram)\/callback$/.test(path);
+        return {
+          id: req.id,
+          method: req.method,
+          url: isExternalAuthCallback ? path : requestUrl,
+          ...(isExternalAuthCallback ? { query: "[REDACTED]" } : {}),
+          headers: {
+            host: req.headers?.host,
+            "user-agent": req.headers?.["user-agent"],
+            "content-type": req.headers?.["content-type"],
+          },
+          remoteAddress: req.socket?.remoteAddress,
+          remotePort: req.socket?.remotePort,
+        };
+      },
+    },
+    customProps: (_req, res) => {
+      const locals = (res as ExpressResponse).locals;
+      return {
+        requestId: locals["requestId"],
+        userId: locals["userId"] ?? undefined,
+      };
+    },
+    autoLogging: {
+      ignore: (req) => req.url === "/api/health" || req.url === "/health",
+    },
+    customLogLevel: (_req, res, err) => {
+      if (err || res.statusCode >= 500) return "error";
+      if (res.statusCode >= 400) return "warn";
+      return "info";
+    },
+  });
+}

@@ -2,10 +2,9 @@ import express from "express";
 import helmet from "helmet";
 import cors from "cors";
 import session from "express-session";
-import pinoHttp from "pino-http";
 
 import { env } from "./config/env";
-import { logger } from "./config/logger";
+import { createHttpRequestLogger } from "./config/logger";
 import { sessionStore } from "./config/session";
 import { requestIdMiddleware } from "./middleware/requestId";
 import { authContextMiddleware } from "./middleware/authContext";
@@ -13,7 +12,12 @@ import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { globalLimiter } from "./middleware/rateLimiter";
 import { ForbiddenError } from "./utils/errors";
 
-import authRouter       from "./modules/identity/presentation/identity.router";
+import { createIdentityRouter } from "./modules/identity/presentation/identity.router";
+import {
+  externalAuthService,
+  identityAppOrigin,
+  identityService,
+} from "./modules/identity/composition";
 import productsRouter   from "./modules/products/products.router";
 import cartRouter       from "./modules/cart/cart.router";
 import adminRouter      from "./modules/admin/admin.router";
@@ -101,44 +105,7 @@ export function createApp() {
   app.use(authContextMiddleware);
 
   // ── HTTP request logging ──────────────────────────────────────────────
-  app.use(
-    pinoHttp({
-      logger,
-      serializers: {
-        req(req) {
-          const requestUrl = typeof req.url === "string" ? req.url : "/";
-          const path = requestUrl.split("?", 1)[0];
-          const isExternalAuthCallback =
-            /^\/api\/auth\/external\/(google|github|telegram)\/callback$/.test(path);
-          return {
-            id: req.id,
-            method: req.method,
-            url: isExternalAuthCallback ? path : requestUrl,
-            ...(isExternalAuthCallback ? { query: "[REDACTED]" } : {}),
-            headers: {
-              host: req.headers?.host,
-              "user-agent": req.headers?.["user-agent"],
-              "content-type": req.headers?.["content-type"],
-            },
-            remoteAddress: req.socket?.remoteAddress,
-            remotePort: req.socket?.remotePort,
-          };
-        },
-      },
-      customProps: (_req, res) => ({
-        requestId: res.locals["requestId"],
-        userId:    res.locals["userId"] ?? undefined,
-      }),
-      autoLogging: {
-        ignore: (req) => req.url === "/api/health" || req.url === "/health",
-      },
-      customLogLevel: (_req, res, err) => {
-        if (err || res.statusCode >= 500) return "error";
-        if (res.statusCode >= 400) return "warn";
-        return "info";
-      },
-    })
-  );
+  app.use(createHttpRequestLogger());
 
   // ── Rate Limiting ─────────────────────────────────────────────────────
   app.use("/api", globalLimiter);
@@ -149,7 +116,10 @@ export function createApp() {
   });
 
   // ── API Routes ────────────────────────────────────────────────────────
-  app.use("/api/auth",       authRouter);
+  app.use(
+    "/api/auth",
+    createIdentityRouter({ externalAuthService, identityAppOrigin, identityService }),
+  );
   app.use("/api/products",   productsRouter);
   app.use("/api/cart",       cartRouter);
   app.use("/api/admin",      adminRouter);
