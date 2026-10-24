@@ -144,6 +144,7 @@ export default {
     connectedProviders: "Connected",
     linkExistingFirst: "This email already has an account. Sign in to that account, then connect this provider in settings.",
     providerAlreadyLinked: "This provider account is already connected to another user.",
+    providerEmailInUse: "The verified email on this provider belongs to another account. Sign in to that account before linking.",
     providerCancelled: "Sign-in was cancelled.",
     providerFailed: "Could not complete sign-in. Please try again.",
   },

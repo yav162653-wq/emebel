@@ -67,6 +67,7 @@ export function ExternalAuthButtons({ mode = "sign-in" }: { mode?: Mode }) {
     const messages: Record<string, string> = {
       link_required: t("auth.linkExistingFirst"),
       identity_in_use: t("auth.providerAlreadyLinked"),
+      email_in_use: t("auth.providerEmailInUse"),
       cancelled: t("auth.providerCancelled"),
       provider_failed: t("auth.providerFailed"),
     };

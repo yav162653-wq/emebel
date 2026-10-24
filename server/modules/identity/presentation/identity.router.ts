@@ -149,6 +149,8 @@ router.get(
       const redirectCode =
         errorCode === "ACCOUNT_LINK_REQUIRES_SIGN_IN"
           ? "link_required"
+          : errorCode === "EMAIL_IN_USE"
+            ? "email_in_use"
           : errorCode === "IDENTITY_ALREADY_LINKED"
             ? "identity_in_use"
             : "provider_failed";

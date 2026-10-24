@@ -144,6 +144,7 @@ export default {
     connectedProviders: "Ulangan",
     linkExistingFirst: "Bu email allaqachon akkauntga ulangan. Avval o‘sha akkauntga kiring, keyin sozlamalarda provayderni ulang.",
     providerAlreadyLinked: "Bu provayder akkaunti boshqa foydalanuvchiga ulangan.",
+    providerEmailInUse: "Provayderdagi tasdiqlangan email boshqa akkauntga tegishli. Ulamasdan oldin o‘sha akkauntga kiring.",
     providerCancelled: "Kirish bekor qilindi.",
     providerFailed: "Kirishni yakunlab bo‘lmadi. Qayta urinib ko‘ring.",
   },

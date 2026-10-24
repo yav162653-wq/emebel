@@ -264,12 +264,6 @@ export class IdentityService {
       ? await this.dependencies.repository.findUserByEmail(profile.email)
       : null;
     if (existingAccount) {
-      if (!profile.emailVerified || !existingAccount.emailVerifiedAt) {
-        throw new DomainError(
-          "ACCOUNT_LINK_REQUIRES_SIGN_IN",
-          "Sign in to the existing account before linking this provider",
-        );
-      }
       throw new DomainError(
         "ACCOUNT_LINK_REQUIRES_SIGN_IN",
         "Sign in to the existing account and link this provider from account settings",
@@ -323,12 +317,13 @@ export class IdentityService {
         provider: profile.provider,
         providerId: profile.providerId,
       });
-    } catch {
+    } catch (error) {
       const racedIdentity = await this.dependencies.repository.findIdentity(
         profile.provider,
         profile.providerId,
       );
-      if (racedIdentity?.userId !== userId) {
+      if (!racedIdentity) throw error;
+      if (racedIdentity.userId !== userId) {
         throw new DomainError(
           "IDENTITY_ALREADY_LINKED",
           "This provider account is already linked to another user",

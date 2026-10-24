@@ -401,6 +401,27 @@ test("account link request rejects an email owned by another user", async () => 
   assert.equal(emails.messages.length, 0);
 });
 
+test("a provider identity cannot be linked to two canonical users", async () => {
+  const repository = new FakeRepository();
+  const first = repository.seedAccount({ name: "First", username: "first" });
+  const second = repository.seedAccount({ name: "Second", username: "second" });
+  const { service } = createService(repository);
+  const profile: ExternalIdentityProfile = {
+    provider: "github",
+    providerId: "github-subject-42",
+    name: "GitHub Member",
+    emailVerified: false,
+  };
+
+  await service.linkExternal(first.id, profile);
+  await assert.rejects(
+    () => service.linkExternal(second.id, profile),
+    (error: unknown) => error instanceof DomainError && error.code === "IDENTITY_ALREADY_LINKED",
+  );
+  assert.equal((await service.listIdentities(first.id)).length, 1);
+  assert.equal((await service.listIdentities(second.id)).length, 0);
+});
+
 test("Resend adapter sends through the connector with a stable idempotency key", async () => {
   let call:
     | {
