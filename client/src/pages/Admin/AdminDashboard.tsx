@@ -32,9 +32,6 @@ export default function AdminDashboard() {
           </div>
           <h2 className="font-display text-3xl font-medium">Access Denied</h2>
           <p className="text-muted-foreground">You don't have permission to view this page.</p>
-          <p className="text-xs font-mono text-muted-foreground/60">
-            Login as <strong>nasa_admin</strong> to access the dashboard.
-          </p>
           <Link href="/shop">
             <PremiumButton>Back to Shop</PremiumButton>
           </Link>

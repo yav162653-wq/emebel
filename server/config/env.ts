@@ -1,22 +1,69 @@
 import { z } from "zod";
 
+const isTestRun = process.env.NODE_ENV === "test"
+  || process.env.npm_lifecycle_event === "test";
+const optionalString = z.preprocess(
+  (value) => typeof value === "string" && value.trim() === "" ? undefined : value,
+  z.string().trim().min(1).optional(),
+);
+const optionalUrl = z.preprocess(
+  (value) => typeof value === "string" && value.trim() === "" ? undefined : value,
+  z.string().url().optional(),
+);
+
 const baseSchema = z.object({
   NODE_ENV:       z.enum(["development", "production", "test"]).default("development"),
   PORT:           z.coerce.number().default(5000),
-  DATABASE_URL:   z.string().min(1, "DATABASE_URL is required"),
-  SESSION_SECRET: z.string().min(16, "SESSION_SECRET must be at least 16 characters"),
+  DATABASE_URL:   z.string().min(1, "DATABASE_URL is required").default(
+    isTestRun ? "postgresql://localhost/emebel_test" : undefined as never,
+  ),
+  SESSION_SECRET: z.string().min(16, "SESSION_SECRET must be at least 16 characters").default(
+    isTestRun ? "test-session-secret-at-least-16" : undefined as never,
+  ),
   APP_ORIGIN:     z.string().optional(),
   LOG_LEVEL:      z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
-  OTEL_SERVICE_NAME: z.string().min(1).default("space-furniture"),
-  OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
+  OTEL_SERVICE_NAME: z.string().min(1).default("emebel"),
+  OTEL_EXPORTER_OTLP_ENDPOINT: optionalUrl,
   AUTH_MAGIC_LINK_TTL_MINUTES: z.coerce.number().int().min(1).max(60).default(15),
-  AUTH_EMAIL_FROM: z.string().trim().min(3).optional(),
-  GOOGLE_CLIENT_ID: z.string().trim().min(1).optional(),
-  GOOGLE_CLIENT_SECRET: z.string().trim().min(1).optional(),
-  GITHUB_CLIENT_ID: z.string().trim().min(1).optional(),
-  GITHUB_CLIENT_SECRET: z.string().trim().min(1).optional(),
-  TELEGRAM_CLIENT_ID: z.string().trim().min(1).optional(),
-  TELEGRAM_CLIENT_SECRET: z.string().trim().min(1).optional(),
+  AUTH_EMAIL_FROM: optionalString,
+  GOOGLE_CLIENT_ID: optionalString,
+  GOOGLE_CLIENT_SECRET: optionalString,
+  GITHUB_CLIENT_ID: optionalString,
+  GITHUB_CLIENT_SECRET: optionalString,
+  TELEGRAM_CLIENT_ID: optionalString,
+  TELEGRAM_CLIENT_SECRET: optionalString,
+  SHOPIFY_SHOP_DOMAIN: optionalString,
+  SHOPIFY_STOREFRONT_ACCESS_TOKEN: optionalString,
+  RESEND_API_KEY: optionalString,
+  SEED_DEMO_DATA: z.enum(["true", "false"]).default("false"),
+}).superRefine((data, ctx) => {
+  if (data.SEED_DEMO_DATA === "true" && data.NODE_ENV === "production") {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["SEED_DEMO_DATA"],
+      message: "Demo seeding is prohibited in production",
+    });
+  }
+
+  if (data.SEED_DEMO_DATA === "true" && data.NODE_ENV !== "production") {
+    try {
+      const databaseUrl = new URL(data.DATABASE_URL);
+      const host = databaseUrl.hostname.toLowerCase();
+      if (!["localhost", "127.0.0.1", "::1"].includes(host)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["DATABASE_URL"],
+          message: "Demo seeding is restricted to local databases",
+        });
+      }
+    } catch {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["DATABASE_URL"],
+        message: "A valid DATABASE_URL is required for demo seeding",
+      });
+    }
+  }
 });
 
 const parsed = baseSchema.safeParse(process.env);

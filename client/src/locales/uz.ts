@@ -119,7 +119,6 @@ export default {
     signIn: "Kirish",
     noAccount: "Hisobingiz yo'qmi?",
     signUp: "Ro'yxatdan o'tish",
-    demoCredentials: "Demo ma'lumotlar",
     createAccount: "Hisob yaratish",
     registerDesc: "Dizaynni sevuvchilar hamjamiyatiga qo'shiling.",
     fullName: "To'liq ism",

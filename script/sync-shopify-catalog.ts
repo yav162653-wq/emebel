@@ -94,7 +94,6 @@ async function getTargets() {
 
   const location = data.locations.nodes[0];
   const publication =
-    data.publications.nodes.find((item) => item.name === "Replit") ??
     data.publications.nodes.find((item) => item.name === "Online Store");
 
   if (!location) throw new Error("Shopify has no inventory location");

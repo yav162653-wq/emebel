@@ -1,7 +1,17 @@
-import { PrismaClient } from "@prisma/client";
+import "dotenv/config";
+import { createRequire } from "node:module";
+import type { PrismaClient as PrismaClientType } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import { logger } from "../config/logger";
+
+const require = createRequire(process.cwd() + "/package.json");
+const { PrismaClient } = require("@prisma/client") as {
+  PrismaClient: new (options: {
+    adapter: PrismaPg;
+    log: Array<{ emit: "event"; level: "query" | "error" | "warn" }>;
+  }) => PrismaClientType;
+};
 
 const dbLogger = logger.child({ module: "db" });
 
@@ -37,7 +47,7 @@ function createPrismaClient() {
   return client;
 }
 
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClientType };
 
 export const db = globalForPrisma.prisma ?? createPrismaClient();
 

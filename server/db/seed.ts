@@ -1,61 +1,25 @@
-import bcrypt from "bcryptjs";
-import { db } from "./client";
+import "dotenv/config";
 import { logger } from "../config/logger";
-
-const SALT_ROUNDS = 12;
+import { runSeedOnlyWhenAllowed } from "./seed-policy";
 
 async function seed() {
-  logger.info("🌱 Checking seed status...");
+  await runSeedOnlyWhenAllowed(process.env, async () => {
+    const { db } = await import("./client");
 
-  const productCount = await db.product.count();
-  if (productCount > 0) {
-    logger.info(`✅ Database already seeded (${productCount} products). Skipping.`);
-    return;
-  }
+    logger.info("🌱 Checking seed status...");
 
-  logger.info("🌱 Seeding database...");
+    const productCount = await db.product.count();
+    if (productCount > 0) {
+      logger.info(`✅ Database already seeded (${productCount} products). Skipping.`);
+      await db.$disconnect();
+      return;
+    }
 
-  // ── Demo users + local identities ────────────────────────────────────
-  const adminHash = await bcrypt.hash("password", SALT_ROUNDS);
-  const userHash  = await bcrypt.hash("password", SALT_ROUNDS);
+    logger.info("🌱 Seeding database...");
 
-  const admin = await db.user.upsert({
-    where:  { username: "nasa_admin" },
-    update: {},
-    create: { username: "nasa_admin", name: "NASA Admin", role: "admin" },
-  });
-
-  await db.identity.upsert({
-    where:  { provider_providerId: { provider: "local", providerId: "nasa_admin" } },
-    update: {},
-    create: {
-      userId:      admin.id,
-      provider:    "local",
-      providerId:  "nasa_admin",
-      credentials: { hash: adminHash },
-    },
-  });
-
-  const user = await db.user.upsert({
-    where:  { username: "user" },
-    update: {},
-    create: { username: "user", name: "Test User", role: "user" },
-  });
-
-  await db.identity.upsert({
-    where:  { provider_providerId: { provider: "local", providerId: "user" } },
-    update: {},
-    create: {
-      userId:      user.id,
-      provider:    "local",
-      providerId:  "user",
-      credentials: { hash: userHash },
-    },
-  });
-
-  // ── Products ──────────────────────────────────────────────────────────
-  await db.product.createMany({
-    data: [
+    // ── Products ────────────────────────────────────────────────────────
+    await db.product.createMany({
+      data: [
       // SEATING
       {
         name: "Cosimo Lounge Chair",
@@ -258,12 +222,13 @@ async function seed() {
     ],
   });
 
-  logger.info("✅ Seeded: 2 users + 2 local identities + 24 products.");
+    logger.info("✅ Seeded 24 products.");
+    await db.$disconnect();
+  });
 }
 
 seed()
   .catch((e) => {
     logger.error({ error: e.message }, "❌ Seed failed");
     process.exit(1);
-  })
-  .finally(() => db.$disconnect());
+  });

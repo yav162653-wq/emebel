@@ -1,15 +1,11 @@
-const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-const token = process.env.REPL_IDENTITY
-  ? `repl ${process.env.REPL_IDENTITY}`
-  : process.env.WEB_REPL_RENEWAL
-    ? `depl ${process.env.WEB_REPL_RENEWAL}`
-    : null;
+const shopDomain = process.env.SHOPIFY_SHOP_DOMAIN;
+const adminToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN;
 
 const [bodyJson, pathArg] = process.argv.slice(2);
 const path = pathArg || "/admin/api/2026-04/graphql.json";
 
-if (!hostname || !token) {
-  console.log("Missing Replit connector environment. Run inside the Repl shell.");
+if (!shopDomain || !adminToken) {
+  console.log("Missing SHOPIFY_SHOP_DOMAIN or SHOPIFY_ADMIN_ACCESS_TOKEN.");
   process.exit(1);
 }
 
@@ -18,14 +14,11 @@ if (!bodyJson) {
   process.exit(0);
 }
 
-const protocol = hostname.startsWith("localhost") ? "http" : "https";
-
-const resp = await fetch(`${protocol}://${hostname}/api/v2/proxy${path}`, {
+const resp = await fetch(`https://${shopDomain}${path}`, {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
-    "X-Replit-Token": token,
-    "Connector-Name": "shopify-store",
+    "X-Shopify-Access-Token": adminToken,
   },
   body: bodyJson,
   signal: AbortSignal.timeout(30_000),

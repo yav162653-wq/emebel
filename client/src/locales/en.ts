@@ -119,7 +119,6 @@ export default {
     signIn: "Sign In",
     noAccount: "No account?",
     signUp: "Sign up",
-    demoCredentials: "Demo Credentials",
     createAccount: "Create account",
     registerDesc: "Join thousands of design-forward shoppers.",
     fullName: "Full Name",

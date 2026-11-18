@@ -1,9 +1,0 @@
-- [Prisma 7 on Replit](prisma7-replit.md) — Prisma 7 needs prisma.config.ts with datasource.url; no url in schema.prisma; use @prisma/adapter-pg at runtime.
-- [Enterprise backend architecture](enterprise-backend.md) — modular Node/Express: config/, middleware/, modules/auth|products|cart|orders|admin|reviews/, db/, utils/ pattern used in SPACE. app.
-- [Prisma schema change workflow](prisma-schema-change.md) — After any Prisma model change: run prisma db push then prisma generate; skipping generate causes 500 errors at runtime.
-- [Reviews module](reviews-module.md) — Review model has @@unique([productId, userId]); upsert via productId_userId compound key; router at /api/reviews/:productId with summary + mine sub-routes.
-- [Identity-centric auth](identity-auth.md) — User+Identity two-table auth: User has no password; Identity stores provider+providerId+credentials(Json). Local: credentials={hash}. Passport.js + sessions for web; JWT util ready for mobile/bot.
-- [Wishlist state boundary](wishlist-state-boundary.md) — UI uses the unified wishlist hook; local Zustand is only for guests and login-time migration.
-- [Shopify Admin mutation quirks](shopify-admin-api-quirks.md) — current Admin API requires field-level idempotency keys and guarded inventory quantity writes.
-- [Production run mode](production-run-mode.md) — deployment commands must set NODE_ENV=production; build-time replacement does not populate env parsing from process.env.
-- [Identity module architecture](identity-module-architecture.md) — keep Identity provider-neutral, modular, and safe against account takeover during linking.

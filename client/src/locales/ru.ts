@@ -119,7 +119,6 @@ export default {
     signIn: "Войти",
     noAccount: "Нет аккаунта?",
     signUp: "Зарегистрироваться",
-    demoCredentials: "Демо-данные",
     createAccount: "Создать аккаунт",
     registerDesc: "Присоединяйтесь к тысячам любителей дизайна.",
     fullName: "Полное имя",

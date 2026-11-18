@@ -33,8 +33,8 @@ const isProd = env.NODE_ENV === "production";
 export function createApp() {
   const app = express();
 
-  // ── Trust proxy (Replit sits behind a reverse proxy) ──────────────────
-  app.set("trust proxy", 1);
+  // ── Proxy configuration ───────────────────────────────────────────────
+  app.set("trust proxy", isProd ? 1 : false);
   app.disable("x-powered-by");
 
   // ── Request ID (must come first) ──────────────────────────────────────

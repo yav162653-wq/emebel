@@ -21,6 +21,9 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [showMagicLink, setShowMagicLink] = useState(false);
   const [magicEmail, setMagicEmail] = useState("");
+  const demoModeEnabled =
+    import.meta.env.DEV
+    && import.meta.env.VITE_ENABLE_DEMO_DATA === "true";
 
   const loginSchema = z.object({
     username: z.string().min(1, t("auth.username") + " is required"),
@@ -213,36 +216,11 @@ export default function Login() {
               </div>
             )}
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-3 text-muted-foreground tracking-widest font-mono">
-                  {t("auth.demoCredentials")}
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { label: t("common.admin"), username: "nasa_admin", password: "password" },
-                { label: t("common.user"), username: "user", password: "password" },
-              ].map((cred) => (
-                <button
-                  key={cred.label}
-                  type="button"
-                  onClick={() => {
-                    form.setValue("username", cred.username);
-                    form.setValue("password", cred.password);
-                  }}
-                  className="flex flex-col items-start p-3 rounded-sm border border-border bg-secondary/20 hover:bg-secondary/40 transition-colors text-left"
-                >
-                  <span className="text-xs font-semibold text-foreground">{cred.label}</span>
-                  <span className="text-xs text-muted-foreground font-mono">{cred.username}</span>
-                </button>
-              ))}
-            </div>
+            {demoModeEnabled && (
+              <p className="text-center text-xs text-muted-foreground">
+                Development demo mode enabled
+              </p>
+            )}
           </motion.div>
         </div>
       </div>

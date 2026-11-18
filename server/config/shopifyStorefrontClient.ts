@@ -1,14 +1,3 @@
-type ShopifyConnectionSettings = {
-  shop_domain?: string;
-  storefront_access_token?: string;
-};
-
-type ShopifyConnectionResponse = {
-  items?: Array<{
-    settings?: ShopifyConnectionSettings;
-  }>;
-};
-
 type ShopifyStorefrontConfig = {
   shopDomain: string;
   storefrontAccessToken: string;
@@ -18,30 +7,11 @@ const STOREFRONT_API_VERSION = "2026-04";
 const CONFIG_CACHE_TTL_MS = 60_000;
 const FETCH_TIMEOUT_MS = 10_000;
 
+import { env } from "./env";
+
 let cachedConfig:
   | { value: ShopifyStorefrontConfig; expiresAt: number }
   | undefined;
-
-function getOpenIntConnectionConfig() {
-  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-  const token = process.env.REPL_IDENTITY
-    ? `repl ${process.env.REPL_IDENTITY}`
-    : process.env.WEB_REPL_RENEWAL
-      ? `depl ${process.env.WEB_REPL_RENEWAL}`
-      : null;
-
-  if (!hostname || !token) {
-    throw new Error("Missing Replit connector environment variables");
-  }
-
-  const protocol = hostname.startsWith("localhost") ? "http" : "https";
-  const connectionUrl = new URL(`${protocol}://${hostname}/api/v2/connection`);
-  connectionUrl.searchParams.set("include_secrets", "true");
-  connectionUrl.searchParams.set("connector_names", "shopify-store");
-  connectionUrl.searchParams.set("refresh_policy", "none");
-
-  return { connectionUrl: connectionUrl.toString(), token };
-}
 
 export async function getShopifyStorefrontConfig(
   options: { forceRefresh?: boolean } = {},
@@ -50,32 +20,16 @@ export async function getShopifyStorefrontConfig(
     return cachedConfig.value;
   }
 
-  const { connectionUrl, token } = getOpenIntConnectionConfig();
-  const resp = await fetch(connectionUrl, {
-    headers: {
-      Accept: "application/json",
-      X_REPLIT_TOKEN: token,
-    },
-    cache: "no-store",
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-  });
-
-  if (!resp.ok) {
-    throw new Error(`Failed to fetch Shopify connection: ${resp.status}`);
-  }
-
-  const data = (await resp.json()) as ShopifyConnectionResponse;
-  const settings = data.items?.[0]?.settings;
-  if (!settings?.shop_domain || !settings.storefront_access_token) {
+  if (!env.SHOPIFY_SHOP_DOMAIN || !env.SHOPIFY_STOREFRONT_ACCESS_TOKEN) {
     throw new Error(
-      "Shopify Store integration is missing Storefront settings. Recreate the integration after OpenInt provisions a Storefront token.",
+      "Shopify Storefront integration requires SHOPIFY_SHOP_DOMAIN and SHOPIFY_STOREFRONT_ACCESS_TOKEN",
     );
   }
 
   cachedConfig = {
     value: {
-      shopDomain: settings.shop_domain,
-      storefrontAccessToken: settings.storefront_access_token,
+      shopDomain: env.SHOPIFY_SHOP_DOMAIN,
+      storefrontAccessToken: env.SHOPIFY_STOREFRONT_ACCESS_TOKEN,
     },
     expiresAt: Date.now() + CONFIG_CACHE_TTL_MS,
   };

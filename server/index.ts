@@ -1,3 +1,4 @@
+import "dotenv/config";
 import "./config/env"; // Validate env first — exits on invalid config
 import "./config/telemetry";
 import { createServer } from "http";
@@ -22,7 +23,7 @@ async function bootstrap() {
   }
 
   // ── Start listening ───────────────────────────────────────────────────
-  httpServer.listen({ port: env.PORT, host: "0.0.0.0", reusePort: true }, () => {
+  httpServer.listen({ port: env.PORT, host: "0.0.0.0" }, () => {
     logger.info(`🚀 Server running on port ${env.PORT} [${env.NODE_ENV}]`);
   });
 
