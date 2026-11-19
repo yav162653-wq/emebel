@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { apiErrorSchema } from "../../../../lib/api-zod/src";
 import type { PublicUser } from "../../../../packages/contracts/src";
 import { DomainError } from "../../../../packages/kernel/src";
 import type { IdentityRouterDependencies } from "./identity.router";
@@ -141,6 +142,9 @@ test("auth routes return expected client errors for invalid credentials and malf
     body: JSON.stringify({ username: "x", password: "short", name: "" }),
   });
   assert.equal(invalidRegister.status, 400);
+  const validationError = apiErrorSchema.parse(await invalidRegister.json());
+  assert.equal(validationError.code, "VALIDATION_ERROR");
+  assert.ok(validationError.errors?.some((error) => error.field === "username"));
 
   const invalidLogin = await fetch(`${baseUrl}/api/auth/login`, {
     method: "POST",

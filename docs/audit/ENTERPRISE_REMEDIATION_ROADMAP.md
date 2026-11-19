@@ -88,11 +88,10 @@ No Redis, queue, or microservice work is warranted yet.
 
 ## Dependency Improvements
 
-1. Remediate 20 production audit findings in compatibility batches.
-2. First batch: Zod and zod-validation-error compatibility; express-rate-limit/ip-address; direct Tailwind transitive issues.
-3. Next batch: test-only and build-time transitive packages.
-4. Add lockfile and `npm audit` CI gates with an approved exception policy.
-5. Do not upgrade Prisma major versions in this phase.
+1. Completed: production and full dependency audits report zero vulnerabilities after the Zod, Vitest, gaxios, and minimatch remediations.
+2. Keep the lockfile and `npm audit` CI gates with an approved exception policy.
+3. Plan an ESLint 10 migration separately; npm reports the current ESLint 9.39.5 release as unsupported.
+4. Do not upgrade Prisma major versions in this phase.
 
 ## Production Readiness
 

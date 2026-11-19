@@ -24,13 +24,15 @@ export default function Register() {
       message: t("auth.passwordMismatch"),
       path: ["confirmPassword"],
     });
+  type RegisterFormInput = z.input<typeof registerSchema>;
+  type RegisterFormOutput = z.output<typeof registerSchema>;
 
-  const form = useForm<z.infer<typeof registerSchema>>({
+  const form = useForm<RegisterFormInput, undefined, RegisterFormOutput>({
     resolver: zodResolver(registerSchema),
     defaultValues: { username: "", password: "", name: "", email: "", confirmPassword: "" },
   });
 
-  const onSubmit = (data: z.infer<typeof registerSchema>) => {
+  const onSubmit = (data: RegisterFormOutput) => {
     const { confirmPassword: _confirmPassword, ...userData } = data;
     register(userData);
   };

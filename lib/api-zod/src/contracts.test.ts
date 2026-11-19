@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { apiSpec } from "../../api-spec/src";
-import { apiErrorSchema } from "./index";
+import { apiErrorSchema, externalIdentitySchema, registerSchema } from "./index";
 
 test("API error contract matches the server error handler payload", () => {
   const parsed = apiErrorSchema.safeParse({
@@ -58,4 +58,27 @@ test("customer order list contract matches its selected item fields", () => {
 test("latest-review query contract coerces and caps the requested limit", () => {
   assert.deepEqual(apiSpec.reviews.latest.query.parse({ limit: "99" }), { limit: 10 });
   assert.equal(apiSpec.reviews.latest.query.safeParse({ limit: "0" }).success, false);
+});
+
+test("external identity credentials accept arbitrary string keys", () => {
+  const payload = {
+    provider: "google",
+    providerId: "provider-id",
+    name: "Test Member",
+    emailVerified: true,
+    credentials: { accessToken: "test-token" },
+  };
+
+  assert.deepEqual(externalIdentitySchema.parse(payload), payload);
+});
+
+test("registration normalizes a blank optional email to undefined", () => {
+  const parsed = registerSchema.parse({
+    username: "test-member",
+    password: "correct-horse-battery",
+    name: "Test Member",
+    email: "  ",
+  });
+
+  assert.equal(parsed.email, undefined);
 });

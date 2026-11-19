@@ -38,10 +38,9 @@ export const registerSchema = z.object({
   username: z.string().trim().min(3).max(50),
   password: z.string().min(8),
   name: z.string().trim().min(1).max(100),
-  email: z.preprocess(
-    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
-    z.string().trim().email().optional(),
-  ),
+  email: z.string().trim().optional()
+    .transform((value) => value === "" ? undefined : value)
+    .pipe(z.string().email().optional()),
 });
 
 export const profileSchema = z.object({
@@ -63,7 +62,7 @@ export const externalIdentitySchema = z.object({
   name: z.string().trim().min(1).max(100),
   email: z.string().trim().email().optional(),
   emailVerified: z.boolean(),
-  credentials: z.record(z.unknown()).optional(),
+  credentials: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const idParamSchema = z.coerce.number().int().positive();

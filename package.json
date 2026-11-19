@@ -18,7 +18,7 @@
     "db:seed": "tsx server/db/seed.ts"
   },
   "dependencies": {
-    "@hookform/resolvers": "^3.10.0",
+    "@hookform/resolvers": "^5.9.2",
     "@jridgewell/trace-mapping": "^0.3.25",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/auto-instrumentations-node": "^0.80.0",
@@ -96,15 +96,14 @@
     "vaul": "^1.1.2",
     "wouter": "^3.3.5",
     "ws": "^8.21.3",
-    "zod": "^3.24.2",
-    "zod-validation-error": "^3.4.0",
+    "zod": "^4.6.7",
     "zustand": "^5.0.9"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",
     "@eslint/js": "^9.39.5",
-    "@playwright/test": "^1.65.1",
     "@opentelemetry/sdk-trace-node": "^2.11.0",
+    "@playwright/test": "^1.65.1",
     "@tailwindcss/typography": "^0.5.15",
     "@tailwindcss/vite": "^4.1.18",
     "@testing-library/jest-dom": "^6.9.1",
@@ -113,7 +112,7 @@
     "@types/connect-pg-simple": "^7.0.3",
     "@types/express": "^5.0.6",
     "@types/express-session": "^1.18.0",
-    "@types/node": "20.19.27",
+    "@types/node": "^22.20.5",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",
     "@types/ws": "^8.5.13",
@@ -132,15 +131,15 @@
     "typescript": "5.6.3",
     "typescript-eslint": "^8.73.0",
     "vite": "^7.3.6",
-    "vitest": "^3.2.7"
+    "vitest": "^5.1.1"
   },
   "overrides": {
     "brace-expansion": "2.1.7",
     "ip-address": "10.7.4",
     "lodash": "4.18.1",
-    "minimatch": "9.0.9",
     "picomatch": "4.0.7",
-    "postcss-selector-parser": "6.1.5"
+    "postcss-selector-parser": "6.1.5",
+    "gaxios": "7.1.4"
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"

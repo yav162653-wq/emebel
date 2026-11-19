@@ -18,7 +18,7 @@ export function errorHandler(
       error: "Validation failed",
       code: "VALIDATION_ERROR",
       requestId,
-      errors: err.errors.map((e) => ({
+      errors: err.issues.map((e) => ({
         field: e.path.join("."),
         message: e.message,
       })),
