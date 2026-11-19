@@ -1,4 +1,5 @@
 import { env } from "../../../config/env";
+import { applicationMetrics } from "../../../config/metrics";
 import { DomainError } from "../../../../packages/kernel/src";
 import type {
   EmailMessage,
@@ -74,6 +75,7 @@ export class ResendEmailSender implements EmailSender {
 
   async send(message: EmailMessage): Promise<void> {
     if (!this.from) {
+      applicationMetrics.recordProviderFailure("resend", "EMAIL_SENDER_NOT_CONFIGURED");
       throw new DomainError(
         "EMAIL_SENDER_NOT_CONFIGURED",
         "Set AUTH_EMAIL_FROM to a verified Resend sender address",
@@ -82,6 +84,7 @@ export class ResendEmailSender implements EmailSender {
 
     const apiKey = this.connector ? undefined : this.apiKey;
     if (!this.connector && !apiKey) {
+      applicationMetrics.recordProviderFailure("resend", "EMAIL_SENDER_NOT_CONFIGURED");
       throw new DomainError(
         "EMAIL_SENDER_NOT_CONFIGURED",
         "Set RESEND_API_KEY to a valid Resend API key",
@@ -179,6 +182,7 @@ export class ResendEmailSender implements EmailSender {
   }
 
   private deliveryError(): DomainError {
+    applicationMetrics.recordProviderFailure("resend", "EMAIL_DELIVERY_FAILED");
     return new DomainError(
       "EMAIL_DELIVERY_FAILED",
       "Email could not be sent. Please try again.",

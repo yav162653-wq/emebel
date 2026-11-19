@@ -22,6 +22,7 @@ const baseSchema = z.object({
   ),
   APP_ORIGIN:     z.string().optional(),
   LOG_LEVEL:      z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
+  METRICS_TOKEN: optionalString,
   OTEL_SERVICE_NAME: z.string().min(1).default("emebel"),
   OTEL_EXPORTER_OTLP_ENDPOINT: optionalUrl,
   AUTH_MAGIC_LINK_TTL_MINUTES: z.coerce.number().int().min(1).max(60).default(15),
@@ -50,6 +51,18 @@ const baseSchema = z.object({
       code: z.ZodIssueCode.custom,
       path: ["SESSION_SECRET"],
       message: "SESSION_SECRET must be at least 32 characters in production",
+    });
+  }
+
+  if (
+    data.NODE_ENV === "production"
+    && data.METRICS_TOKEN
+    && data.METRICS_TOKEN.length < 32
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["METRICS_TOKEN"],
+      message: "METRICS_TOKEN must be at least 32 characters in production",
     });
   }
 

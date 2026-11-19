@@ -2,6 +2,7 @@ import {
   shopifyStorefrontRequest,
   ShopifyStorefrontError,
 } from "../../config/shopifyStorefrontClient";
+import { applicationMetrics } from "../../config/metrics";
 import { AppError, ConflictError, ValidationError } from "../../utils/errors";
 
 type LocalProduct = {
@@ -38,6 +39,7 @@ async function storefrontRequest<T>(
     return await shopifyStorefrontRequest<T>(query, variables);
   } catch (error) {
     if (error instanceof ShopifyStorefrontError) {
+      applicationMetrics.recordProviderFailure("shopify", error.code);
       throw new AppError(error.message, error.statusCode, error.code);
     }
     throw error;

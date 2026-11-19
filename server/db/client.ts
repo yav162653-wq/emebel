@@ -19,6 +19,11 @@ const { PrismaClient } = require("@prisma/client") as {
 };
 
 const dbLogger = logger.child({ module: "db" });
+type GlobalPrisma = {
+  prisma?: PrismaClientType;
+  applicationPool?: Pool;
+};
+const globalForPrisma = globalThis as unknown as GlobalPrisma;
 
 export async function assertRuntimeDatabaseRole(): Promise<void> {
   if (process.env.NODE_ENV !== "production") return;
@@ -89,6 +94,7 @@ export async function assertRuntimeDatabaseRole(): Promise<void> {
 
 function createPrismaClient() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  globalForPrisma.applicationPool = pool;
   const adapter = new PrismaPg(pool);
 
   const log: Prisma.LogDefinition[] = process.env.NODE_ENV === "development"
@@ -119,10 +125,17 @@ function createPrismaClient() {
   return client;
 }
 
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClientType };
-
 export const db = globalForPrisma.prisma ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = db;
+}
+
+export function getApplicationPoolMetrics() {
+  const pool = globalForPrisma.applicationPool;
+  return {
+    totalCount: pool?.totalCount ?? 0,
+    idleCount: pool?.idleCount ?? 0,
+    waitingCount: pool?.waitingCount ?? 0,
+  };
 }

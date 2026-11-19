@@ -35,6 +35,14 @@ export const pingSessionStore = createSessionStoreProbe(
   () => sessionPool.query("SELECT 1"),
 );
 
+export function getSessionPoolMetrics() {
+  return {
+    totalCount: sessionPool.totalCount,
+    idleCount: sessionPool.idleCount,
+    waitingCount: sessionPool.waitingCount,
+  };
+}
+
 export async function closeSessionStore(): Promise<void> {
   await sessionPool.end();
 }

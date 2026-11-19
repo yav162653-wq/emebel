@@ -5,6 +5,7 @@ import session from "express-session";
 
 import { env } from "./config/env";
 import { createHttpRequestLogger } from "./config/logger";
+import { applicationMetrics } from "./config/metrics";
 import { sessionStore } from "./config/session";
 import { SESSION_IDLE_TIMEOUT_MS } from "./config/session-policy";
 import { requestIdMiddleware } from "./middleware/requestId";
@@ -18,6 +19,7 @@ import { ForbiddenError } from "./utils/errors";
 
 import { createIdentityRouter } from "./modules/identity/presentation/identity.router";
 import { healthRouter } from "./modules/health/health.router";
+import { metricsRouter } from "./modules/metrics/metrics.router";
 import {
   externalAuthService,
   identityAppOrigin,
@@ -44,6 +46,7 @@ export function createApp() {
 
   // ── Request ID (must come first) ──────────────────────────────────────
   app.use(requestIdMiddleware);
+  app.use(applicationMetrics.middleware);
 
   // ── Security headers ──────────────────────────────────────────────────
   app.use(
@@ -92,6 +95,7 @@ export function createApp() {
 
   // Liveness/readiness must remain reachable when the session store is down.
   app.use("/api", healthRouter);
+  app.use("/api", metricsRouter);
 
   // ── Session ───────────────────────────────────────────────────────────
   app.use(

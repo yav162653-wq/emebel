@@ -93,6 +93,21 @@ Copy `.env.example` to `.env`. Required variables:
 
 Optional integration variables are documented in `.env.example`.
 
+## Metrics
+
+Prometheus metrics are exposed at `GET /api/metrics`. In production, set
+`METRICS_TOKEN` to a random value of at least 32 characters and scrape with
+`Authorization: Bearer <METRICS_TOKEN>`. The endpoint is hidden in production
+when no token is configured; restrict scraper network access as well.
+
+The endpoint reports request counters, duration histograms, PostgreSQL
+application/session pool gauges, and Shopify/Resend failures. Derive latency
+percentiles from the histogram in Prometheus, for example:
+
+```promql
+histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket[5m])))
+```
+
 ## Shopify
 
 Set `SHOPIFY_SHOP_DOMAIN`, `SHOPIFY_STOREFRONT_ACCESS_TOKEN`, and `SHOPIFY_ADMIN_ACCESS_TOKEN` for catalog/checkout integrations.
