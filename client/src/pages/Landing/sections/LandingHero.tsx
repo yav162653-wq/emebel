@@ -34,7 +34,7 @@ export function LandingHero() {
           style={{ opacity: heroOpacity }}
         />
         <img
-          src="https://images.unsplash.com/photo-1595514020180-8c240a39d78c?auto=format&fit=crop&q=80&w=2000"
+          src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&q=80&w=2000"
           alt="Minimalist Living Room"
           className="h-full w-full object-cover"
         />

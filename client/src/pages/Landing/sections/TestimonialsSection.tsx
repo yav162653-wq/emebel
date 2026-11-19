@@ -5,11 +5,12 @@ import { Star } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PremiumButton } from "@/shared/components/PremiumButton";
+import { QueryErrorState } from "@/shared/components/QueryErrorState";
 import { fetchLatestReviews, type LatestReview } from "@/api/reviews";
 
 export function TestimonialsSection() {
   const { t } = useTranslation();
-  const { data: latestReviews = [], isLoading: reviewsLoading, isError } = useQuery<LatestReview[]>({
+  const { data: latestReviews = [], isLoading: reviewsLoading, isError, refetch } = useQuery<LatestReview[]>({
     queryKey: ["/api/reviews/latest"],
     queryFn: () => fetchLatestReviews(3),
   });
@@ -35,7 +36,7 @@ export function TestimonialsSection() {
             ))}
           </div>
         ) : isError ? (
-          <p className="py-16 text-center text-sm text-destructive">{t("common.error")}</p>
+          <QueryErrorState onRetry={refetch} className="py-16" />
         ) : latestReviews.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {latestReviews.map((review, i) => (

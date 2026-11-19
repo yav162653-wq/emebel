@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { createShopifyCheckout } from "@/api/commerce";
+import { QueryErrorState } from "@/shared/components/QueryErrorState";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type Step = "cart" | "shipping" | "payment";
 
@@ -19,7 +21,7 @@ export default function CheckoutPage() {
   const { t } = useTranslation();
   const [step, setStep] = useState<Step>("cart");
   const [isProcessing, setIsProcessing] = useState(false);
-  const { items, total } = useCart();
+  const { items, total, isLoading, isError, refetch } = useCart();
   const { toast } = useToast();
 
   const shipping = total > 50000 ? 0 : 2900;
@@ -58,6 +60,26 @@ export default function CheckoutPage() {
       setIsProcessing(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-6">
+        <div className="w-full max-w-md space-y-4">
+          <Skeleton className="h-10 w-2/3 mx-auto" />
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-11 w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-6">
+        <QueryErrorState onRetry={refetch} className="py-16" />
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (

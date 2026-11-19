@@ -1,6 +1,35 @@
 import { db } from "../../db/client";
 import { NotFoundError, ForbiddenError } from "../../utils/errors";
 
+type CartItemUpsertInput = {
+  userId: number;
+  productId: number;
+  quantity: number;
+};
+
+export function createCartItemAdder<T>(
+  findProduct: (productId: number) => Promise<{ id: number } | null>,
+  upsertCartItem: (input: CartItemUpsertInput) => Promise<T>,
+) {
+  return async (userId: number, productId: number, quantity = 1): Promise<T> => {
+    const product = await findProduct(productId);
+    if (!product) throw new NotFoundError("Product");
+    return upsertCartItem({ userId, productId, quantity });
+  };
+}
+
+const addCartItem = createCartItemAdder(
+  (productId) => db.product.findUnique({
+    where: { id: productId },
+    select: { id: true },
+  }),
+  ({ userId, productId, quantity }) => db.cartItem.upsert({
+    where: { userId_productId: { userId, productId } },
+    create: { userId, productId, quantity },
+    update: { quantity: { increment: quantity } },
+  }),
+);
+
 export const CartService = {
   async getByUser(userId: number) {
     return db.cartItem.findMany({
@@ -10,27 +39,7 @@ export const CartService = {
     });
   },
 
-  async add(userId: number, productId: number, quantity = 1) {
-    // Verify product exists
-    const product = await db.product.findUnique({ where: { id: productId } });
-    if (!product) throw new NotFoundError("Product");
-
-    // Check for existing cart item and merge
-    const existing = await db.cartItem.findFirst({
-      where: { userId, productId },
-    });
-
-    if (existing) {
-      return db.cartItem.update({
-        where: { id: existing.id },
-        data: { quantity: existing.quantity + quantity },
-      });
-    }
-
-    return db.cartItem.create({
-      data: { userId, productId, quantity },
-    });
-  },
+  add: addCartItem,
 
   async updateQuantity(userId: number, id: number, quantity: number) {
     const item = await db.cartItem.findUnique({ where: { id } });

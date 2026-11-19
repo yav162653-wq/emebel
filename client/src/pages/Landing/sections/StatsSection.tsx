@@ -2,10 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { fetchPublicStats, type PublicStats } from "@/api/landing";
+import { QueryErrorState } from "@/shared/components/QueryErrorState";
 
 export function StatsSection() {
   const { t } = useTranslation();
-  const { data: stats } = useQuery<PublicStats>({
+  const { data: stats, isError, refetch } = useQuery<PublicStats>({
     queryKey: ["/api/stats"],
     queryFn: fetchPublicStats,
   });
@@ -32,6 +33,12 @@ export function StatsSection() {
             <p className="text-primary-foreground/80 text-xs font-mono uppercase tracking-widest mt-2">{stat.label}</p>
           </motion.div>
         ))}
+        {isError && (
+          <QueryErrorState
+            onRetry={refetch}
+            className="col-span-full py-4 text-primary-foreground [&_p]:text-primary-foreground"
+          />
+        )}
       </div>
     </section>
   );

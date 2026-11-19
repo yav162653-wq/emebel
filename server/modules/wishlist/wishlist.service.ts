@@ -1,5 +1,34 @@
 import { db } from "../../db/client";
 
+type WishlistCreateManyInput = {
+  data: { userId: number; productId: number }[];
+  skipDuplicates: true;
+};
+
+export function createWishlistSynchronizer(
+  findProducts: (productIds: number[]) => Promise<{ id: number }[]>,
+  createMany: (input: WishlistCreateManyInput) => Promise<unknown>,
+) {
+  return async (userId: number, productIds: number[]): Promise<void> => {
+    if (productIds.length === 0) return;
+    const products = await findProducts(productIds);
+    if (products.length === 0) return;
+
+    await createMany({
+      data: products.map(({ id }) => ({ userId, productId: id })),
+      skipDuplicates: true,
+    });
+  };
+}
+
+const syncWishlist = createWishlistSynchronizer(
+  (productIds) => db.product.findMany({
+    where: { id: { in: productIds } },
+    select: { id: true },
+  }),
+  (input) => db.wishlist.createMany(input),
+);
+
 export const WishlistService = {
   /** Returns all product IDs in the user's wishlist */
   async getIds(userId: number): Promise<number[]> {
@@ -34,20 +63,5 @@ export const WishlistService = {
    * Bulk-sync: merge a list of productIds into the user's wishlist.
    * Used when a guest logs in and we merge their localStorage items.
    */
-  async sync(userId: number, productIds: number[]): Promise<void> {
-    if (productIds.length === 0) return;
-    // upsert each — skip invalid product IDs silently
-    const products = await db.product.findMany({
-      where:  { id: { in: productIds } },
-      select: { id: true },
-    });
-    const validIds = products.map((p) => p.id);
-    for (const productId of validIds) {
-      await db.wishlist.upsert({
-        where:  { userId_productId: { userId, productId } },
-        update: {},
-        create: { userId, productId },
-      });
-    }
-  },
+  sync: syncWishlist,
 };

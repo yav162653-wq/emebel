@@ -3,10 +3,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAdminUsers } from "../hooks/use-admin";
 import { cn } from "@/lib/utils";
 import { Shield, User } from "lucide-react";
+import { QueryErrorState } from "@/shared/components/QueryErrorState";
 
 export function UsersTab() {
-  const { data: users, isLoading } = useAdminUsers();
+  const { data: users, isLoading, isError, refetch } = useAdminUsers();
 
+  if (isError) {
+    return (
+      <div className="space-y-6">
+        <h1 className="font-display text-3xl font-medium">Users</h1>
+        <QueryErrorState onRetry={refetch} className="py-16" />
+      </div>
+    );
+  }
   return (
     <div className="space-y-6">
       {/* Header */}

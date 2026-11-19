@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PremiumButton } from "@/shared/components/PremiumButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Product } from "@shared/schema";
+import { QueryErrorState } from "@/shared/components/QueryErrorState";
 
 function WishlistCard({ product, index }: { product: Product; index: number }) {
   const { t } = useTranslation();
@@ -113,9 +114,21 @@ function WishlistCard({ product, index }: { product: Product; index: number }) {
 export default function WishlistPage() {
   const { t } = useTranslation();
   usePageTitle(t("wishlist.title"));
-  const { items: wishlistIds, clear, isLoading: wishlistLoading } = useWishlist();
-  const { data: allProducts, isLoading: productsLoading } = useFurniture();
+  const {
+    items: wishlistIds,
+    clear,
+    isLoading: wishlistLoading,
+    isError: wishlistError,
+    refetch: refetchWishlist,
+  } = useWishlist();
+  const {
+    data: allProducts,
+    isLoading: productsLoading,
+    isError: productsError,
+    refetch: refetchProducts,
+  } = useFurniture();
   const isLoading = productsLoading || wishlistLoading;
+  const isError = wishlistError || productsError;
   const { toast } = useToast();
 
   const wishlisted = allProducts?.filter((p) => wishlistIds.includes(p.id)) ?? [];
@@ -123,6 +136,13 @@ export default function WishlistPage() {
   const handleClearAll = () => {
     clear();
     toast({ title: t("wishlist.wishlistCleared"), duration: 2000 });
+  };
+
+  const retryData = async () => {
+    const retries = [];
+    if (wishlistError) retries.push(refetchWishlist());
+    if (productsError) retries.push(refetchProducts());
+    await Promise.all(retries);
   };
 
   return (
@@ -159,7 +179,7 @@ export default function WishlistPage() {
               <h1 className="font-display text-4xl md:text-5xl font-medium tracking-tight">
                 {t("wishlist.title")}
               </h1>
-              {!isLoading && (
+              {!isLoading && !isError && (
                 <p className="text-muted-foreground mt-2 text-sm">
                   {wishlisted.length > 0
                     ? t(wishlisted.length === 1 ? "wishlist.pieceSaved" : "wishlist.piecesSaved", { count: wishlisted.length })
@@ -183,7 +203,14 @@ export default function WishlistPage() {
           </div>
         )}
 
-        {!isLoading && wishlisted.length === 0 && (
+        {!isLoading && isError && (
+          <QueryErrorState
+            onRetry={retryData}
+            className="py-16"
+          />
+        )}
+
+        {!isLoading && !isError && wishlisted.length === 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -207,7 +234,7 @@ export default function WishlistPage() {
           </motion.div>
         )}
 
-        {!isLoading && wishlisted.length > 0 && (
+        {!isLoading && !isError && wishlisted.length > 0 && (
           <motion.div layout className="grid grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
             <AnimatePresence mode="popLayout">
               {wishlisted.map((product, i) => (
@@ -217,7 +244,7 @@ export default function WishlistPage() {
           </motion.div>
         )}
 
-        {!isLoading && wishlisted.length > 0 && (
+        {!isLoading && !isError && wishlisted.length > 0 && (
           <div className="mt-16 pt-10 border-t text-center">
             <p className="text-muted-foreground text-sm mb-4">{t("wishlist.findMore")}</p>
             <Link href="/shop">

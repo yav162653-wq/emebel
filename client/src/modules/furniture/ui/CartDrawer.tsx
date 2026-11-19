@@ -10,13 +10,24 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
 import { ArrowRight, Minus, Package, Plus, ShoppingBag, Truck, X } from "lucide-react";
 import { useEffect } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { QueryErrorState } from "@/shared/components/QueryErrorState";
 
 const FREE_SHIPPING_THRESHOLD = 50000;
 
 export function CartDrawer() {
   const { t } = useTranslation();
   const { cartDrawerOpen, setCartDrawerOpen } = useFurnitureStore();
-  const { items, total, removeFromCart, updateQuantity, isUpdating } = useCart();
+  const {
+    items,
+    total,
+    removeFromCart,
+    updateQuantity,
+    isUpdating,
+    isLoading,
+    isError,
+    refetch,
+  } = useCart();
 
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const shipping = total >= FREE_SHIPPING_THRESHOLD ? 0 : 2900;
@@ -88,7 +99,14 @@ export function CartDrawer() {
         {/* Items */}
         <div className="flex-1 overflow-y-auto">
           <AnimatePresence mode="popLayout">
-            {items.length === 0 ? (
+            {isLoading ? (
+              <div className="space-y-5 p-6">
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+              </div>
+            ) : isError ? (
+              <QueryErrorState onRetry={refetch} className="py-20" />
+            ) : items.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}

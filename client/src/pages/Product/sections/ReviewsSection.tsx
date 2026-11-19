@@ -7,6 +7,7 @@ import type { Review, ReviewSummary } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { PremiumButton } from "@/shared/components/PremiumButton";
+import { QueryErrorState } from "@/shared/components/QueryErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -103,12 +104,17 @@ export function ReviewsSection({ productId }: { productId: number }) {
     queryFn: () => fetchReviewSummary(productId),
   });
 
-  const { data: reviews = [], isLoading: reviewsLoading, isError: reviewsError } = useQuery<Review[]>({
+  const {
+    data: reviews = [],
+    isLoading: reviewsLoading,
+    isError: reviewsError,
+    refetch: refetchReviews,
+  } = useQuery<Review[]>({
     queryKey: ["/api/reviews", productId],
     queryFn: () => fetchReviews(productId),
   });
 
-  const { data: myReview, isError: myReviewError } = useQuery({
+  const { data: myReview, isError: myReviewError, refetch: refetchMyReview } = useQuery({
     queryKey: ["/api/reviews", productId, "mine"],
     queryFn: () => fetchMyReview(productId),
     enabled: !!user,
@@ -167,7 +173,7 @@ export function ReviewsSection({ productId }: { productId: number }) {
       </div>
 
       {user && myReviewError && (
-        <p className="text-sm text-destructive">{t("common.error")}</p>
+        <QueryErrorState onRetry={refetchMyReview} className="items-start" />
       )}
 
       {user && !showForm && !myReviewError && (
@@ -248,7 +254,7 @@ export function ReviewsSection({ productId }: { productId: number }) {
           {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-sm" />)}
         </div>
       ) : reviewsError ? (
-        <p className="py-12 text-center text-sm text-destructive">{t("common.error")}</p>
+        <QueryErrorState onRetry={refetchReviews} className="py-12" />
       ) : reviews.length === 0 ? (
         <div className="py-12 text-center border border-dashed border-border rounded-sm">
           <Star className="h-8 w-8 text-muted-foreground/20 mx-auto mb-3" />

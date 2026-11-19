@@ -17,10 +17,11 @@ import {
 } from "@/components/ui/popover";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { QueryErrorState } from "@/shared/components/QueryErrorState";
 
 export function HeroProducts() {
   const { t } = useTranslation();
-  const { data: products, isLoading } = useFurniture();
+  const { data: products, isLoading, isError, refetch } = useFurniture();
   const {
     activeCategory, searchQuery, sortOption, priceRange,
     setSortOption, setPriceRange, clearFilters,
@@ -215,6 +216,8 @@ export function HeroProducts() {
             </motion.div>
           ))}
         </div>
+      ) : isError ? (
+        <QueryErrorState onRetry={refetch} className="py-20" />
       ) : filtered.length === 0 ? (
         <motion.div
           initial={{ opacity: 0, y: 10 }}

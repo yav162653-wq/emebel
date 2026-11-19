@@ -5,7 +5,7 @@ import { fetchFurnitureItem, fetchFurnitureCollection } from "@/api/products";
 export function useFurniture() {
   return useQuery({
     queryKey: [api.products.list.path],
-    queryFn: fetchFurnitureCollection,
+    queryFn: () => fetchFurnitureCollection(),
   });
 }
 

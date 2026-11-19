@@ -14,14 +14,26 @@ import { AccountProfileHeader } from "./sections/AccountProfileHeader";
 import { OrdersTab } from "./sections/OrdersTab";
 import { WishlistTab } from "./sections/WishlistTab";
 import { AccountSettingsTab } from "./sections/AccountSettingsTab";
+import { QueryErrorState } from "@/shared/components/QueryErrorState";
 import { fetchMyOrders } from "@/api/commerce";
 import { requestAccountLink, updateProfile } from "@/api/account";
 
 export default function AccountPage() {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
-  const { items: wishlistIds, toggle, count } = useWishlist();
-  const { data: products } = useFurniture();
+  const {
+    items: wishlistIds,
+    toggle,
+    count,
+    isLoading: wishlistLoading,
+    isError: wishlistError,
+    refetch: refetchWishlist,
+  } = useWishlist();
+  const {
+    data: products,
+    isError: productsError,
+    refetch: refetchProducts,
+  } = useFurniture();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
@@ -30,7 +42,12 @@ export default function AccountPage() {
   const [name, setName] = useState(user?.name || "");
   const [authEmail, setAuthEmail] = useState(user?.email || "");
 
-  const { data: orders = [], isLoading: ordersLoading, isError: ordersError } = useQuery<Order[]>({
+  const {
+    data: orders = [],
+    isLoading: ordersLoading,
+    isError: ordersError,
+    refetch: refetchOrders,
+  } = useQuery<Order[]>({
     queryKey: ["/api/orders/my"],
     queryFn: fetchMyOrders,
   });
@@ -65,6 +82,13 @@ export default function AccountPage() {
 
   const wishlistProducts = products?.filter((p) => wishlistIds.includes(p.id)) ?? [];
   const totalSpent = orders.reduce((sum, order) => sum + order.total, 0);
+  const wishlistDataError = wishlistError || productsError;
+  const retryWishlistData = async () => {
+    const retries = [];
+    if (wishlistError) retries.push(refetchWishlist());
+    if (productsError) retries.push(refetchProducts());
+    await Promise.all(retries);
+  };
 
   const handleRemoveWishlist = (id: number, productName: string) => {
     toggle(id);
@@ -91,8 +115,11 @@ export default function AccountPage() {
           username={user?.username || undefined}
           role={user?.role}
           ordersLoading={ordersLoading}
+          ordersError={ordersError}
           ordersCount={orders.length}
           wishlistCount={count}
+          wishlistLoading={wishlistLoading || !products}
+          wishlistError={wishlistDataError}
           totalSpent={totalSpent}
           onLogout={() => { logout(); setLocation("/"); }}
         />
@@ -100,7 +127,9 @@ export default function AccountPage() {
         <Tabs defaultValue="orders">
           <TabsList className="bg-secondary/40 rounded-sm mb-8">
             <TabsTrigger value="orders" className="rounded-sm gap-2" data-testid="tab-orders">
-              <Package className="h-4 w-4" /> {t("account.orders")} ({ordersLoading ? "…" : orders.length})
+              <Package className="h-4 w-4" /> {t("account.orders")} (
+                {ordersLoading ? "…" : ordersError ? "—" : orders.length}
+              )
             </TabsTrigger>
             <TabsTrigger value="wishlist" className="rounded-sm gap-2" data-testid="tab-wishlist">
               <Heart className="h-4 w-4" /> {t("account.wishlist")} ({count})
@@ -112,14 +141,21 @@ export default function AccountPage() {
 
           <TabsContent value="orders" className="space-y-4">
             {ordersError ? (
-              <p className="text-sm text-destructive">{t("common.error")}</p>
+              <QueryErrorState onRetry={refetchOrders} className="py-12" />
             ) : (
               <OrdersTab orders={orders} isLoading={ordersLoading} />
             )}
           </TabsContent>
 
           <TabsContent value="wishlist">
-            <WishlistTab products={wishlistProducts} onRemove={handleRemoveWishlist} />
+            {wishlistDataError ? (
+              <QueryErrorState
+                onRetry={retryWishlistData}
+                className="py-12"
+              />
+            ) : (
+              <WishlistTab products={wishlistProducts} onRemove={handleRemoveWishlist} />
+            )}
           </TabsContent>
 
           <TabsContent value="settings" className="max-w-lg space-y-6">

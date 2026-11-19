@@ -18,12 +18,13 @@ import { ProductGallery } from "./sections/ProductGallery";
 import { ProductInformation } from "./sections/ProductInformation";
 import { ReviewsSection } from "./sections/ReviewsSection";
 import { fetchReviewSummary } from "@/api/reviews";
+import { QueryErrorState } from "@/shared/components/QueryErrorState";
 
 export default function ProductDetail() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const productId = Number(id);
-  const { data: product, isLoading } = useFurnitureItem(productId);
+  const { data: product, isLoading, isError, refetch } = useFurnitureItem(productId);
   const { data: allProducts } = useFurniture();
   const { addToCart, isAdding } = useCart();
   const { has, toggle } = useWishlist();
@@ -86,6 +87,14 @@ export default function ProductDetail() {
             </div>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (!product && isError) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <QueryErrorState onRetry={refetch} className="py-16" />
       </div>
     );
   }

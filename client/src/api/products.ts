@@ -1,8 +1,14 @@
 import { api, buildUrl, type Product } from "@shared/routes";
 import { apiFetch, apiFetchJson, apiResponseJson } from "./http";
 
-export async function fetchFurnitureCollection(): Promise<Product[]> {
-  return apiFetchJson(api.products.list.path, api.products.list.responses[200]);
+export async function fetchFurnitureCollection(limit?: number): Promise<Product[]> {
+  const parsedLimit = limit === undefined
+    ? undefined
+    : api.products.list.query.parse({ limit }).limit;
+  const url = parsedLimit === undefined
+    ? api.products.list.path
+    : `${api.products.list.path}?${new URLSearchParams({ limit: String(parsedLimit) })}`;
+  return apiFetchJson(url, api.products.list.responses[200]);
 }
 
 export async function fetchFurnitureItem(id: number): Promise<Product | null> {

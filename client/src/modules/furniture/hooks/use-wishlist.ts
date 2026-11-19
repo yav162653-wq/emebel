@@ -26,7 +26,12 @@ export function useWishlist() {
   const queryClient = useQueryClient();
 
   // ── Remote state (authenticated) ─────────────────────────────────────
-  const { data: remoteIds = [], isLoading: remoteLoading } = useQuery<number[]>({
+  const {
+    data: remoteIds = [],
+    isLoading: remoteLoading,
+    isError: remoteError,
+    refetch,
+  } = useQuery<number[]>({
     queryKey: WISHLIST_KEY,
     queryFn: fetchWishlist,
     enabled:   isAuthenticated,
@@ -106,6 +111,8 @@ export function useWishlist() {
   return {
     items,
     isLoading,
+    isError: isAuthenticated && remoteError,
+    refetch,
     has,
     toggle,
     clear,

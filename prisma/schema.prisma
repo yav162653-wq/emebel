@@ -46,6 +46,8 @@ model Identity {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerId])
+  @@index([userId, provider])
+  @@index([userId, createdAt])
   @@map("identities")
 }
 
@@ -107,6 +109,7 @@ model ExternalAuthTransaction {
 
   @@index([provider, expiresAt])
   @@index([consumedAt])
+  @@index([expiresAt])
   @@map("external_auth_transactions")
 }
 
@@ -152,6 +155,8 @@ model CartItem {
   user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, productId])
+  @@index([userId, id])
   @@map("cart_items")
 }
 
@@ -162,9 +167,11 @@ model Order {
   status    String      @default("Processing")
   address   String      @default("")
   createdAt DateTime    @default(now())
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Restrict)
   items     OrderItem[]
 
+  @@index([userId, createdAt])
+  @@index([createdAt])
   @@map("orders")
 }
 
@@ -178,6 +185,7 @@ model OrderItem {
   image     String
   order     Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
+  @@index([orderId])
   @@map("order_items")
 }
 
@@ -190,6 +198,7 @@ model Wishlist {
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([userId, productId])
+  @@index([userId, createdAt])
   @@map("wishlists")
 }
 
@@ -204,6 +213,7 @@ model Review {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([productId, userId])
+  @@index([productId, createdAt])
   @@map("reviews")
 }
 

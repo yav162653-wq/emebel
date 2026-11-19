@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { Package, Search, X } from "lucide-react";
 import { api, type AdminOrder, type OrderStatus } from "@shared/routes";
 import { fetchAdminOrders, updateAdminOrderStatus } from "@/api/admin";
+import { QueryErrorState } from "@/shared/components/QueryErrorState";
 
 const STATUSES = ["All", "Processing", "Shipped", "Delivered"] as const;
 type StatusFilter = typeof STATUSES[number];
@@ -32,7 +33,7 @@ export function OrdersTab() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
   const [search, setSearch] = useState("");
 
-  const { data: orders = [], isLoading, isError } = useQuery<AdminOrder[]>({
+  const { data: orders = [], isLoading, isError, refetch } = useQuery<AdminOrder[]>({
     queryKey: ["/api/admin/orders"],
     queryFn: fetchAdminOrders,
   });
@@ -64,6 +65,15 @@ export function OrdersTab() {
   const totalRevenue = orders.reduce((s, o) => s + o.total, 0);
   const processingCount = orders.filter(o => o.status === "Processing").length;
   const shippedCount = orders.filter(o => o.status === "Shipped").length;
+
+  if (isError) {
+    return (
+      <div className="space-y-6">
+        <h1 className="font-display text-3xl font-medium">Orders</h1>
+        <QueryErrorState onRetry={refetch} className="py-16" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -139,8 +149,6 @@ export function OrdersTab() {
             <Skeleton key={i} className="h-20 rounded-sm" />
           ))}
         </div>
-      ) : isError ? (
-        <p className="py-16 text-center text-sm text-destructive">Could not load orders.</p>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
           <div className="w-16 h-16 rounded-full bg-secondary/50 flex items-center justify-center">

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@shared/routes";
+import { useAuth } from "@/hooks/use-auth";
 import {
   addCartItem,
   fetchCart,
@@ -9,13 +10,15 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 export function useCart() {
+  const { isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const queryKey = [api.cart.list.path];
 
-  const { data: items = [], isLoading } = useQuery({
+  const { data: items = [], isLoading, isError, refetch } = useQuery({
     queryKey,
     queryFn: fetchCart,
+    enabled: isAuthenticated,
   });
 
   const addToCartMutation = useMutation({
@@ -52,6 +55,8 @@ export function useCart() {
   return {
     items,
     isLoading,
+    isError,
+    refetch,
     total,
     addToCart: addToCartMutation.mutate,
     isAdding: addToCartMutation.isPending,

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { startHttpTestServer } from "../../test-utils/http";
-import { WishlistService } from "./wishlist.service";
+import { createWishlistSynchronizer, WishlistService } from "./wishlist.service";
 import { createWishlistRouter, type WishlistRouterService } from "./wishlist.router";
 
 function createService(): { service: WishlistRouterService; calls: string[] } {
@@ -28,6 +28,42 @@ function createService(): { service: WishlistRouterService; calls: string[] } {
     },
   };
 }
+
+test("wishlist sync validates IDs then inserts all valid items idempotently in one batch", async () => {
+  const calls: unknown[] = [];
+  const sync = createWishlistSynchronizer(
+    async (ids) => ids.filter((id) => id !== 404).map((id) => ({ id })),
+    async (input) => {
+      calls.push(input);
+    },
+  );
+
+  await sync(42, [7, 404, 8]);
+
+  assert.deepEqual(calls, [{
+    data: [
+      { userId: 42, productId: 7 },
+      { userId: 42, productId: 8 },
+    ],
+    skipDuplicates: true,
+  }]);
+});
+
+test("wishlist sync skips empty inputs without querying", async () => {
+  let queries = 0;
+  const sync = createWishlistSynchronizer(
+    async () => {
+      queries += 1;
+      return [];
+    },
+    async () => {
+      queries += 1;
+    },
+  );
+
+  await sync(42, []);
+  assert.equal(queries, 0);
+});
 
 test("wishlist routes return and mutate the authenticated user's items", async (t) => {
   const { service, calls } = createService();

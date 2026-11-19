@@ -7,6 +7,7 @@ import { useFurniture } from "@/modules/furniture/hooks/use-furniture";
 import { useAdminProductUpdate } from "../hooks/use-admin";
 import { cn } from "@/lib/utils";
 import type { Product } from "@shared/schema";
+import { QueryErrorState } from "@/shared/components/QueryErrorState";
 
 function StockEditor({
   product,
@@ -78,7 +79,7 @@ function StockEditor({
 const CATEGORIES = ["All", "Seating", "Tables", "Lighting", "Storage", "Bedroom", "Outdoor", "Decor"];
 
 export function ProductsTab() {
-  const { data: products, isLoading } = useFurniture();
+  const { data: products, isLoading, isError, refetch } = useFurniture();
   const updateProduct = useAdminProductUpdate();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
@@ -90,6 +91,15 @@ export function ProductsTab() {
     const matchesCat = category === "All" || p.category === category;
     return matchesSearch && matchesCat;
   }) ?? [];
+
+  if (isError) {
+    return (
+      <div className="space-y-6">
+        <h1 className="font-display text-3xl font-medium">Products</h1>
+        <QueryErrorState onRetry={refetch} className="py-16" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

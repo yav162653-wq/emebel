@@ -6,17 +6,20 @@ import { useTranslation } from "react-i18next";
 import type { Product } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PremiumButton } from "@/shared/components/PremiumButton";
-import { apiFetch } from "@/api/http";
+import { api } from "@shared/routes";
+import { fetchFurnitureCollection } from "@/api/products";
+import { QueryErrorState } from "@/shared/components/QueryErrorState";
 
 export function FeaturedProductsSection() {
   const { t } = useTranslation();
-  const { data: products, isLoading: productsLoading } = useQuery<Product[]>({
-    queryKey: ["/api/products", { limit: 4 }],
-    queryFn: async () => {
-      const res = await apiFetch("/api/products?limit=4");
-      if (!res.ok) throw new Error("Failed to load products");
-      return res.json();
-    },
+  const {
+    data: products,
+    isLoading: productsLoading,
+    isError: productsError,
+    refetch,
+  } = useQuery<Product[]>({
+    queryKey: [api.products.list.path, { limit: 4 }],
+    queryFn: () => fetchFurnitureCollection(4),
   });
   const featuredProducts = products?.slice(0, 4) ?? [];
 
@@ -56,7 +59,9 @@ export function FeaturedProductsSection() {
                   <Skeleton className="h-3 w-1/2" />
                 </div>
               ))
-            : featuredProducts.map((item, i) => (
+            : productsError ? (
+              <QueryErrorState onRetry={refetch} className="col-span-full min-h-32" />
+            ) : featuredProducts.map((item, i) => (
                 <motion.div
                   key={item.id}
                   initial={{ opacity: 0, y: 40 }}

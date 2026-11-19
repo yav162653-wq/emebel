@@ -6,7 +6,7 @@
 2. Run `npm install`.
 3. Copy `.env.example` to `.env`.
 4. Configure a local PostgreSQL database.
-5. Run `npm run db:push`.
+5. Run `npm run db:migrate`.
 
 ## Validation
 

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { startHttpTestServer } from "../../test-utils/http";
 import { NotFoundError } from "../../utils/errors";
-import { CartService } from "./cart.service";
+import { CartService, createCartItemAdder } from "./cart.service";
 import { createCartRouter, type CartRouterService } from "./cart.router";
 
 function createService(): { service: CartRouterService; calls: string[] } {
@@ -32,6 +32,35 @@ function createService(): { service: CartRouterService; calls: string[] } {
     },
   };
 }
+
+test("cart add verifies the product and atomically upserts its quantity", async () => {
+  const calls: unknown[] = [];
+  const add = createCartItemAdder(
+    async (productId) => ({ id: productId }),
+    async (input) => {
+      calls.push(input);
+      return input;
+    },
+  );
+
+  const result = await add(42, 7, 3);
+
+  assert.deepEqual(result, { userId: 42, productId: 7, quantity: 3 });
+  assert.deepEqual(calls, [{ userId: 42, productId: 7, quantity: 3 }]);
+});
+
+test("cart add does not upsert a missing product", async () => {
+  let upsertCalls = 0;
+  const add = createCartItemAdder(
+    async () => null,
+    async () => {
+      upsertCalls += 1;
+    },
+  );
+
+  await assert.rejects(add(42, 404), NotFoundError);
+  assert.equal(upsertCalls, 0);
+});
 
 test("cart routes authenticate, default quantity, and support removal by zero quantity", async (t) => {
   const { service, calls } = createService();

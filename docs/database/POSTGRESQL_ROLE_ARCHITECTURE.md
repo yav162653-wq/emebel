@@ -55,11 +55,13 @@ The only migration is
 
 Package scripts currently use:
 
+- `npm run db:migrate` -> `prisma migrate deploy`
 - `npm run db:push` -> `prisma db push`
 - `npm run db:seed` -> `tsx server/db/seed.ts`
 
-No `DIRECT_DATABASE_URL`, `MIGRATION_DATABASE_URL`, or separate migration
-configuration currently exists.
+`db:migrate` applies the committed migration history. `db:push` remains available
+for local schema prototyping and is not the deployment path. No `DIRECT_DATABASE_URL`,
+`MIGRATION_DATABASE_URL`, or separate migration configuration currently exists.
 
 ## Target role design
 

@@ -7,6 +7,7 @@ import { useFurniture } from "@/modules/furniture/hooks/use-furniture";
 import { cn } from "@/lib/utils";
 import type { AdminOrder } from "@shared/schema";
 import { fetchAdminOrders } from "@/api/admin";
+import { QueryErrorState } from "@/shared/components/QueryErrorState";
 
 const STATUS_COLORS: Record<string, string> = {
   Delivered:  "bg-green-100  text-green-800  dark:bg-green-900/30  dark:text-green-400",
@@ -15,10 +16,25 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function OverviewTab() {
-  const { data: stats, isLoading: statsLoading } = useAdminStats();
-  const { data: products, isLoading: productsLoading } = useFurniture();
+  const {
+    data: stats,
+    isLoading: statsLoading,
+    isError: statsError,
+    refetch: refetchStats,
+  } = useAdminStats();
+  const {
+    data: products,
+    isLoading: productsLoading,
+    isError: productsError,
+    refetch: refetchProducts,
+  } = useFurniture();
 
-  const { data: recentOrders = [], isLoading: ordersLoading } = useQuery<AdminOrder[]>({
+  const {
+    data: recentOrders = [],
+    isLoading: ordersLoading,
+    isError: ordersError,
+    refetch: refetchOrders,
+  } = useQuery<AdminOrder[]>({
     queryKey: ["/api/admin/orders"],
     queryFn: fetchAdminOrders,
   });
@@ -78,6 +94,9 @@ export function OverviewTab() {
           ? Array.from({ length: 5 }).map((_, i) => (
               <Skeleton key={i} className="h-28 rounded-sm" />
             ))
+          : statsError ? (
+            <QueryErrorState onRetry={refetchStats} className="col-span-full py-8" />
+          )
           : kpiCards.map((card, i) => (
               <motion.div
                 key={card.label}
@@ -116,7 +135,7 @@ export function OverviewTab() {
           <div className="px-5 py-4 border-b flex items-center justify-between">
             <h3 className="font-semibold">Recent Orders</h3>
             <span className="text-xs text-muted-foreground font-mono">
-              {recentOrders.length} total
+              {ordersLoading ? "…" : ordersError ? "—" : `${recentOrders.length} total`}
             </span>
           </div>
           <div className="divide-y divide-border">
@@ -127,6 +146,8 @@ export function OverviewTab() {
                   <Skeleton className="h-4 w-12 ml-auto" />
                 </div>
               ))
+            ) : ordersError ? (
+              <QueryErrorState onRetry={refetchOrders} className="py-10" />
             ) : recentOrders.length === 0 ? (
               <div className="px-5 py-10 text-center text-sm text-muted-foreground">
                 No orders placed yet.
@@ -191,6 +212,9 @@ export function OverviewTab() {
                     </div>
                   </div>
                 ))
+              : productsError ? (
+                <QueryErrorState onRetry={refetchProducts} className="py-10" />
+              )
               : products?.map((product) => (
                   <div
                     key={product.id}

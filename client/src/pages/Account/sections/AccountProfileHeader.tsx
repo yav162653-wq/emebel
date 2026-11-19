@@ -9,8 +9,11 @@ interface AccountProfileHeaderProps {
   username?: string;
   role?: string;
   ordersLoading: boolean;
+  ordersError: boolean;
   ordersCount: number;
   wishlistCount: number;
+  wishlistLoading: boolean;
+  wishlistError: boolean;
   totalSpent: number;
   onLogout: () => void;
 }
@@ -20,8 +23,11 @@ export function AccountProfileHeader({
   username,
   role,
   ordersLoading,
+  ordersError,
   ordersCount,
   wishlistCount,
+  wishlistLoading,
+  wishlistError,
   totalSpent,
   onLogout,
 }: AccountProfileHeaderProps) {
@@ -51,16 +57,20 @@ export function AccountProfileHeader({
         <p className="text-muted-foreground text-sm mt-1">@{username}</p>
         <div className="flex gap-6 mt-3">
           <div className="text-center">
-            <p className="font-bold text-foreground">{ordersLoading ? "—" : ordersCount}</p>
+            <p className="font-bold text-foreground">
+              {ordersLoading || ordersError ? "—" : ordersCount}
+            </p>
             <p className="text-xs text-muted-foreground">{t("account.totalOrders")}</p>
           </div>
           <div className="text-center">
-            <p className="font-bold text-foreground">{wishlistCount}</p>
+            <p className="font-bold text-foreground">
+              {wishlistLoading || wishlistError ? "—" : wishlistCount}
+            </p>
             <p className="text-xs text-muted-foreground">{t("account.wishlistItems")}</p>
           </div>
           <div className="text-center">
             <p className="font-bold text-foreground">
-              {ordersLoading ? "—" : `$${(totalSpent / 100).toFixed(0)}`}
+              {ordersLoading || ordersError ? "—" : `$${(totalSpent / 100).toFixed(0)}`}
             </p>
             <p className="text-xs text-muted-foreground">{t("account.totalSpent")}</p>
           </div>

@@ -30,10 +30,11 @@ Set at least `DATABASE_URL` and `SESSION_SECRET` in `.env`. Generate a strong se
 ## Database
 
 ```powershell
-npm run db:push
+npm run db:migrate
 ```
 
-`npm run db:push` creates or updates the schema.
+`npm run db:migrate` applies the versioned migrations in `prisma/migrations`.
+Use `npm run db:push` only for local schema prototyping; do not use it for deployments.
 
 For an explicitly opted-in local development seed:
 
