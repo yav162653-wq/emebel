@@ -10,6 +10,8 @@ import { requestIdMiddleware } from "./middleware/requestId";
 import { authContextMiddleware } from "./middleware/authContext";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { globalLimiter } from "./middleware/rateLimiter";
+import { csrfMiddleware, csrfTokenHandler } from "./middleware/csrf";
+import { originValidationMiddleware } from "./middleware/origin-validation";
 import { ForbiddenError } from "./utils/errors";
 
 import { createIdentityRouter } from "./modules/identity/presentation/identity.router";
@@ -109,6 +111,11 @@ export function createApp() {
 
   // ── Rate Limiting ─────────────────────────────────────────────────────
   app.use("/api", globalLimiter);
+
+  // ── CSRF Protection ───────────────────────────────────────────────────
+  app.use("/api", originValidationMiddleware(allowedOrigins));
+  app.use("/api", csrfMiddleware);
+  app.get("/api/csrf-token", csrfTokenHandler);
 
   // ── Health Check ──────────────────────────────────────────────────────
   app.get("/api/health", (_req, res) => {

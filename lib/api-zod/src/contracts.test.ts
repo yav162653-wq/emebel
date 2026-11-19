@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { apiSpec } from "../../api-spec/src";
-import { apiErrorSchema, externalIdentitySchema, registerSchema } from "./index";
+import {
+  apiErrorSchema,
+  csrfTokenResponseSchema,
+  externalIdentitySchema,
+  registerSchema,
+} from "./index";
 
 test("API error contract matches the server error handler payload", () => {
   const parsed = apiErrorSchema.safeParse({
@@ -24,6 +29,11 @@ test("API spec includes the health check and clear-cart route", () => {
     [apiSpec.cart.clear.method, apiSpec.cart.clear.path],
     ["DELETE", "/api/cart"],
   );
+  assert.deepEqual(
+    [apiSpec.csrf.token.method, apiSpec.csrf.token.path],
+    ["GET", "/api/csrf-token"],
+  );
+  assert.equal(csrfTokenResponseSchema.safeParse({ token: "session-token" }).success, true);
 });
 
 test("admin order response contract accepts nullable usernames", () => {

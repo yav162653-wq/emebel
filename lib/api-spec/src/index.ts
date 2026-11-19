@@ -9,6 +9,7 @@ import {
   cartItemResponseSchema,
   cartListResponseSchema,
   cartUpdateSchema,
+  csrfTokenResponseSchema,
   createOrderSchema,
   emailSchema,
   externalProvidersResponseSchema,
@@ -48,6 +49,13 @@ export const apiSpec = {
       method: "GET" as const,
       path: "/api/health",
       responses: { 200: healthResponseSchema },
+    },
+  },
+  csrf: {
+    token: {
+      method: "GET" as const,
+      path: "/api/csrf-token",
+      responses: { 200: csrfTokenResponseSchema },
     },
   },
   auth: {

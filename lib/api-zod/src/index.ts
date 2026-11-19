@@ -56,6 +56,10 @@ export const tokenSchema = z.object({
   token: z.string().trim().min(32).max(256),
 });
 
+export const csrfTokenResponseSchema = z.object({
+  token: z.string().min(1),
+});
+
 export const externalIdentitySchema = z.object({
   provider: z.enum(["google", "github", "telegram"]),
   providerId: z.string().min(1).max(255),
@@ -281,6 +285,7 @@ export const healthResponseSchema = z.object({
 export type PublicUser = z.infer<typeof publicUserSchema>;
 export type PublicIdentity = z.infer<typeof publicIdentitySchema>;
 export type LoginRequest = z.input<typeof loginSchema>;
+export type CsrfTokenResponse = z.infer<typeof csrfTokenResponseSchema>;
 export type RegisterRequest = z.input<typeof registerSchema>;
 export type UserProfileUpdate = z.input<typeof profileSchema>;
 export type ProductResponse = z.infer<typeof productResponseSchema>;

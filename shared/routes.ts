@@ -27,6 +27,7 @@ export type {
   AdminStatsResponse,
   AdminUserResponse,
   LatestReviewResponse,
+  CsrfTokenResponse,
   HealthResponse,
   OrderStatus,
   PublicIdentity,
@@ -40,7 +41,7 @@ export type {
 } from "../lib/api-zod/src";
 
 export const api = apiSpec;
-export { apiErrorSchema } from "../lib/api-zod/src";
+export { apiErrorSchema, csrfTokenResponseSchema } from "../lib/api-zod/src";
 
 export const errorSchemas = {
   validation: apiErrorSchema,

@@ -91,6 +91,47 @@ test("insufficient stock rejects the transaction before creating the order or cl
   assert.equal(harness.wasRolledBack(), true);
 });
 
+test("partial stock reservation rolls back when a later item is unavailable", async () => {
+  const reservations: string[] = [];
+  const harness = createHarness({
+    reserveStock: async (productId, quantity) => {
+      reservations.push(`reserve:${productId}:${quantity}`);
+      return productId === 7;
+    },
+  });
+  const multipleItems: CreateOrderInput = {
+    ...input,
+    items: [
+      ...input.items,
+      { productId: 8, name: "Oak Table", price: 240, quantity: 1, image: "table.jpg" },
+    ],
+  };
+
+  await assert.rejects(harness.create(42, multipleItems), ValidationError);
+
+  assert.deepEqual(reservations, ["reserve:7:2", "reserve:8:1"]);
+  assert.deepEqual(harness.calls, []);
+  assert.equal(harness.wasCommitted(), false);
+  assert.equal(harness.wasRolledBack(), true);
+});
+
+test("order write failure rolls back reserved stock and skips cart cleanup", async () => {
+  let createAttempted = false;
+  const harness = createHarness({
+    createOrder: async () => {
+      createAttempted = true;
+      throw new Error("order write failed");
+    },
+  });
+
+  await assert.rejects(harness.create(42, input), /order write failed/);
+
+  assert.equal(createAttempted, true);
+  assert.deepEqual(harness.calls, ["reserve:7:2"]);
+  assert.equal(harness.wasCommitted(), false);
+  assert.equal(harness.wasRolledBack(), true);
+});
+
 test("cart cleanup failure rejects the order transaction instead of leaving a partial success", async () => {
   const harness = createHarness({
     clearCart: async () => {

@@ -1,13 +1,30 @@
 import { z } from "zod";
-import { apiErrorSchema } from "@shared/routes";
+import { api, apiErrorSchema } from "@shared/routes";
+
+const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
+
+async function getCsrfToken(): Promise<string> {
+  const response = await fetch(api.csrf.token.path, { credentials: "include" });
+  if (!response.ok) {
+    throw new Error(`CSRF token request failed: ${response.status}`);
+  }
+  return api.csrf.token.responses[200].parse(await response.json()).token;
+}
 
 export async function apiFetch(
   url: string,
   options: RequestInit = {},
 ): Promise<Response> {
+  const method = (options.method ?? "GET").toUpperCase();
+  const headers = new Headers(options.headers);
+  if (!safeMethods.has(method)) {
+    headers.set("X-CSRF-Token", await getCsrfToken());
+  }
+
   return fetch(url, {
     credentials: "include",
     ...options,
+    headers,
   });
 }
 
