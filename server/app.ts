@@ -6,12 +6,14 @@ import session from "express-session";
 import { env } from "./config/env";
 import { createHttpRequestLogger } from "./config/logger";
 import { sessionStore } from "./config/session";
+import { SESSION_IDLE_TIMEOUT_MS } from "./config/session-policy";
 import { requestIdMiddleware } from "./middleware/requestId";
 import { authContextMiddleware } from "./middleware/authContext";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { globalLimiter } from "./middleware/rateLimiter";
 import { csrfMiddleware, csrfTokenHandler } from "./middleware/csrf";
 import { originValidationMiddleware } from "./middleware/origin-validation";
+import { sessionLifetimeMiddleware } from "./middleware/session-lifetime";
 import { ForbiddenError } from "./utils/errors";
 
 import { createIdentityRouter } from "./modules/identity/presentation/identity.router";
@@ -93,15 +95,18 @@ export function createApp() {
       secret:           env.SESSION_SECRET,
       resave:           false,
       saveUninitialized: false,
+      rolling:          true,
       cookie: {
-        maxAge:   24 * 60 * 60 * 1000,
+        maxAge:   SESSION_IDLE_TIMEOUT_MS,
         httpOnly: true,
         secure:   isProd,
         sameSite: "lax",
       },
-       store: sessionStore,
+      store: sessionStore,
     })
   );
+
+  app.use(sessionLifetimeMiddleware);
 
   // ── Auth context (populate res.locals.userId) ─────────────────────────
   app.use(authContextMiddleware);

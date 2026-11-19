@@ -1,0 +1,2 @@
+export const SESSION_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
+export const SESSION_ABSOLUTE_TIMEOUT_MS = 12 * 60 * 60 * 1000;

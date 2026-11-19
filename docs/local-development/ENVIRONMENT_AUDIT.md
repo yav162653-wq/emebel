@@ -37,7 +37,7 @@ Required startup variables:
 | Variable | Classification | Verified |
 |---|---|---|
 | `DATABASE_URL` | Required for DB and startup | Verified with `emebel_dev` |
-| `SESSION_SECRET` | Required for sessions | Verified with a local random value |
+| `SESSION_SECRET` | Required; 32+ characters in production | Verified with a local random value |
 | `NODE_ENV` | Development/production mode | Verified |
 | `PORT` | Optional, defaults to 5000 | Verified |
 

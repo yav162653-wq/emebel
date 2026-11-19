@@ -45,6 +45,14 @@ const baseSchema = z.object({
     });
   }
 
+  if (data.NODE_ENV === "production" && data.SESSION_SECRET.length < 32) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["SESSION_SECRET"],
+      message: "SESSION_SECRET must be at least 32 characters in production",
+    });
+  }
+
   if (data.SEED_DEMO_DATA === "true" && data.NODE_ENV !== "production") {
     try {
       const databaseUrl = new URL(data.DATABASE_URL);
@@ -99,7 +107,7 @@ if (parsed.data.APP_ORIGIN) {
     });
 
   if (invalidOrigin) {
-    console.error(`❌ Invalid APP_ORIGIN value: ${invalidOrigin}`);
+    console.error("❌ APP_ORIGIN must contain only valid HTTP or HTTPS origins");
     process.exit(1);
   }
 }

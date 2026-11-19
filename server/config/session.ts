@@ -3,6 +3,7 @@ import session from "express-session";
 import { Pool } from "pg";
 import { env } from "./env";
 import { logger } from "./logger";
+import { SESSION_IDLE_TIMEOUT_MS } from "./session-policy";
 
 const sessionPool = new Pool({
   connectionString: env.DATABASE_URL,
@@ -19,8 +20,8 @@ const PgStore = connectPgSimple(session);
 export const sessionStore = new PgStore({
   pool: sessionPool,
   tableName: "session",
-  createTableIfMissing: true,
-  ttl: 24 * 60 * 60,
+  createTableIfMissing: false,
+  ttl: Math.floor(SESSION_IDLE_TIMEOUT_MS / 1000),
   pruneSessionInterval: 900,
 });
 

@@ -5,6 +5,7 @@ import { UnauthorizedError, ForbiddenError } from "../utils/errors";
 declare module "express-session" {
   interface SessionData {
     userId?: number;
+    authenticatedAt?: number;
     externalAuthStates?: Array<{ provider: string; stateHash: string }>;
   }
 }

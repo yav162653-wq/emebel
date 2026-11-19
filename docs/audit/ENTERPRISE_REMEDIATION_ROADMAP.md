@@ -12,7 +12,7 @@ Dependencies: database role setup precedes production secret rotation; migration
 
 ## Security Improvements
 
-1. Add server-side session idle/absolute lifetime policy.
+1. TD-006 - Enforce session idle/absolute lifetimes. ✅ 30-minute idle and 12-hour absolute limits enforced.
 2. Restrict cookie and proxy behavior to deployed hosting topology.
 3. Validate provider credential pairs; do not partially enable providers.
 4. Separate migration and runtime database credentials.
@@ -97,7 +97,7 @@ No Redis, queue, or microservice work is warranted yet.
 
 1. Complete CI pipeline for install, migrate status/apply, check, test, build.
 2. Verify one clean Linux deployment in Docker or standard Node host.
-3. Rotate/verify secrets and external provider credentials.
+3. Rotate/verify secrets and external provider credentials. Rotation procedure documented; production rotation remains operator-owned.
 4. Run Shopify, Resend, and OAuth sandbox verification.
 5. Add backup and migration rollback evidence.
 6. Complete browser smoke automation.

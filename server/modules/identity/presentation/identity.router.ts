@@ -79,6 +79,7 @@ function establishSession(req: Request, userId: number): Promise<void> {
     req.session.regenerate((regenerateError) => {
       if (regenerateError) return reject(regenerateError);
       req.session.userId = userId;
+      req.session.authenticatedAt = Date.now();
       req.session.save((saveError) => (saveError ? reject(saveError) : resolve()));
     });
   });
