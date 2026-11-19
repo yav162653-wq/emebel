@@ -127,14 +127,23 @@
 
 ## TD-011
 
-- Status: RESOLVED. Product review lists use bounded offset pagination and
-  expose total/page metadata; the client provides previous/next controls.
+- Status: PARTIALLY RESOLVED. Added indexes for category cursor pages,
+  status-filtered and global order pages, and product review pages.
 - Severity: MEDIUM
 - Category: Scalability
-- File: `server/modules/reviews/reviews.service.ts`
-- Evidence: Review route tests cover bounded page responses and invalid
-  page-size rejection.
-- Impact: Review response size is capped per request.
+- File: `prisma/schema.prisma`, `prisma/migrations/20261120000000_add_query_path_indexes/migration.sql`
+- Evidence: The migration deployed to a disposable PostgreSQL 16 database.
+  `EXPLAIN (ANALYZE, BUFFERS)` selected the new order, product-category, and
+  review indexes on synthetic fixtures (20,000 products, 30,000 orders, and
+  10,000 reviews). No unbounded per-row read loop was found; order stock
+  reservations remain bounded to at most 50 item updates inside one transaction.
+- Impact: Paginated common filters avoid full scans and explicit sorts. Product
+  substring search (`ILIKE '%term%'`) still uses a sequential scan (about
+  25.6 ms on the 20,000-row fixture); trigram indexing was not added because
+  the migration role's documented permissions exclude `CREATE EXTENSION`.
+- Recommended follow-up: Reassess product search plans as catalog size grows;
+  review extension permissions and GIN index storage cost before enabling
+  `pg_trgm`.
 - Complexity: Medium.
 
 ## TD-012

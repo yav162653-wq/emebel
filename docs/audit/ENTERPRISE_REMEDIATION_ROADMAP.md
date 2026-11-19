@@ -61,7 +61,9 @@ Dependencies: transaction work precedes concurrency testing.
    and stock buckets are computed in PostgreSQL.
 3. Add product cursor pagination. ✅ Catalog filters and admin/public product
    lists use bounded ID cursor pages with load-more controls.
-4. Add database indexes for common filters and order lookups as query plans show demand.
+4. Add database indexes for common filters and order lookups. ✅ Disposable
+   PostgreSQL `EXPLAIN` plans use the new indexes; substring product search
+   remains a documented follow-up in TD-011.
 5. Replace external image delivery where reliability or CSP is unacceptable.
 6. Add bundle and API payload monitoring.
 

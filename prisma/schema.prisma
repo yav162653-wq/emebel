@@ -142,6 +142,7 @@ model Product {
   reviews     Review[]
   wishlists   Wishlist[]
 
+  @@index([category, id])
   @@map("products")
 }
 
@@ -173,7 +174,8 @@ model Order {
   items           OrderItem[]
 
   @@index([userId, createdAt])
-  @@index([createdAt])
+  @@index([createdAt, id])
+  @@index([status, createdAt, id])
   @@unique([userId, idempotencyKey])
   @@map("orders")
 }
@@ -216,7 +218,7 @@ model Review {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([productId, userId])
-  @@index([productId, createdAt])
+  @@index([productId, createdAt, id])
   @@map("reviews")
 }
 
