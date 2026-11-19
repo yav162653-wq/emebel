@@ -35,8 +35,8 @@ creates Prisma through `@prisma/adapter-pg` using `DATABASE_URL`.
 
 [server/config/session.ts](/C:/Users/user/Downloads/eMebel/project/server/config/session.ts:6)
 creates a separate `pg` pool using the same `DATABASE_URL` and stores sessions in
-the `session` table. The session store currently has
-`createTableIfMissing: true`.
+the `session` table. The session store uses `createTableIfMissing: false`;
+migrations provision the table and expiration index.
 
 [server/index.ts](/C:/Users/user/Downloads/eMebel/project/server/index.ts:28)
 disconnects Prisma and closes the session pool during shutdown.
@@ -44,14 +44,14 @@ disconnects Prisma and closes the session pool during shutdown.
 ### Migration path
 
 [prisma.config.ts](/C:/Users/user/Downloads/eMebel/project/prisma.config.ts:1)
-currently uses `DATABASE_URL` for Prisma configuration.
+uses `MIGRATION_DATABASE_URL` for Prisma CLI schema operations.
 
 [prisma/schema.prisma](/C:/Users/user/Downloads/eMebel/project/prisma/schema.prisma:1)
 defines PostgreSQL tables, sequences, indexes, foreign keys, and
 `@@map("session")`.
 
-The only migration is
-[20261118144134_init/migration.sql](/C:/Users/user/Downloads/eMebel/project/prisma/migrations/20261118144134_init/migration.sql).
+The migration history contains the initial schema, commerce hardening, and
+order idempotency migrations.
 
 Package scripts currently use:
 
@@ -59,9 +59,9 @@ Package scripts currently use:
 - `npm run db:push` -> `prisma db push`
 - `npm run db:seed` -> `tsx server/db/seed.ts`
 
-`db:migrate` applies the committed migration history. `db:push` remains available
-for local schema prototyping and is not the deployment path. No `DIRECT_DATABASE_URL`,
-`MIGRATION_DATABASE_URL`, or separate migration configuration currently exists.
+`db:migrate` applies the committed migration history through the migrator
+credential. `db:push` remains available for local schema prototyping and is not
+the deployment path.
 
 ## Target role design
 
@@ -74,6 +74,7 @@ The normal application role should:
 - be `NOCREATEDB`;
 - be `NOCREATEROLE`;
 - be `NOINHERIT`;
+- have no memberships in other roles;
 - have no access to `_prisma_migrations`;
 - have no `CREATE`, `ALTER`, `DROP`, or schema-owner privileges;
 - receive only the table and sequence privileges required by runtime code;
@@ -97,10 +98,10 @@ application or migration processes.
 
 ### Optional `emebel_seed`
 
-The current seed process inserts catalog products using the same
-`DATABASE_URL` as runtime. Granting runtime `INSERT` on `products` just to
-support seeding would expand runtime privileges. The preferred design is a
-separate development/test-only `emebel_seed` login and `SEED_DATABASE_URL`
+The current seed process uses the same `DATABASE_URL` as runtime. Granting
+runtime `INSERT` on `products` just to support seeding would expand runtime
+privileges. The preferred design is a separate development/test-only
+`emebel_seed` login and `SEED_DATABASE_URL`
 with only `CONNECT`, schema `USAGE`, `SELECT`/`INSERT` on `products`, and
 `USAGE` on `products_id_seq`. It must not be configured in production.
 
@@ -127,16 +128,9 @@ Reasons:
 - Migration roles can be restricted to deployment jobs.
 - Secret managers can revoke migrator access outside deployment.
 
-Recommended [prisma.config.ts](/C:/Users/user/Downloads/eMebel/project/prisma.config.ts:1)
-implementation after implementation approval:
-
-```ts
-datasource: {
-  url: env("MIGRATION_DATABASE_URL"),
-}
-```
-
-Runtime implementation should continue to read `DATABASE_URL` through
+The migration URL is intentionally not part of the application runtime schema;
+the app must not receive the migrator secret. Runtime continues to read
+`DATABASE_URL` through
 [server/config/env.ts](/C:/Users/user/Downloads/eMebel/project/server/config/env.ts:6).
 
 The seed command currently imports the normal Prisma client. It must be changed
@@ -159,32 +153,20 @@ The session table is application-owned runtime data. The runtime role needs:
 
 The runtime role does not need `CREATE TABLE`, `ALTER TABLE`, or index privileges.
 
-After migration verification:
-
-- Remove `createTableIfMissing: true`.
-- Set `createTableIfMissing: false`.
-- Require migration/deployment to create `session` and `IDX_session_expire`.
+The runtime session store has `createTableIfMissing: false`; migration/deployment
+must create `session` and `IDX_session_expire`.
 
 This is safer than allowing runtime startup to perform DDL.
 
 ## Superuser guard
 
-Normal runtime startup should fail closed in production:
+Production runtime startup fails closed unless `DATABASE_URL` uses
+`emebel_app` and the role is non-superuser/non-owner, cannot create databases,
+roles, or schema objects, does not own application objects, and cannot access
+`_prisma_migrations`.
 
-1. Open a short-lived or pooled database connection using `DATABASE_URL`.
-2. Execute a metadata-only query equivalent to:
-
-```sql
-SELECT rolsuper
-FROM pg_roles
-WHERE rolname = current_user;
-```
-
-3. Reject startup if `rolsuper` is true.
-4. Optionally reject membership in superuser-like administrative roles by
-   checking `pg_auth_members` and `pg_roles.rolsuper`.
-5. Log only the role name and a safe failure code, never the connection string.
-6. Perform the check before session-store or schema mutation logic starts.
+The check executes before the HTTP listener starts and logs no connection
+string or password.
 
 The guard must be checked again after credential rotation and deployment
 configuration changes.

@@ -8,6 +8,7 @@ approved for migration. It does not run migrations automatically.
 - Identify the exact database and deployment environment.
 - Use `MIGRATION_DATABASE_URL` for schema commands in production; never use
   the application role for DDL.
+- Keep `MIGRATION_DATABASE_URL` out of the application runtime environment.
 - Require an operator to confirm the migration list and target database.
 - Take a backup immediately before deployment.
 - Apply migrations to a disposable database or staging environment first.
@@ -17,9 +18,11 @@ approved for migration. It does not run migrations automatically.
 Run with a read-only or migration credential:
 
 ```powershell
+$env:MIGRATION_DATABASE_URL="<migration-role connection string>"
 npx prisma validate
 npx prisma migrate status
 npx prisma generate
+Remove-Item Env:\MIGRATION_DATABASE_URL
 ```
 
 Inspect all SQL under `prisma/migrations/` and confirm no unrelated schema reset
@@ -57,11 +60,22 @@ rehearse restore against an isolated disposable database.
 After backup verification:
 
 ```powershell
+$env:MIGRATION_DATABASE_URL="<migration-role connection string>"
 npx prisma migrate status
 npx prisma migrate deploy
 npx prisma migrate status
 npx prisma generate
+Remove-Item Env:\MIGRATION_DATABASE_URL
 ```
+
+After each migration, apply
+[`runtime-grants.sql`](../../prisma/role-grants/runtime-grants.sql) as the
+migrator and verify the runtime allowlist. On initial bootstrap, revoke
+`CREATE` from `PUBLIC` on the `public` schema using the administrative
+connection before granting runtime access.
+Provide `MIGRATION_DATABASE_URL` only to the migration command/job; remove it
+from the shell after local migration commands and do not include it in the app
+runtime environment or `.env` loaded by the application.
 
 Do not run `prisma db push`, `migrate reset`, or `db push --force-reset` for
 hosted databases.

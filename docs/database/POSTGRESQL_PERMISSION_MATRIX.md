@@ -66,7 +66,6 @@ Sequence list requiring `USAGE`:
 - `newsletters_id_seq`
 - `order_items_id_seq`
 - `orders_id_seq`
-- `products_id_seq`
 - `reviews_id_seq`
 - `users_id_seq`
 - `wishlists_id_seq`
@@ -87,9 +86,9 @@ development/test seeding:
 | All other tables and sequences | None |
 
 `SEED_DATABASE_URL` must be local/test-only, validated by the seed policy, and
-must not be configured in production. If this role is not adopted, granting
-`INSERT` on `products` to `emebel_app` is a less restrictive alternative and
-requires explicit approval.
+must not be configured in production. Seed-role support is not yet implemented;
+until it is, catalog seeding is unavailable with `emebel_app`. Do not grant
+`INSERT` on `products` to runtime as a workaround.
 
 ## Migration role: `emebel_migrator`
 
@@ -111,10 +110,12 @@ requires explicit approval.
 | Role creation | No |
 | Superuser | No |
 
-The migration role should own existing application tables, sequences, and
+The migration role owns existing application tables, owned sequences, and
 `_prisma_migrations`. It needs `USAGE, CREATE` on the schema for migrations.
 It must not own the database or the schema itself. After migration ownership
-transfer, table and sequence ownership should be `emebel_migrator`.
+transfer, table and sequence ownership should be `emebel_migrator`. PostgreSQL
+transfers owned serial sequences when table ownership changes; verify ownership
+instead of altering linked sequences again.
 
 ## Future objects and migration journal
 
@@ -147,10 +148,16 @@ Runtime PostgreSQL access is through:
 - maintenance scripts in [server/db/seed.ts](/C:/Users/user/Downloads/eMebel/project/server/db/seed.ts:1)
   and [server/db/update-products.ts](/C:/Users/user/Downloads/eMebel/project/server/db/update-products.ts:1)
 
-Schema migrations should use `MIGRATION_DATABASE_URL`. Catalog seeding should
-use `SEED_DATABASE_URL` when the optional seed role is adopted; do not use the
-DDL-capable migration identity for routine seeding. If there is no seed role,
-the runtime role needs an explicitly reviewed `INSERT` grant on `products`.
+Schema migrations use `MIGRATION_DATABASE_URL`. Catalog seeding should use
+`SEED_DATABASE_URL` when the optional seed role is implemented; do not use the
+DDL-capable migration identity for routine seeding. The current allowlist
+intentionally withholds `INSERT` on `products` from runtime. Until seed-role
+support is implemented, catalog seeding is unavailable with `emebel_app`;
+do not grant runtime product insertion as a workaround.
+
+The runtime allowlist is maintained in
+[`prisma/role-grants/runtime-grants.sql`](../../prisma/role-grants/runtime-grants.sql)
+and must be reapplied after each migration by the migrator.
 
 ## Variables
 

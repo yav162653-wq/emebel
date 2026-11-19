@@ -5,11 +5,12 @@ import { createServer } from "http";
 import { createApp } from "./app";
 import { env } from "./config/env";
 import { logger } from "./config/logger";
-import { db } from "./db/client";
+import { assertRuntimeDatabaseRole, db } from "./db/client";
 import { closeSessionStore } from "./config/session";
 import { shutdownTelemetry } from "./config/telemetry";
 
 async function bootstrap() {
+  await assertRuntimeDatabaseRole();
   const app = createApp();
   const httpServer = createServer(app);
 

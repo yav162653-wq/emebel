@@ -110,18 +110,16 @@ ALTER TABLE public.newsletters OWNER TO emebel_migrator;
 ALTER TABLE public._prisma_migrations OWNER TO emebel_migrator;
 ```
 
-Sequence ownership:
+Changing ownership of each table transfers its owned serial sequence as well.
+After the table ownership transfer, verify the sequence owners and explicitly
+alter only any standalone sequence that remains owned by the bootstrap role:
 
 ```sql
-ALTER SEQUENCE public.users_id_seq OWNER TO emebel_migrator;
-ALTER SEQUENCE public.identities_id_seq OWNER TO emebel_migrator;
-ALTER SEQUENCE public.newsletters_id_seq OWNER TO emebel_migrator;
-ALTER SEQUENCE public.order_items_id_seq OWNER TO emebel_migrator;
-ALTER SEQUENCE public.orders_id_seq OWNER TO emebel_migrator;
-ALTER SEQUENCE public.products_id_seq OWNER TO emebel_migrator;
-ALTER SEQUENCE public.reviews_id_seq OWNER TO emebel_migrator;
-ALTER SEQUENCE public.cart_items_id_seq OWNER TO emebel_migrator;
-ALTER SEQUENCE public.wishlists_id_seq OWNER TO emebel_migrator;
+SELECT c.relname, pg_get_userbyid(c.relowner) AS owner
+FROM pg_class c
+JOIN pg_namespace n ON n.oid = c.relnamespace
+WHERE n.nspname = 'public' AND c.relkind = 'S'
+ORDER BY c.relname;
 ```
 
 Ownership transfer changes index and object ownership as PostgreSQL applies
@@ -188,7 +186,6 @@ ON SEQUENCE public.users_id_seq,
             public.newsletters_id_seq,
             public.order_items_id_seq,
             public.orders_id_seq,
-            public.products_id_seq,
             public.reviews_id_seq,
             public.cart_items_id_seq,
             public.wishlists_id_seq
@@ -197,6 +194,12 @@ TO emebel_app;
 -- Optional: run only when emebel_seed was created.
 GRANT USAGE ON SEQUENCE public.products_id_seq TO emebel_seed;
 ```
+
+After migration deploy, apply the reviewed allowlist in
+[`prisma/role-grants/runtime-grants.sql`](../../prisma/role-grants/runtime-grants.sql)
+as the migrator, which owns the application tables and sequences. Revoke
+`CREATE` from `PUBLIC` on `public` once using the administrative bootstrap
+connection; the migrator is not the schema owner.
 
 Do not grant broad default table or sequence privileges to runtime. After each
 successful migration, the migrator should apply a versioned, reviewed allowlist
@@ -251,9 +254,9 @@ startup. The runtime role may perform DML but must never perform DDL.
    identity; apply the reviewed allowlist grants after migration.
 10. Verify runtime CRUD and session operations in a separate process. Verify
     runtime cannot read `_prisma_migrations` or create/alter/drop schema objects.
-11. Add a production startup guard that rejects a superuser runtime connection
-    before the HTTP server begins listening. Do not log connection strings or
-    passwords.
+11. Add a production startup guard that requires the expected least-privilege
+    runtime role before the HTTP server begins listening. Do not log connection
+    strings or passwords.
 12. Switch only the local development runtime to `DATABASE_URL=emebel_app`
     after all checks pass. Preserve the prior admin connection for rollback.
 13. Validate CI with separate migration and runtime identities before any
