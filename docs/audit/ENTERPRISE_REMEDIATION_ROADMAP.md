@@ -6,7 +6,7 @@
 2. TD-002 - Create dedicated PostgreSQL migration/runtime roles and replace superuser configuration.
 3. TD-003 - Put order creation and stock/cart mutations into transactions with idempotency.
 4. TD-007 - Implement CSRF or strict Origin/Referer validation for cookie-authenticated mutations.
-5. TD-018 - Define migration deployment, backup, status, and rollback procedures.
+5. TD-018 - Define migration deployment, backup, status, and rollback procedures. ✅ Procedure documented; CI enforcement remains pending.
 
 Dependencies: database role setup precedes production secret rotation; migration procedure precedes CI deployment.
 

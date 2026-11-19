@@ -56,6 +56,10 @@ npx prisma migrate status
 
 For local development with an existing migration, use `migrate deploy`. Do not run `prisma db push --force-reset`.
 
+For production or shared-environment migration procedures, use
+`docs/database/MIGRATION_PROCEDURE.md`. Never run migration or restore commands
+against a database unless the target is explicitly confirmed.
+
 ## 4. Seed Local Demo Data
 
 Run the seed only after confirming `DATABASE_URL` targets `emebel_dev`:
