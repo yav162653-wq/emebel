@@ -3,6 +3,7 @@ import test from "node:test";
 import { DomainError } from "../../../../packages/kernel/src";
 import type { EmailMessage } from "../../../../packages/platform/src";
 import { ResendEmailSender } from "./resend-email.sender";
+import { createResendMock } from "../../../test-utils/resend-mock";
 
 const message: EmailMessage = {
   to: "member@example.com",
@@ -11,6 +12,28 @@ const message: EmailMessage = {
   kind: "magic_login",
   idempotencyKey: "stable-email-key",
 };
+
+test("Resend sends its HTTP request through an injected mock fetcher", async () => {
+  const mock = createResendMock([{ status: 200, body: { id: "email-test-id" } }]);
+  const sender = new ResendEmailSender("auth@example.com", undefined, {
+    apiKey: "test-api-key",
+    fetcher: mock.fetcher,
+  });
+
+  await sender.send(message);
+
+  assert.equal(mock.requests.length, 1);
+  assert.equal(mock.requests[0].url, "https://api.resend.com/emails");
+  assert.deepEqual(mock.requests[0].body, {
+    from: "auth@example.com",
+    to: message.to,
+    subject: message.subject,
+    text: message.text,
+  });
+  const headers = new Headers(mock.requests[0].init.headers);
+  assert.equal(headers.get("authorization"), "Bearer test-api-key");
+  assert.equal(headers.get("idempotency-key"), message.idempotencyKey);
+});
 
 test("Resend retries transient failures with bounded exponential delays", async () => {
   let attempts = 0;

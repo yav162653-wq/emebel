@@ -26,6 +26,8 @@ type ResendEmailSenderOptions = {
   maxAttempts?: number;
   retryBaseDelayMs?: number;
   sleep?: (milliseconds: number) => Promise<void>;
+  apiKey?: string;
+  fetcher?: typeof fetch;
 };
 
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -45,6 +47,8 @@ export class ResendEmailSender implements EmailSender {
   private readonly maxAttempts: number;
   private readonly retryBaseDelayMs: number;
   private readonly sleep: (milliseconds: number) => Promise<void>;
+  private readonly apiKey: string | undefined;
+  private readonly fetcher: typeof fetch;
 
   constructor(
     private readonly from: string | undefined,
@@ -55,6 +59,8 @@ export class ResendEmailSender implements EmailSender {
     this.maxAttempts = options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
     this.retryBaseDelayMs = options.retryBaseDelayMs ?? DEFAULT_RETRY_BASE_DELAY_MS;
     this.sleep = options.sleep ?? sleep;
+    this.apiKey = options.apiKey ?? env.RESEND_API_KEY;
+    this.fetcher = options.fetcher ?? fetch;
     if (!Number.isSafeInteger(this.maxAttempts) || this.maxAttempts < 1) {
       throw new RangeError("Resend maxAttempts must be a positive safe integer");
     }
@@ -74,7 +80,7 @@ export class ResendEmailSender implements EmailSender {
       );
     }
 
-    const apiKey = this.connector ? undefined : env.RESEND_API_KEY;
+    const apiKey = this.connector ? undefined : this.apiKey;
     if (!this.connector && !apiKey) {
       throw new DomainError(
         "EMAIL_SENDER_NOT_CONFIGURED",
@@ -140,7 +146,7 @@ export class ResendEmailSender implements EmailSender {
           body,
           signal: controller.signal,
         })
-      : fetch("https://api.resend.com/emails", {
+      : this.fetcher("https://api.resend.com/emails", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${apiKey}`,

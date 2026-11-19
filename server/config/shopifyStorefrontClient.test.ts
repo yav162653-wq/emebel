@@ -4,6 +4,7 @@ import {
   createShopifyStorefrontClient,
   ShopifyStorefrontError,
 } from "./shopifyStorefrontClient";
+import { createShopifyGraphQLMock } from "../test-utils/shopify-mock";
 
 const config = async () => ({
   shopDomain: "example.myshopify.com",
@@ -11,12 +12,43 @@ const config = async () => ({
 });
 const query = "#graphql\nquery Products { products { nodes { id } } }";
 const mutation = "#graphql\nmutation CartCreate { cartCreate { cart { id } } }";
+const cartLinesMutation = "#graphql\nmutation CartLinesAdd { cartLinesAdd { cart { id } } }";
 
 function response(status: number, body: unknown) {
   return new Response(JSON.stringify(body), { status });
 }
 
 describe("Shopify Storefront retry policy", () => {
+  it("routes product and cart GraphQL operations through the reusable mock", async () => {
+    const cartCreateData = {
+      data: { cartCreate: { cart: { id: "cart-test-id" }, userErrors: [] } },
+    };
+    const mock = createShopifyGraphQLMock({
+      Products: { data: { products: { nodes: [] } } },
+      CartCreate: cartCreateData,
+      CartLinesAdd: { data: { cartLinesAdd: { cart: { id: "cart-test-id" }, userErrors: [] } } },
+    });
+    const client = createShopifyStorefrontClient(config, mock.fetcher);
+
+    await client.request(query);
+    assert.deepEqual(await client.request(mutation, {
+      input: { lines: [{ merchandiseId: "variant-test-id", quantity: 1 }] },
+    }), cartCreateData.data);
+    await client.request(cartLinesMutation, {
+      cartId: "cart-test-id",
+      lines: [{ merchandiseId: "variant-test-id", quantity: 1 }],
+    });
+
+    assert.deepEqual(mock.requests.map(({ operationName }) => operationName), [
+      "Products",
+      "CartCreate",
+      "CartLinesAdd",
+    ]);
+    assert.deepEqual(mock.requests[1].variables, {
+      input: { lines: [{ merchandiseId: "variant-test-id", quantity: 1 }] },
+    });
+  });
+
   it("retries a transient read-only query once", async () => {
     let calls = 0;
     const client = createShopifyStorefrontClient(config, async () => {
