@@ -39,6 +39,7 @@ export type {
   PublicIdentity,
   PublicStatsResponse,
   PublicUser,
+  ReadyResponse,
   RegisterRequest,
   ReviewBaseResponse,
   ReviewListQuery,

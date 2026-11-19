@@ -25,6 +25,10 @@ export const sessionStore = new PgStore({
   pruneSessionInterval: 900,
 });
 
+export async function pingSessionStore(): Promise<void> {
+  await sessionPool.query("SELECT 1");
+}
+
 export async function closeSessionStore(): Promise<void> {
   await sessionPool.end();
 }

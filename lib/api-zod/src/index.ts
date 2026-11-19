@@ -343,6 +343,15 @@ export const healthResponseSchema = z.object({
   timestamp: z.string().datetime(),
 });
 
+export const readyResponseSchema = z.object({
+  status: z.enum(["ready", "not_ready"]),
+  checks: z.object({
+    database: z.enum(["ok", "error"]),
+    sessionStore: z.enum(["ok", "error"]),
+  }),
+  timestamp: z.string().datetime(),
+});
+
 export type PublicUser = z.infer<typeof publicUserSchema>;
 export type UserRole = z.infer<typeof userRoleSchema>;
 export type PublicIdentity = z.infer<typeof publicIdentitySchema>;
@@ -375,6 +384,7 @@ export type LatestReviewResponse = z.infer<typeof latestReviewResponseSchema>;
 export type ReviewSummaryResponse = z.infer<typeof reviewSummaryResponseSchema>;
 export type PublicStatsResponse = z.infer<typeof publicStatsResponseSchema>;
 export type HealthResponse = z.infer<typeof healthResponseSchema>;
+export type ReadyResponse = z.infer<typeof readyResponseSchema>;
 export type NewsletterResponse = z.infer<typeof newsletterResponseSchema>;
 export type ShopifyCheckoutInput = z.input<typeof shopifyCheckoutSchema>;
 export type ShopifyCheckoutResponse = z.infer<typeof shopifyCheckoutResponseSchema>;

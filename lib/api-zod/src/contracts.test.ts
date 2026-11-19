@@ -37,6 +37,25 @@ test("API spec includes the health check and clear-cart route", () => {
   assert.equal(csrfTokenResponseSchema.safeParse({ token: "session-token" }).success, true);
 });
 
+test("readiness contract reports independent database and session-store checks", () => {
+  const ready = {
+    status: "ready",
+    checks: { database: "ok", sessionStore: "ok" },
+    timestamp: "2026-11-20T00:00:00.000Z",
+  };
+
+  assert.deepEqual(
+    [apiSpec.health.ready.get.method, apiSpec.health.ready.get.path],
+    ["GET", "/api/ready"],
+  );
+  assert.deepEqual(apiSpec.health.ready.get.responses[200].parse(ready), ready);
+  assert.equal(apiSpec.health.ready.get.responses[503].safeParse({
+    ...ready,
+    status: "not_ready",
+    checks: { database: "error", sessionStore: "ok" },
+  }).success, true);
+});
+
 test("admin order response contract accepts nullable usernames", () => {
   const payload = {
     items: [{

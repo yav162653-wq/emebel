@@ -166,13 +166,16 @@
 
 ## TD-014
 
+- Status: RESOLVED. `/api/health` is liveness-only and bypasses session
+  middleware. `/api/ready` probes PostgreSQL through Prisma and the session
+  store's connection pool; it returns 503 with dependency status when a probe
+  fails.
 - Severity: MEDIUM
 - Category: Observability
-- File: `server/app.ts:105-108`
-- Description: Health endpoint returns process status only.
-- Evidence: No database or dependency check.
-- Impact: Load balancers may route traffic when PostgreSQL or sessions are unavailable.
-- Recommended correction: Separate liveness/readiness endpoints; check Prisma and session store readiness.
+- File: `server/app.ts`, `server/modules/health/health.router.ts`, `server/config/session.ts`
+- Evidence: Route tests cover liveness isolation, ready responses, dependency
+  failure, and API response contracts.
+- Impact: Readiness failure prevents traffic from being treated as ready.
 - Complexity: Medium.
 
 ## TD-015

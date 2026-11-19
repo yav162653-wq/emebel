@@ -34,6 +34,7 @@ import {
   publicIdentitySchema,
   publicStatsResponseSchema,
   publicUserSchema,
+  readyResponseSchema,
   registerSchema,
   reviewBaseResponseSchema,
   reviewInputSchema,
@@ -56,6 +57,13 @@ export const apiSpec = {
       method: "GET" as const,
       path: "/api/health",
       responses: { 200: healthResponseSchema },
+    },
+    ready: {
+      get: {
+        method: "GET" as const,
+        path: "/api/ready",
+        responses: { 200: readyResponseSchema, 503: readyResponseSchema },
+      },
     },
   },
   csrf: {

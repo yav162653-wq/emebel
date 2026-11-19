@@ -68,8 +68,8 @@ No Redis, queue, or microservice work is warranted yet.
 
 ## Reliability Improvements
 
-1. TD-014 - Split health and readiness.
-2. Add database readiness and session-store checks.
+1. TD-014 - Split health and readiness. ✅ Liveness is independent of session
+   middleware; readiness checks both the database and session-store pool.
 3. TD-013 - Add Resend timeout and bounded retry policy.
 4. Add Shopify timeout classification and idempotency. ✅ Operation-aware retry
    limits and error categories are tested with mocked providers.

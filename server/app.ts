@@ -17,6 +17,7 @@ import { sessionLifetimeMiddleware } from "./middleware/session-lifetime";
 import { ForbiddenError } from "./utils/errors";
 
 import { createIdentityRouter } from "./modules/identity/presentation/identity.router";
+import { healthRouter } from "./modules/health/health.router";
 import {
   externalAuthService,
   identityAppOrigin,
@@ -89,6 +90,9 @@ export function createApp() {
   app.use(express.json({ limit: "10kb" }));
   app.use(express.urlencoded({ extended: false, limit: "10kb" }));
 
+  // Liveness/readiness must remain reachable when the session store is down.
+  app.use("/api", healthRouter);
+
   // ── Session ───────────────────────────────────────────────────────────
   app.use(
     session({
@@ -121,11 +125,6 @@ export function createApp() {
   app.use("/api", originValidationMiddleware(allowedOrigins));
   app.use("/api", csrfMiddleware);
   app.get("/api/csrf-token", csrfTokenHandler);
-
-  // ── Health Check ──────────────────────────────────────────────────────
-  app.get("/api/health", (_req, res) => {
-    res.json({ status: "ok", env: env.NODE_ENV, timestamp: new Date().toISOString() });
-  });
 
   // ── API Routes ────────────────────────────────────────────────────────
   app.use(
