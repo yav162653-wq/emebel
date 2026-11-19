@@ -1,12 +1,14 @@
 import { z } from "zod";
 
+export const userRoleSchema = z.enum(["user", "admin"]);
+
 export const publicUserSchema = z.object({
   id: z.number().int().positive(),
   username: z.string().nullable(),
   name: z.string(),
   email: z.string().nullable(),
   emailVerified: z.boolean(),
-  role: z.string(),
+  role: userRoleSchema,
   createdAt: z.string(),
   workspaces: z.array(
     z.object({
@@ -180,7 +182,7 @@ export const adminUserResponseSchema = z.object({
   id: z.number().int().positive(),
   username: z.string().nullable(),
   name: z.string(),
-  role: z.string(),
+  role: userRoleSchema,
 });
 
 export const adminProductUpdateSchema = z.object({
@@ -293,6 +295,7 @@ export const healthResponseSchema = z.object({
 });
 
 export type PublicUser = z.infer<typeof publicUserSchema>;
+export type UserRole = z.infer<typeof userRoleSchema>;
 export type PublicIdentity = z.infer<typeof publicIdentitySchema>;
 export type LoginRequest = z.input<typeof loginSchema>;
 export type CsrfTokenResponse = z.infer<typeof csrfTokenResponseSchema>;

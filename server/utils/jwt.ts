@@ -7,15 +7,19 @@
  *   const payload = JwtUtil.verify(token);
  */
 import jwt from "jsonwebtoken";
+import { z } from "zod";
 import { env } from "../config/env";
+import { userRoleSchema } from "../../lib/api-zod/src";
 
 const SECRET  = env.SESSION_SECRET;   // reuse the same secret; swap to JWT_SECRET later
 const EXPIRES = "7d";                  // 7 days for mobile tokens
 
-export type JwtPayload = {
-  userId: number;
-  role:   string;
-};
+const jwtPayloadSchema = z.object({
+  userId: z.number().int().positive(),
+  role: userRoleSchema,
+});
+
+export type JwtPayload = z.infer<typeof jwtPayloadSchema>;
 
 export const JwtUtil = {
   sign(payload: JwtPayload): string {
@@ -23,7 +27,8 @@ export const JwtUtil = {
   },
 
   verify(token: string): JwtPayload {
-    return jwt.verify(token, SECRET) as JwtPayload;
+    const payload = jwt.verify(token, SECRET);
+    return jwtPayloadSchema.parse(payload);
   },
 
   /** Extract payload without throwing — returns null on invalid token */

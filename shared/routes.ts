@@ -40,10 +40,15 @@ export type {
   ShopifyCheckoutInput,
   ShopifyCheckoutResponse,
   UserProfileUpdate,
+  UserRole,
 } from "../lib/api-zod/src";
 
 export const api = apiSpec;
-export { apiErrorSchema, csrfTokenResponseSchema } from "../lib/api-zod/src";
+export {
+  apiErrorSchema,
+  csrfTokenResponseSchema,
+  userRoleSchema,
+} from "../lib/api-zod/src";
 
 export const errorSchemas = {
   validation: apiErrorSchema,

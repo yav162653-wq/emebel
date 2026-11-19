@@ -11,7 +11,7 @@ import {
 import { AppError, UnauthorizedError } from "../../../utils/errors";
 import { asyncHandler } from "../../../utils/asyncHandler";
 import { authLimiter } from "../../../middleware/rateLimiter";
-import { requireAuth } from "../../../middleware/auth";
+import { getAuthenticatedUserId, requireAuth } from "../../../middleware/auth";
 import { logger } from "../../../config/logger";
 import type { ExternalAuthService } from "../application/external-auth.service";
 import type { IdentityService } from "../application/identity.service";
@@ -123,7 +123,7 @@ router.get(
     const provider = routeParam(req.params.provider);
     const authorizationUrl = await externalAuthService.begin(
       provider,
-      req.session.userId!,
+      getAuthenticatedUserId(req),
     );
     rememberExternalAuthState(req, provider, authorizationUrl);
     await saveSession(req);
@@ -273,7 +273,7 @@ router.get(
   "/me",
   requireAuth,
   route(async (req, res) => {
-    const user = await identityService.getById(req.session.userId!);
+    const user = await identityService.getById(getAuthenticatedUserId(req));
     if (!user) {
       req.session.destroy(() => {});
       throw new UnauthorizedError("Session expired");
@@ -287,7 +287,7 @@ router.patch(
   requireAuth,
   route(async (req, res) => {
     const input = profileSchema.parse(req.body);
-    const user = await identityService.updateProfile(req.session.userId!, input);
+    const user = await identityService.updateProfile(getAuthenticatedUserId(req), input);
     res.json(user);
   }),
 );
@@ -296,7 +296,7 @@ router.get(
   "/identities",
   requireAuth,
   route(async (req, res) => {
-    res.json(await identityService.listIdentities(req.session.userId!));
+    res.json(await identityService.listIdentities(getAuthenticatedUserId(req)));
   }),
 );
 
@@ -328,7 +328,7 @@ router.post(
   authLimiter,
   route(async (req, res) => {
     const { email } = emailSchema.parse(req.body);
-    await identityService.requestAccountLink(req.session.userId!, email);
+    await identityService.requestAccountLink(getAuthenticatedUserId(req), email);
     res.status(202).json({ message: "A confirmation link was sent." });
   }),
 );

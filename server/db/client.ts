@@ -7,11 +7,15 @@ import { logger } from "../config/logger";
 import { assertLeastPrivilegeRuntimeRole } from "./runtime-role";
 
 const require = createRequire(process.cwd() + "/package.json");
+type PrismaEventClient = PrismaClientType<
+  Prisma.PrismaClientOptions,
+  "query" | "error" | "warn"
+>;
 const { PrismaClient } = require("@prisma/client") as {
   PrismaClient: new (options: {
     adapter: PrismaPg;
-    log: Array<{ emit: "event"; level: "query" | "error" | "warn" }>;
-  }) => PrismaClientType;
+    log: Prisma.LogDefinition[];
+  }) => PrismaEventClient;
 };
 
 const dbLogger = logger.child({ module: "db" });
@@ -87,28 +91,28 @@ function createPrismaClient() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   const adapter = new PrismaPg(pool);
 
+  const log: Prisma.LogDefinition[] = process.env.NODE_ENV === "development"
+    ? [
+        { emit: "event", level: "query" },
+        { emit: "event", level: "error" },
+        { emit: "event", level: "warn" },
+      ]
+    : [{ emit: "event", level: "error" }];
+
   const client = new PrismaClient({
     adapter,
-    log: process.env.NODE_ENV === "development"
-      ? [
-          { emit: "event", level: "query" },
-          { emit: "event", level: "error" },
-          { emit: "event", level: "warn" },
-        ]
-      : [
-          { emit: "event", level: "error" },
-        ],
+    log,
   });
 
-  client.$on("query" as never, (e: Prisma.QueryEvent) => {
+  client.$on("query", (e) => {
     dbLogger.debug({ query: e.query, durationMs: e.duration }, "prisma query");
   });
 
-  client.$on("error" as never, (e: Prisma.LogEvent) => {
+  client.$on("error", (e) => {
     dbLogger.error({ msg: e.message }, "prisma error");
   });
 
-  client.$on("warn" as never, (e: Prisma.LogEvent) => {
+  client.$on("warn", (e) => {
     dbLogger.warn({ msg: e.message }, "prisma warning");
   });
 

@@ -1,7 +1,7 @@
 import { Router, type RequestHandler } from "express";
 import { WishlistService } from "./wishlist.service";
 import { asyncHandler } from "../../utils/asyncHandler";
-import { requireAuth } from "../../middleware/auth";
+import { getAuthenticatedUserId, requireAuth } from "../../middleware/auth";
 import { idParamSchema, wishlistSyncSchema } from "../../../lib/api-zod/src";
 
 export type WishlistRouterService = Pick<
@@ -20,7 +20,7 @@ export function createWishlistRouter(
   router.get(
     "/",
     asyncHandler(async (req, res) => {
-      const ids = await service.getIds(req.session.userId!);
+      const ids = await service.getIds(getAuthenticatedUserId(req));
       res.json(ids);
     })
   );
@@ -29,8 +29,9 @@ export function createWishlistRouter(
     "/sync",
     asyncHandler(async (req, res) => {
       const { productIds } = wishlistSyncSchema.parse(req.body);
-      await service.sync(req.session.userId!, productIds);
-      const ids = await service.getIds(req.session.userId!);
+      const userId = getAuthenticatedUserId(req);
+      await service.sync(userId, productIds);
+      const ids = await service.getIds(userId);
       res.json(ids);
     })
   );
@@ -39,7 +40,7 @@ export function createWishlistRouter(
     "/:productId",
     asyncHandler(async (req, res) => {
       const productId = idParamSchema.parse(req.params.productId);
-      await service.add(req.session.userId!, productId);
+      await service.add(getAuthenticatedUserId(req), productId);
       res.sendStatus(204);
     })
   );
@@ -48,7 +49,7 @@ export function createWishlistRouter(
     "/:productId",
     asyncHandler(async (req, res) => {
       const productId = idParamSchema.parse(req.params.productId);
-      await service.remove(req.session.userId!, productId);
+      await service.remove(getAuthenticatedUserId(req), productId);
       res.sendStatus(204);
     })
   );
@@ -56,7 +57,7 @@ export function createWishlistRouter(
   router.delete(
     "/",
     asyncHandler(async (req, res) => {
-      await service.clear(req.session.userId!);
+      await service.clear(getAuthenticatedUserId(req));
       res.sendStatus(204);
     })
   );

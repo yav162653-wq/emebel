@@ -1,5 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { db } from "../../../db/client";
+import { AppError } from "../../../utils/errors";
+import { userRoleSchema } from "../../../../lib/api-zod/src";
 import type {
   IdentityAccount,
   IdentityMembership,
@@ -48,7 +50,7 @@ function mapUser(user: DbUser): IdentityAccount {
     name: user.name,
     email: user.email,
     emailVerifiedAt: user.emailVerifiedAt,
-    role: user.role,
+    role: userRoleSchema.parse(user.role),
     createdAt: user.createdAt,
     memberships: (user.memberships ?? []).map(mapMembership),
   };
@@ -188,7 +190,8 @@ export class PrismaIdentityRepository implements IdentityRepository {
     });
 
     const result = await db.user.findUnique({ where: { id: user.id }, include: userInclude });
-    return mapUser(result!);
+    if (!result) throw new AppError("Created account could not be reloaded");
+    return mapUser(result);
   }
 
   async createEmailAccount(input: { email: string }): Promise<IdentityAccount> {
@@ -214,7 +217,8 @@ export class PrismaIdentityRepository implements IdentityRepository {
     });
 
     const result = await db.user.findUnique({ where: { id: user.id }, include: userInclude });
-    return mapUser(result!);
+    if (!result) throw new AppError("Created account could not be reloaded");
+    return mapUser(result);
   }
 
   async createExternalAccount(input: {
@@ -247,7 +251,8 @@ export class PrismaIdentityRepository implements IdentityRepository {
     });
 
     const result = await db.user.findUnique({ where: { id: user.id }, include: userInclude });
-    return mapUser(result!);
+    if (!result) throw new AppError("Created account could not be reloaded");
+    return mapUser(result);
   }
 
   async addIdentity(input: {

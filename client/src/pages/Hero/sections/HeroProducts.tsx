@@ -28,7 +28,8 @@ export function HeroProducts() {
   } = useFurnitureStore();
   const [filterOpen, setFilterOpen] = useState(false);
 
-  const activeRange = PRICE_RANGES.find(r => r.value === priceRange)!;
+  const activeRange = PRICE_RANGES.find((range) => range.value === priceRange);
+  if (!activeRange) throw new Error(`Unknown price range: ${priceRange}`);
   const rangeLabels: Record<PriceRange, string> = {
     all: t("shop.allPrices"),
     "under-500": t("shop.under500"),

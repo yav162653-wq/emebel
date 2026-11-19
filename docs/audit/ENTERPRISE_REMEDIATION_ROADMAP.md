@@ -23,11 +23,13 @@ Dependencies: immediate database and CSRF work first.
 
 ## Type Safety Improvements
 
-1. Replace `z.any()` and frontend `any` contracts.
-2. Type Prisma event callbacks and JWT payload validation.
-3. Centralize role and order status unions.
-4. Replace unsafe non-null assertions at module boundaries with guards.
-5. Enable strict ESLint unsafe-* rules.
+1. Replace `z.any()` and frontend `any` contracts. ✅ No explicit `any` or
+   `z.any()` remains in tracked TypeScript sources.
+2. Type Prisma event callbacks and JWT payload validation. ✅
+3. Centralize role and order status unions. ✅
+4. Replace unsafe non-null assertions at module boundaries with guards. ✅
+5. Enable strict ESLint unsafe-* rules. Pending a separate type-aware lint
+   configuration review.
 
 Dependencies: shared schemas should be established before route/test automation.
 

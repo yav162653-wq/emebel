@@ -29,10 +29,16 @@ export function QuickView({ product, onClose }: QuickViewProps) {
   const { toast } = useToast();
   const [quantity] = useState(1);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const productId = product?.id;
   const { data: reviewSummary } = useQuery<ReviewSummary>({
     queryKey: ["/api/reviews", product?.id, "summary"],
-    queryFn: () => fetchReviewSummary(product!.id),
-    enabled: !!product,
+    queryFn: () => {
+      if (productId === undefined) {
+        throw new Error("Cannot load review summary without a product");
+      }
+      return fetchReviewSummary(productId);
+    },
+    enabled: productId !== undefined,
   });
 
   if (!product) return null;

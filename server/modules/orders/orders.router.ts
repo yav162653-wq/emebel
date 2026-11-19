@@ -1,7 +1,7 @@
 import { Router, type RequestHandler } from "express";
 import { OrdersService } from "./orders.service";
 import { asyncHandler } from "../../utils/asyncHandler";
-import { requireAuth } from "../../middleware/auth";
+import { getAuthenticatedUserId, requireAuth } from "../../middleware/auth";
 import { orderLimiter } from "../../middleware/rateLimiter";
 import { ValidationError } from "../../utils/errors";
 import { db } from "../../db/client";
@@ -64,7 +64,7 @@ export function createOrdersRouter({
       });
       const { address, items } = createOrderSchema.parse(req.body);
       const requestHash = createOrderRequestHash({ address, items });
-      const userId = req.session.userId!;
+      const userId = getAuthenticatedUserId(req);
 
       const existingOrder = await service.findByIdempotencyKey(userId, idempotencyKey, requestHash);
       if (existingOrder) {
@@ -111,7 +111,7 @@ export function createOrdersRouter({
   router.get(
     "/my",
     asyncHandler(async (req, res) => {
-      const orders = await service.getByUser(req.session.userId!);
+      const orders = await service.getByUser(getAuthenticatedUserId(req));
       res.json(orders);
     })
   );
@@ -120,7 +120,7 @@ export function createOrdersRouter({
     "/:id",
     asyncHandler(async (req, res) => {
       const id = idParamSchema.parse(req.params.id);
-      const order = await service.getById(req.session.userId!, id);
+      const order = await service.getById(getAuthenticatedUserId(req), id);
       res.json(order);
     })
   );

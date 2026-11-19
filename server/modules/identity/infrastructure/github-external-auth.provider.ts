@@ -43,10 +43,10 @@ export class GitHubExternalAuthProvider implements ExternalAuthProvider {
     nonce: string;
     codeChallenge: string;
   }): Promise<string> {
-    this.assertConfigured();
+    const credentials = this.getCredentials();
     const url = new URL("https://github.com/login/oauth/authorize");
-    url.searchParams.set("client_id", this.options.clientId!);
-    url.searchParams.set("redirect_uri", this.redirectUri!);
+    url.searchParams.set("client_id", credentials.clientId);
+    url.searchParams.set("redirect_uri", credentials.redirectUri);
     url.searchParams.set("scope", "read:user user:email");
     url.searchParams.set("state", input.state);
     url.searchParams.set("code_challenge", input.codeChallenge);
@@ -59,16 +59,16 @@ export class GitHubExternalAuthProvider implements ExternalAuthProvider {
     codeVerifier: string;
     nonce: string;
   }): Promise<ExternalIdentityProfile> {
-    this.assertConfigured();
+    const credentials = this.getCredentials();
     try {
       const tokenResponse = await this.fetcher("https://github.com/login/oauth/access_token", {
         method: "POST",
         headers: { Accept: "application/json", "Content-Type": "application/json" },
         body: JSON.stringify({
-          client_id: this.options.clientId,
-          client_secret: this.options.clientSecret,
+          client_id: credentials.clientId,
+          client_secret: credentials.clientSecret,
           code: input.code,
-          redirect_uri: this.redirectUri,
+          redirect_uri: credentials.redirectUri,
           code_verifier: input.codeVerifier,
         }),
         signal: AbortSignal.timeout(10_000),
@@ -130,9 +130,11 @@ export class GitHubExternalAuthProvider implements ExternalAuthProvider {
     }
   }
 
-  private assertConfigured(): void {
-    if (!this.isConfigured()) {
+  private getCredentials(): { clientId: string; clientSecret: string; redirectUri: string } {
+    const { clientId, clientSecret, redirectUri } = this.options;
+    if (!clientId || !clientSecret || !redirectUri) {
       throw new DomainError("EXTERNAL_AUTH_NOT_CONFIGURED", "This sign-in provider is not configured");
     }
+    return { clientId, clientSecret, redirectUri };
   }
 }

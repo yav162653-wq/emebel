@@ -46,6 +46,8 @@
 
 ## TD-005
 
+- Status: RESOLVED. Shared response contracts no longer use `z.any()`;
+  current TypeScript sources contain no explicit `any` type or `z.any()`.
 - Severity: HIGH
 - Category: Type safety
 - File: `shared/routes.ts:72,77,84,90`
@@ -57,6 +59,8 @@
 
 ## TD-006
 
+- Status: RESOLVED. Prisma event listeners now use generated event types and
+  JWT verification validates payload claims with a shared Zod role schema.
 - Severity: HIGH
 - Category: Type safety
 - File: `server/db/client.ts:35-43`

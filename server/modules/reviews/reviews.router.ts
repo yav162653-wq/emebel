@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { ReviewsService } from "./reviews.service";
 import { asyncHandler } from "../../utils/asyncHandler";
-import { requireAuth } from "../../middleware/auth";
+import { getAuthenticatedUserId, requireAuth } from "../../middleware/auth";
 import { reviewLimiter } from "../../middleware/rateLimiter";
 import {
   idParamSchema,
@@ -47,7 +47,7 @@ router.get(
   requireAuth,
   asyncHandler(async (req, res) => {
     const productId = idParamSchema.parse(req.params.productId);
-    const review = await ReviewsService.getMyReview(req.session.userId!, productId);
+    const review = await ReviewsService.getMyReview(getAuthenticatedUserId(req), productId);
     res.json(review ?? null);
   })
 );
@@ -60,7 +60,7 @@ router.post(
   asyncHandler(async (req, res) => {
     const productId = idParamSchema.parse(req.params.productId);
     const { rating, body } = reviewInputSchema.parse(req.body);
-    const review = await ReviewsService.upsert(req.session.userId!, productId, rating, body);
+    const review = await ReviewsService.upsert(getAuthenticatedUserId(req), productId, rating, body);
     res.status(201).json(review);
   })
 );
@@ -71,7 +71,7 @@ router.delete(
   requireAuth,
   asyncHandler(async (req, res) => {
     const productId = idParamSchema.parse(req.params.productId);
-    await ReviewsService.remove(req.session.userId!, productId);
+    await ReviewsService.remove(getAuthenticatedUserId(req), productId);
     res.json({ ok: true });
   })
 );

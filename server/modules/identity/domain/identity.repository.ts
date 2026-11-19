@@ -1,4 +1,5 @@
 import type { IdentityProvider } from "../../../../packages/contracts/src";
+import type { UserRole } from "../../../../lib/api-zod/src";
 
 export interface IdentityAccount {
   id: number;
@@ -6,7 +7,7 @@ export interface IdentityAccount {
   name: string;
   email: string | null;
   emailVerifiedAt: Date | null;
-  role: string;
+  role: UserRole;
   createdAt: Date;
   memberships: IdentityMembership[];
 }

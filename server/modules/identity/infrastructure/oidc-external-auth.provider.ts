@@ -62,11 +62,11 @@ export class OidcExternalAuthProvider implements ExternalAuthProvider {
     nonce: string;
     codeChallenge: string;
   }): Promise<string> {
-    this.assertConfigured();
+    const credentials = this.getCredentials();
     const metadata = await this.getMetadata();
     const url = new URL(metadata.authorization_endpoint);
-    url.searchParams.set("client_id", this.options.clientId!);
-    url.searchParams.set("redirect_uri", this.redirectUri!);
+    url.searchParams.set("client_id", credentials.clientId);
+    url.searchParams.set("redirect_uri", credentials.redirectUri);
     url.searchParams.set("response_type", "code");
     url.searchParams.set("scope", this.options.scopes.join(" "));
     url.searchParams.set("state", input.state);
@@ -82,19 +82,19 @@ export class OidcExternalAuthProvider implements ExternalAuthProvider {
     codeVerifier: string;
     nonce: string;
   }): Promise<ExternalIdentityProfile> {
-    this.assertConfigured();
+    const credentials = this.getCredentials();
     try {
       const metadata = await this.getMetadata();
       const tokenResponse = await this.fetcher(metadata.token_endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
         body: new URLSearchParams({
-          client_id: this.options.clientId!,
-          client_secret: this.options.clientSecret!,
+          client_id: credentials.clientId,
+          client_secret: credentials.clientSecret,
           code: input.code,
           code_verifier: input.codeVerifier,
           grant_type: "authorization_code",
-          redirect_uri: this.redirectUri!,
+          redirect_uri: credentials.redirectUri,
         }),
         signal: AbortSignal.timeout(10_000),
       });
@@ -107,7 +107,7 @@ export class OidcExternalAuthProvider implements ExternalAuthProvider {
         this.getJwks(metadata),
         {
           issuer: this.options.acceptedIssuers ?? this.options.issuer,
-          audience: this.options.clientId,
+          audience: credentials.clientId,
           algorithms: ["RS256"],
           maxTokenAge: "10m",
         },
@@ -140,10 +140,13 @@ export class OidcExternalAuthProvider implements ExternalAuthProvider {
     }
   }
 
-  private assertConfigured(): void {
-    if (!this.isConfigured()) {
+  private getCredentials(): { clientId: string; clientSecret: string; redirectUri: string } {
+    const { clientId, clientSecret } = this.options;
+    const redirectUri = this.redirectUri;
+    if (!clientId || !clientSecret || !redirectUri) {
       throw new DomainError("EXTERNAL_AUTH_NOT_CONFIGURED", "This sign-in provider is not configured");
     }
+    return { clientId, clientSecret, redirectUri };
   }
 
   private getJwks(metadata: OidcMetadata) {
