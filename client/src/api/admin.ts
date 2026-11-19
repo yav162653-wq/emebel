@@ -1,53 +1,43 @@
-import { apiFetch, apiRequest } from "./http";
-import type { AdminOrder } from "@shared/schema";
+import { api, buildUrl, type AdminOrder, type AdminStatsResponse, type AdminUserResponse, type OrderStatus, type Product } from "@shared/routes";
+import { apiFetchJson, apiRequestJson } from "./http";
 
-export type AdminStats = {
-  productCount: number;
-  userCount: number;
-  orderCount: number;
-  reviewCount: number;
-  totalInventoryValue: number;
-  lowStock: number;
-  outOfStock: number;
-};
-
-export type AdminUser = {
-  id: number;
-  username: string;
-  name: string;
-  role: string;
-};
+export type AdminStats = AdminStatsResponse;
+export type AdminUser = AdminUserResponse;
 
 export async function fetchAdminStats(): Promise<AdminStats> {
-  const res = await apiFetch("/api/admin/stats");
-  if (!res.ok) throw new Error("Failed to fetch stats");
-  return res.json();
+  return apiFetchJson(api.admin.stats.path, api.admin.stats.responses[200]);
 }
 
 export async function fetchAdminUsers(): Promise<AdminUser[]> {
-  const res = await apiFetch("/api/admin/users");
-  if (!res.ok) throw new Error("Failed to fetch users");
-  return res.json();
+  return apiFetchJson(api.admin.users.path, api.admin.users.responses[200]);
 }
 
 export async function fetchAdminOrders(): Promise<AdminOrder[]> {
-  const res = await apiFetch("/api/admin/orders");
-  if (!res.ok) throw new Error("Failed to fetch orders");
-  return res.json();
+  return apiFetchJson(api.admin.orders.path, api.admin.orders.responses[200]);
 }
 
 export async function updateAdminProduct(
   id: number,
   values: { stock?: number; price?: number },
-) {
-  const res = await apiRequest("PATCH", `/api/admin/products/${id}`, values);
-  return res.json();
+): Promise<Product> {
+  const url = buildUrl(api.admin.updateProduct.path, { id });
+  return apiRequestJson(
+    api.admin.updateProduct.method,
+    url,
+    api.admin.updateProduct.input.parse(values),
+    api.admin.updateProduct.responses[200],
+  );
 }
 
 export async function updateAdminOrderStatus(
   id: number,
-  status: string,
+  status: OrderStatus,
 ): Promise<AdminOrder> {
-  const res = await apiRequest("PATCH", `/api/admin/orders/${id}/status`, { status });
-  return res.json();
+  const url = buildUrl(api.admin.updateOrderStatus.path, { id });
+  return apiRequestJson(
+    api.admin.updateOrderStatus.method,
+    url,
+    api.admin.updateOrderStatus.input.parse({ status }),
+    api.admin.updateOrderStatus.responses[200],
+  );
 }

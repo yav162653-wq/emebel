@@ -30,7 +30,7 @@ export default function AccountPage() {
   const [name, setName] = useState(user?.name || "");
   const [authEmail, setAuthEmail] = useState(user?.email || "");
 
-  const { data: orders = [], isLoading: ordersLoading } = useQuery<Order[]>({
+  const { data: orders = [], isLoading: ordersLoading, isError: ordersError } = useQuery<Order[]>({
     queryKey: ["/api/orders/my"],
     queryFn: fetchMyOrders,
   });
@@ -111,7 +111,11 @@ export default function AccountPage() {
           </TabsList>
 
           <TabsContent value="orders" className="space-y-4">
-            <OrdersTab orders={orders} isLoading={ordersLoading} />
+            {ordersError ? (
+              <p className="text-sm text-destructive">{t("common.error")}</p>
+            ) : (
+              <OrdersTab orders={orders} isLoading={ordersLoading} />
+            )}
           </TabsContent>
 
           <TabsContent value="wishlist">

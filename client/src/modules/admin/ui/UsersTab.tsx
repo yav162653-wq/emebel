@@ -70,7 +70,9 @@ export function UsersTab() {
                       </div>
                     </td>
                     <td className="px-5 py-4 hidden sm:table-cell">
-                      <span className="font-mono text-xs text-muted-foreground">@{user.username}</span>
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {user.username ? `@${user.username}` : "—"}
+                      </span>
                     </td>
                     <td className="px-5 py-4 text-right">
                       <span className={cn(

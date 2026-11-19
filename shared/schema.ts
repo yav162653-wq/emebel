@@ -1,28 +1,27 @@
 import { z } from "zod";
+import {
+  cartAddSchema,
+  registerSchema,
+  reviewInputSchema,
+} from "../lib/api-zod/src";
+import type {
+  AdminOrderResponse,
+  CartItemResponse,
+  CartListResponse as ApiCartListResponse,
+  LoginRequest as ApiLoginRequest,
+  OrderListResponse as ApiOrderListResponse,
+  ProductResponse as ApiProductResponse,
+  PublicUser,
+  ReviewResponse,
+  ReviewSummaryResponse,
+} from "../lib/api-zod/src";
 
 // ── User ──────────────────────────────────────────────────────────────────────
-export const insertUserSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters").max(50),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  name: z.string().min(1, "Name is required").max(100),
-  email: z.preprocess(
-    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
-    z.string().trim().email().optional(),
-  ),
-  role: z.enum(["user", "admin"]).default("user"),
-});
+export const insertUserSchema = registerSchema;
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
+export type InsertUser = z.input<typeof insertUserSchema>;
 
-// API-safe User — no password field returned from the server
-export type User = {
-  id: number;
-  username: string | null;
-  name: string;
-  role: string;
-  email?: string | null;
-  emailVerified?: boolean;
-};
+export type User = PublicUser;
 
 // ── Product ───────────────────────────────────────────────────────────────────
 export const insertProductSchema = z.object({
@@ -40,77 +39,36 @@ export const insertProductSchema = z.object({
 });
 
 export type InsertProduct = z.infer<typeof insertProductSchema>;
-export type Product = InsertProduct & { id: number };
+export type Product = ApiProductResponse;
 
 // ── CartItem ──────────────────────────────────────────────────────────────────
-export const insertCartItemSchema = z.object({
-  productId: z.number().int().positive(),
-  quantity: z.number().int().positive().default(1),
-});
+export const insertCartItemSchema = cartAddSchema;
 
-export type InsertCartItem = z.infer<typeof insertCartItemSchema>;
-export type CartItem = {
-  id: number;
-  userId: number;
-  productId: number;
-  quantity: number;
-};
+export type InsertCartItem = z.input<typeof insertCartItemSchema>;
+export type CartItem = CartItemResponse;
 
 // ── Order ─────────────────────────────────────────────────────────────────────
-export type OrderItem = {
-  id: number;
-  orderId: number;
-  productId: number;
-  name: string;
-  price: number;
-  quantity: number;
-  image: string;
-};
-
-export type Order = {
-  id: number;
-  userId: number;
-  total: number;
-  status: string;
-  address: string;
-  createdAt: string;
-  items: OrderItem[];
-};
+export type Order = ApiOrderListResponse[number];
+export type OrderItem = Order["items"][number];
 
 // Admin-facing order with user info
-export type AdminOrder = Order & {
-  user: { id: number; username: string; name: string };
-};
+export type AdminOrder = AdminOrderResponse;
 
 // ── Review ────────────────────────────────────────────────────────────────────
-export const insertReviewSchema = z.object({
-  rating: z.number().int().min(1).max(5),
-  body: z.string().max(1000).optional(),
-});
+export const insertReviewSchema = reviewInputSchema;
 
-export type InsertReview = z.infer<typeof insertReviewSchema>;
+export type InsertReview = z.input<typeof insertReviewSchema>;
 
-export type Review = {
-  id: number;
-  productId: number;
-  userId: number;
-  rating: number;
-  body: string | null;
-  createdAt: string;
-  user: { id: number; name: string; username: string };
-};
+export type Review = ReviewResponse;
 
-export type ReviewSummary = {
-  count: number;
-  average: number;
-};
+export type ReviewSummary = ReviewSummaryResponse;
 
 // ── Request / Response aliases ────────────────────────────────────────────────
-export type LoginRequest = { username: string; password: string };
-export type AuthResponse = User;
+export type LoginRequest = ApiLoginRequest;
+export type AuthResponse = PublicUser;
 export type ProductListResponse = Product[];
 export type ProductResponse = Product;
-export type CartListResponse = (CartItem & { product: Product })[];
-export type OrderListResponse = Order[];
+export type CartListResponse = ApiCartListResponse;
+export type OrderListResponse = ApiOrderListResponse;
 export type AdminOrderListResponse = AdminOrder[];
 export type ReviewListResponse = Review[];

@@ -1,66 +1,69 @@
-import { Router } from "express";
-import { z } from "zod";
+import { Router, type RequestHandler } from "express";
 import { AdminService } from "./admin.service";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { requireAdmin } from "../../middleware/auth";
 import { adminLimiter } from "../../middleware/rateLimiter";
+import {
+  adminProductUpdateSchema,
+  adminOrderStatusUpdateSchema,
+  idParamSchema,
+} from "../../../lib/api-zod/src";
 
-const router = Router();
+export type AdminRouterService = typeof AdminService;
 
-router.use(requireAdmin, adminLimiter);
+export function createAdminRouter(
+  service: AdminRouterService = AdminService,
+  authorize: RequestHandler = requireAdmin,
+) {
+  const router = Router();
 
-// GET /api/admin/stats
-router.get(
-  "/stats",
-  asyncHandler(async (_req, res) => {
-    const stats = await AdminService.getStats();
-    res.json(stats);
-  })
-);
+  router.use(authorize, adminLimiter);
 
-// GET /api/admin/users
-router.get(
-  "/users",
-  asyncHandler(async (_req, res) => {
-    const users = await AdminService.getUsers();
-    res.json(users);
-  })
-);
+  router.get(
+    "/stats",
+    asyncHandler(async (_req, res) => {
+      const stats = await service.getStats();
+      res.json(stats);
+    })
+  );
 
-// PATCH /api/admin/products/:id
-router.patch(
-  "/products/:id",
-  asyncHandler(async (req, res) => {
-    const id = z.coerce.number().int().positive().parse(req.params.id);
-    const data = z
-      .object({
-        stock: z.number().int().min(0).optional(),
-        price: z.number().int().positive().optional(),
-      })
-      .parse(req.body);
-    const product = await AdminService.updateProduct(id, data);
-    res.json(product);
-  })
-);
+  router.get(
+    "/users",
+    asyncHandler(async (_req, res) => {
+      const users = await service.getUsers();
+      res.json(users);
+    })
+  );
 
-// GET /api/admin/orders — all orders
-router.get(
-  "/orders",
-  asyncHandler(async (_req, res) => {
-    const orders = await AdminService.getAllOrders();
-    res.json(orders);
-  })
-);
+  router.patch(
+    "/products/:id",
+    asyncHandler(async (req, res) => {
+      const id = idParamSchema.parse(req.params.id);
+      const data = adminProductUpdateSchema.parse(req.body);
+      const product = await service.updateProduct(id, data);
+      res.json(product);
+    })
+  );
 
-// PATCH /api/admin/orders/:id/status — update order status
-router.patch(
-  "/orders/:id/status",
-  asyncHandler(async (req, res) => {
-    const id = z.coerce.number().int().positive().parse(req.params.id);
-    const { status } = z.object({ status: z.string() }).parse(req.body);
-    const order = await AdminService.updateOrderStatus(id, status);
-    res.json(order);
-  })
-);
+  router.get(
+    "/orders",
+    asyncHandler(async (_req, res) => {
+      const orders = await service.getAllOrders();
+      res.json(orders);
+    })
+  );
 
-export default router;
+  router.patch(
+    "/orders/:id/status",
+    asyncHandler(async (req, res) => {
+      const id = idParamSchema.parse(req.params.id);
+      const { status } = adminOrderStatusUpdateSchema.parse(req.body);
+      const order = await service.updateOrderStatus(id, status);
+      res.json(order);
+    })
+  );
+
+  return router;
+}
+
+export default createAdminRouter();

@@ -1,6 +1,6 @@
 import React, { createContext, useContext } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import type { InsertUser, LoginRequest, User } from '@shared/schema';
+import type { LoginRequest, RegisterRequest, User } from '@shared/routes';
 
 interface AuthContextType {
   user: User | undefined | null;
@@ -8,7 +8,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (data: LoginRequest) => void;
   logout: () => void;
-  register: (data: InsertUser) => void;
+  register: (data: RegisterRequest) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

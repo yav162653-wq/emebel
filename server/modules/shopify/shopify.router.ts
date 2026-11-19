@@ -1,32 +1,22 @@
 import { Router } from "express";
-import { z } from "zod";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { requireAuth } from "../../middleware/auth";
 import { orderLimiter } from "../../middleware/rateLimiter";
 import { db } from "../../db/client";
 import { ValidationError } from "../../utils/errors";
 import { ShopifyService } from "./shopify.service";
+import { shopifyCheckoutSchema } from "../../../lib/api-zod/src";
 
 const router = Router();
 
 router.use(requireAuth);
-
-const checkoutSchema = z.object({
-  email: z.string().email().optional(),
-  items: z.array(
-    z.object({
-      productId: z.number().int().positive(),
-      quantity: z.number().int().positive().max(50),
-    }),
-  ).min(1).max(50),
-});
 
 // POST /api/shopify/checkout — creates a Shopify cart, never a local unpaid order
 router.post(
   "/checkout",
   orderLimiter,
   asyncHandler(async (req, res) => {
-    const { email, items } = checkoutSchema.parse(req.body);
+    const { email, items } = shopifyCheckoutSchema.parse(req.body);
     const productIds = Array.from(new Set(items.map((item) => item.productId)));
     const products = await db.product.findMany({
       where: { id: { in: productIds } },

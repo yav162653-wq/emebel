@@ -9,7 +9,7 @@ import { fetchLatestReviews, type LatestReview } from "@/api/reviews";
 
 export function TestimonialsSection() {
   const { t } = useTranslation();
-  const { data: latestReviews = [], isLoading: reviewsLoading } = useQuery<LatestReview[]>({
+  const { data: latestReviews = [], isLoading: reviewsLoading, isError } = useQuery<LatestReview[]>({
     queryKey: ["/api/reviews/latest"],
     queryFn: () => fetchLatestReviews(3),
   });
@@ -34,6 +34,8 @@ export function TestimonialsSection() {
               <Skeleton key={i} className="h-44 rounded-2xl" />
             ))}
           </div>
+        ) : isError ? (
+          <p className="py-16 text-center text-sm text-destructive">{t("common.error")}</p>
         ) : latestReviews.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {latestReviews.map((review, i) => (

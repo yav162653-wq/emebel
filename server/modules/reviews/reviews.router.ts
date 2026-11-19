@@ -1,25 +1,21 @@
 import { Router } from "express";
-import { z } from "zod";
 import { ReviewsService } from "./reviews.service";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { requireAuth } from "../../middleware/auth";
 import { reviewLimiter } from "../../middleware/rateLimiter";
+import {
+  idParamSchema,
+  latestReviewsQuerySchema,
+  reviewInputSchema,
+} from "../../../lib/api-zod/src";
 
 const router = Router();
-
-const reviewBody = z.object({
-  rating: z.number().int().min(1).max(5),
-  body: z.string().max(1000).optional(),
-});
 
 // GET /api/reviews/latest — latest top-rated reviews across all products (public)
 router.get(
   "/latest",
   asyncHandler(async (req, res) => {
-    const limit = Math.min(
-      z.coerce.number().int().positive().default(3).parse(req.query.limit ?? 3),
-      10
-    );
+    const { limit } = latestReviewsQuerySchema.parse({ limit: req.query.limit });
     const reviews = await ReviewsService.getLatest(limit);
     res.json(reviews);
   })
@@ -29,7 +25,7 @@ router.get(
 router.get(
   "/:productId",
   asyncHandler(async (req, res) => {
-    const productId = z.coerce.number().int().positive().parse(req.params.productId);
+    const productId = idParamSchema.parse(req.params.productId);
     const reviews = await ReviewsService.getByProduct(productId);
     res.json(reviews);
   })
@@ -39,7 +35,7 @@ router.get(
 router.get(
   "/:productId/summary",
   asyncHandler(async (req, res) => {
-    const productId = z.coerce.number().int().positive().parse(req.params.productId);
+    const productId = idParamSchema.parse(req.params.productId);
     const summary = await ReviewsService.getSummary(productId);
     res.json(summary);
   })
@@ -50,7 +46,7 @@ router.get(
   "/:productId/mine",
   requireAuth,
   asyncHandler(async (req, res) => {
-    const productId = z.coerce.number().int().positive().parse(req.params.productId);
+    const productId = idParamSchema.parse(req.params.productId);
     const review = await ReviewsService.getMyReview(req.session.userId!, productId);
     res.json(review ?? null);
   })
@@ -62,8 +58,8 @@ router.post(
   requireAuth,
   reviewLimiter,
   asyncHandler(async (req, res) => {
-    const productId = z.coerce.number().int().positive().parse(req.params.productId);
-    const { rating, body } = reviewBody.parse(req.body);
+    const productId = idParamSchema.parse(req.params.productId);
+    const { rating, body } = reviewInputSchema.parse(req.body);
     const review = await ReviewsService.upsert(req.session.userId!, productId, rating, body);
     res.status(201).json(review);
   })
@@ -74,7 +70,7 @@ router.delete(
   "/:productId",
   requireAuth,
   asyncHandler(async (req, res) => {
-    const productId = z.coerce.number().int().positive().parse(req.params.productId);
+    const productId = idParamSchema.parse(req.params.productId);
     await ReviewsService.remove(req.session.userId!, productId);
     res.json({ ok: true });
   })

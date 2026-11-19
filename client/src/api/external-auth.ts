@@ -1,16 +1,19 @@
-import { apiFetch } from "./http";
+import { api, type PublicIdentity } from "@shared/routes";
+import { apiFetchJson } from "./http";
 
 export type ExternalProvider = "google" | "github" | "telegram";
 
 export async function fetchExternalProviders(): Promise<ExternalProvider[]> {
-  const res = await apiFetch("/api/auth/external/providers");
-  if (!res.ok) throw new Error("Provider configuration unavailable");
-  const data = await res.json() as { providers: ExternalProvider[] };
+  const data = await apiFetchJson(
+    api.auth.externalProviders.path,
+    api.auth.externalProviders.responses[200],
+  );
   return data.providers;
 }
 
-export async function fetchLinkedIdentities(): Promise<Array<{ provider: string }>> {
-  const res = await apiFetch("/api/auth/identities");
-  if (!res.ok) throw new Error("Linked identities unavailable");
-  return res.json();
+export async function fetchLinkedIdentities(): Promise<PublicIdentity[]> {
+  return apiFetchJson(
+    api.auth.identities.path,
+    api.auth.identities.responses[200],
+  );
 }

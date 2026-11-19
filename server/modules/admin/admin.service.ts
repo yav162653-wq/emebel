@@ -1,11 +1,11 @@
 import { db } from "../../db/client";
-import { NotFoundError } from "../../utils/errors";
+import { NotFoundError, ValidationError } from "../../utils/errors";
+import { orderStatusSchema, type OrderStatus } from "../../../lib/api-zod/src";
 
-const ORDER_STATUSES = ["Processing", "Shipped", "Delivered"] as const;
-type OrderStatus = (typeof ORDER_STATUSES)[number];
+export const ORDER_STATUSES = orderStatusSchema.options;
 
 function isOrderStatus(status: string): status is OrderStatus {
-  return (ORDER_STATUSES as readonly string[]).includes(status);
+  return orderStatusSchema.safeParse(status).success;
 }
 
 export const AdminService = {
@@ -61,7 +61,7 @@ export const AdminService = {
 
   async updateOrderStatus(id: number, status: string) {
     if (!isOrderStatus(status)) {
-      throw new Error(`Invalid status: ${status}`);
+      throw new ValidationError("Invalid order status");
     }
     const order = await db.order.findUnique({ where: { id } });
     if (!order) throw new NotFoundError("Order");

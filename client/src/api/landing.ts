@@ -1,13 +1,8 @@
-import { apiFetch } from "./http";
+import { api, type PublicStatsResponse } from "@shared/routes";
+import { apiFetchJson } from "./http";
 
-export type PublicStats = {
-  productCount: number;
-  reviewCount: number;
-  orderCount: number;
-};
+export type PublicStats = PublicStatsResponse;
 
 export async function fetchPublicStats(): Promise<PublicStats> {
-  const res = await apiFetch("/api/stats");
-  if (!res.ok) return { productCount: 0, reviewCount: 0, orderCount: 0 };
-  return res.json();
+  return apiFetchJson(api.stats.get.path, api.stats.get.responses[200]);
 }

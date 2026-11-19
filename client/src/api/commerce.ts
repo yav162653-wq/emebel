@@ -1,20 +1,18 @@
-import { apiFetch, apiRequest } from "./http";
-import type { OrderListResponse } from "@shared/schema";
+import { api, type OrderListResponse, type ShopifyCheckoutInput, type ShopifyCheckoutResponse } from "@shared/routes";
+import { apiFetchJson, apiRequestJson } from "./http";
 
 export async function fetchMyOrders(): Promise<OrderListResponse> {
-  const res = await apiFetch("/api/orders/my");
-  if (!res.ok) return [];
-  return res.json();
-}
-
-export type ShopifyCheckoutInput = {
-  email?: string;
-  items: Array<{ productId: number; quantity: number }>;
+  return apiFetchJson(api.orders.list.path, api.orders.list.responses[200]);
 };
 
 export async function createShopifyCheckout(
   input: ShopifyCheckoutInput,
-): Promise<{ checkoutUrl: string }> {
-  const res = await apiRequest("POST", "/api/shopify/checkout", input);
-  return res.json();
+): Promise<ShopifyCheckoutResponse> {
+  const parsedInput = api.shopify.checkout.input.parse(input);
+  return apiRequestJson(
+    api.shopify.checkout.method,
+    api.shopify.checkout.path,
+    parsedInput,
+    api.shopify.checkout.responses[200],
+  );
 }

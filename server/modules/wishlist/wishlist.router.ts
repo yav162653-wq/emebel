@@ -1,63 +1,67 @@
-import { Router } from "express";
-import { z } from "zod";
+import { Router, type RequestHandler } from "express";
 import { WishlistService } from "./wishlist.service";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { requireAuth } from "../../middleware/auth";
+import { idParamSchema, wishlistSyncSchema } from "../../../lib/api-zod/src";
 
-const router = Router();
+export type WishlistRouterService = Pick<
+  typeof WishlistService,
+  "getIds" | "add" | "remove" | "clear" | "sync"
+>;
 
-// All wishlist routes require authentication
-router.use(requireAuth);
+export function createWishlistRouter(
+  service: WishlistRouterService = WishlistService,
+  authenticate: RequestHandler = requireAuth,
+) {
+  const router = Router();
 
-// GET /api/wishlist — returns array of productIds
-router.get(
-  "/",
-  asyncHandler(async (req, res) => {
-    const ids = await WishlistService.getIds(req.session.userId!);
-    res.json(ids);
-  })
-);
+  router.use(authenticate);
 
-// POST /api/wishlist/:productId — add to wishlist
-router.post(
-  "/:productId",
-  asyncHandler(async (req, res) => {
-    const productId = z.coerce.number().int().positive().parse(req.params.productId);
-    await WishlistService.add(req.session.userId!, productId);
-    res.sendStatus(204);
-  })
-);
+  router.get(
+    "/",
+    asyncHandler(async (req, res) => {
+      const ids = await service.getIds(req.session.userId!);
+      res.json(ids);
+    })
+  );
 
-// DELETE /api/wishlist/:productId — remove from wishlist
-router.delete(
-  "/:productId",
-  asyncHandler(async (req, res) => {
-    const productId = z.coerce.number().int().positive().parse(req.params.productId);
-    await WishlistService.remove(req.session.userId!, productId);
-    res.sendStatus(204);
-  })
-);
+  router.post(
+    "/sync",
+    asyncHandler(async (req, res) => {
+      const { productIds } = wishlistSyncSchema.parse(req.body);
+      await service.sync(req.session.userId!, productIds);
+      const ids = await service.getIds(req.session.userId!);
+      res.json(ids);
+    })
+  );
 
-// DELETE /api/wishlist — clear entire wishlist
-router.delete(
-  "/",
-  asyncHandler(async (req, res) => {
-    await WishlistService.clear(req.session.userId!);
-    res.sendStatus(204);
-  })
-);
+  router.post(
+    "/:productId",
+    asyncHandler(async (req, res) => {
+      const productId = idParamSchema.parse(req.params.productId);
+      await service.add(req.session.userId!, productId);
+      res.sendStatus(204);
+    })
+  );
 
-// POST /api/wishlist/sync — bulk merge guest localStorage items on login
-router.post(
-  "/sync",
-  asyncHandler(async (req, res) => {
-    const { productIds } = z
-      .object({ productIds: z.array(z.number().int().positive()) })
-      .parse(req.body);
-    await WishlistService.sync(req.session.userId!, productIds);
-    const ids = await WishlistService.getIds(req.session.userId!);
-    res.json(ids);
-  })
-);
+  router.delete(
+    "/:productId",
+    asyncHandler(async (req, res) => {
+      const productId = idParamSchema.parse(req.params.productId);
+      await service.remove(req.session.userId!, productId);
+      res.sendStatus(204);
+    })
+  );
 
-export default router;
+  router.delete(
+    "/",
+    asyncHandler(async (req, res) => {
+      await service.clear(req.session.userId!);
+      res.sendStatus(204);
+    })
+  );
+
+  return router;
+}
+
+export default createWishlistRouter();

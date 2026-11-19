@@ -1,74 +1,71 @@
-import { Router } from "express";
-import { z } from "zod";
+import { Router, type RequestHandler } from "express";
 import { CartService } from "./cart.service";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { requireAuth } from "../../middleware/auth";
 import { apiLimiter } from "../../middleware/rateLimiter";
+import { cartAddSchema, cartUpdateSchema, idParamSchema } from "../../../lib/api-zod/src";
 
-const router = Router();
+export type CartRouterService = Pick<
+  typeof CartService,
+  "getByUser" | "add" | "updateQuantity" | "remove" | "clear"
+>;
 
-const addItemSchema = z.object({
-  productId: z.number().int().positive(),
-  quantity: z.number().int().positive().default(1),
-});
+export function createCartRouter(
+  service: CartRouterService = CartService,
+  authenticate: RequestHandler = requireAuth,
+) {
+  const router = Router();
 
-const updateItemSchema = z.object({
-  quantity: z.number().int().min(0),
-});
+  router.use(authenticate);
 
-// All cart routes require auth
-router.use(requireAuth);
+  router.get(
+    "/",
+    apiLimiter,
+    asyncHandler(async (req, res) => {
+      const items = await service.getByUser(req.session.userId!);
+      res.json(items);
+    })
+  );
 
-// GET /api/cart
-router.get(
-  "/",
-  apiLimiter,
-  asyncHandler(async (req, res) => {
-    const items = await CartService.getByUser(req.session.userId!);
-    res.json(items);
-  })
-);
+  router.post(
+    "/",
+    apiLimiter,
+    asyncHandler(async (req, res) => {
+      const { productId, quantity } = cartAddSchema.parse(req.body);
+      const item = await service.add(req.session.userId!, productId, quantity);
+      res.json(item);
+    })
+  );
 
-// POST /api/cart
-router.post(
-  "/",
-  apiLimiter,
-  asyncHandler(async (req, res) => {
-    const { productId, quantity } = addItemSchema.parse(req.body);
-    const item = await CartService.add(req.session.userId!, productId, quantity);
-    res.json(item);
-  })
-);
+  router.patch(
+    "/:id",
+    asyncHandler(async (req, res) => {
+      const id = idParamSchema.parse(req.params.id);
+      const { quantity } = cartUpdateSchema.parse(req.body);
+      const item = await service.updateQuantity(req.session.userId!, id, quantity);
+      if (item === null) return res.sendStatus(204);
+      res.json(item);
+    })
+  );
 
-// PATCH /api/cart/:id — update quantity (0 = remove)
-router.patch(
-  "/:id",
-  asyncHandler(async (req, res) => {
-    const id = z.coerce.number().int().positive().parse(req.params.id);
-    const { quantity } = updateItemSchema.parse(req.body);
-    const item = await CartService.updateQuantity(req.session.userId!, id, quantity);
-    if (item === null) return res.sendStatus(204); // item removed
-    res.json(item);
-  })
-);
+  router.delete(
+    "/:id",
+    asyncHandler(async (req, res) => {
+      const id = idParamSchema.parse(req.params.id);
+      await service.remove(req.session.userId!, id);
+      res.sendStatus(204);
+    })
+  );
 
-// DELETE /api/cart/:id
-router.delete(
-  "/:id",
-  asyncHandler(async (req, res) => {
-    const id = z.coerce.number().int().positive().parse(req.params.id);
-    await CartService.remove(req.session.userId!, id);
-    res.sendStatus(204);
-  })
-);
+  router.delete(
+    "/",
+    asyncHandler(async (req, res) => {
+      await service.clear(req.session.userId!);
+      res.sendStatus(204);
+    })
+  );
 
-// DELETE /api/cart (clear all)
-router.delete(
-  "/",
-  asyncHandler(async (req, res) => {
-    await CartService.clear(req.session.userId!);
-    res.sendStatus(204);
-  })
-);
+  return router;
+}
 
-export default router;
+export default createCartRouter();

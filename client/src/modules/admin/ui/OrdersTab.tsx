@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { Package, Search, X } from "lucide-react";
-import type { AdminOrder } from "@shared/schema";
+import { api, type AdminOrder, type OrderStatus } from "@shared/routes";
 import { fetchAdminOrders, updateAdminOrderStatus } from "@/api/admin";
 
 const STATUSES = ["All", "Processing", "Shipped", "Delivered"] as const;
@@ -32,13 +32,13 @@ export function OrdersTab() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
   const [search, setSearch] = useState("");
 
-  const { data: orders = [], isLoading } = useQuery<AdminOrder[]>({
+  const { data: orders = [], isLoading, isError } = useQuery<AdminOrder[]>({
     queryKey: ["/api/admin/orders"],
     queryFn: fetchAdminOrders,
   });
 
   const updateStatus = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: string }) =>
+    mutationFn: ({ id, status }: { id: number; status: OrderStatus }) =>
       updateAdminOrderStatus(id, status),
     onSuccess: (updated) => {
       queryClient.setQueryData<AdminOrder[]>(["/api/admin/orders"], (old = []) =>
@@ -56,7 +56,7 @@ export function OrdersTab() {
     const q = search.toLowerCase().trim();
     const matchSearch = !q ||
       o.user.name.toLowerCase().includes(q) ||
-      o.user.username.toLowerCase().includes(q) ||
+      (o.user.username ?? "").toLowerCase().includes(q) ||
       `SP-${String(o.id).padStart(5, "0")}`.includes(q);
     return matchStatus && matchSearch;
   });
@@ -139,6 +139,8 @@ export function OrdersTab() {
             <Skeleton key={i} className="h-20 rounded-sm" />
           ))}
         </div>
+      ) : isError ? (
+        <p className="py-16 text-center text-sm text-destructive">Could not load orders.</p>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
           <div className="w-16 h-16 rounded-full bg-secondary/50 flex items-center justify-center">
@@ -171,7 +173,9 @@ export function OrdersTab() {
                 {/* Customer */}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{order.user.name}</p>
-                  <p className="text-xs text-muted-foreground">@{order.user.username}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {order.user.username ? `@${order.user.username}` : "—"}
+                  </p>
                 </div>
 
                 {/* Items thumbnails */}
@@ -210,7 +214,12 @@ export function OrdersTab() {
                 <div className="shrink-0 w-36">
                   <Select
                     value={order.status}
-                    onValueChange={(val) => updateStatus.mutate({ id: order.id, status: val })}
+                    onValueChange={(val) => {
+                      const parsed = api.admin.updateOrderStatus.input.safeParse({ status: val });
+                      if (parsed.success) {
+                        updateStatus.mutate({ id: order.id, status: parsed.data.status });
+                      }
+                    }}
                   >
                     <SelectTrigger
                       data-testid={`select-order-status-${order.id}`}

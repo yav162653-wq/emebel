@@ -1,17 +1,22 @@
-import { apiFetch, apiRequest } from "./http";
+import { api, type User, type UserProfileUpdate } from "@shared/routes";
+import { apiRequestJson } from "./http";
 
-export async function updateProfile(name: string) {
-  const res = await apiRequest("PATCH", "/api/auth/profile", { name });
-  return res.json();
+export async function updateProfile(name: string): Promise<User> {
+  const input: UserProfileUpdate = api.auth.profile.input.parse({ name });
+  return apiRequestJson(
+    api.auth.profile.method,
+    api.auth.profile.path,
+    input,
+    api.auth.profile.responses[200],
+  );
 }
 
-export async function requestAccountLink(email: string) {
-  const res = await apiFetch("/api/auth/account-link/request", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "Could not send confirmation email");
-  return data;
+export async function requestAccountLink(email: string): Promise<{ message: string }> {
+  const input = api.auth.accountLinkRequest.input.parse({ email });
+  return apiRequestJson(
+    api.auth.accountLinkRequest.method,
+    api.auth.accountLinkRequest.path,
+    input,
+    api.auth.accountLinkRequest.responses[202],
+  );
 }

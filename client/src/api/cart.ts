@@ -1,5 +1,6 @@
 import { api, buildUrl, type CartListResponse } from "@shared/routes";
-import { apiFetch, apiRequest } from "./http";
+import { apiFetchJson, apiRequest, apiRequestJson, apiResponseJson } from "./http";
+import type { CartItem } from "@shared/routes";
 
 export type AddCartItemInput = {
   productId: number;
@@ -12,30 +13,31 @@ export type UpdateCartItemInput = {
 };
 
 export async function fetchCart(): Promise<CartListResponse> {
-  const res = await apiFetch(api.cart.list.path);
-  if (!res.ok) {
-    if (res.status === 401) return [];
-    throw new Error("Failed to fetch cart");
-  }
-  return await res.json() as CartListResponse;
+  return apiFetchJson(api.cart.list.path, api.cart.list.responses[200]);
 }
 
-export async function addCartItem({ productId, quantity }: AddCartItemInput) {
-  const res = await apiRequest("POST", api.cart.add.path, {
-    productId,
-    quantity: quantity ?? 1,
-  });
-  return res.json();
+export async function addCartItem({ productId, quantity }: AddCartItemInput): Promise<CartItem> {
+  const input = api.cart.add.input.parse({ productId, quantity });
+  return apiRequestJson(
+    api.cart.add.method,
+    api.cart.add.path,
+    input,
+    api.cart.add.responses[200],
+  );
 }
 
-export async function updateCartItem({ id, quantity }: UpdateCartItemInput) {
+export async function updateCartItem({ id, quantity }: UpdateCartItemInput): Promise<CartItem | null> {
   const url = buildUrl(api.cart.update.path, { id });
   const res = await apiRequest(api.cart.update.method, url, { quantity });
   if (res.status === 204) return null;
-  return res.json();
+  return apiResponseJson(res, api.cart.update.responses[200]);
 }
 
 export async function removeCartItem(id: number): Promise<void> {
   const url = buildUrl(api.cart.remove.path, { id });
   await apiRequest(api.cart.remove.method, url);
+}
+
+export async function clearCart(): Promise<void> {
+  await apiRequest(api.cart.clear.method, api.cart.clear.path);
 }
