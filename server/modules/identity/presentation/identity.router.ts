@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Router, type NextFunction, type Request, type Response } from "express";
 import { DomainError } from "../../../../packages/kernel/src";
 import {
@@ -103,7 +104,10 @@ router.get(
   "/external/:provider",
   authLimiter,
   route(async (req, res) => {
-    const authorizationUrl = await externalAuthService.begin(routeParam(req.params.provider));
+    const provider = routeParam(req.params.provider);
+    const authorizationUrl = await externalAuthService.begin(provider);
+    rememberExternalAuthState(req, provider, authorizationUrl);
+    await saveSession(req);
     res.setHeader("Cache-Control", "no-store");
     res.setHeader("Referrer-Policy", "no-referrer");
     res.redirect(302, authorizationUrl);
@@ -115,10 +119,13 @@ router.get(
   requireAuth,
   authLimiter,
   route(async (req, res) => {
+    const provider = routeParam(req.params.provider);
     const authorizationUrl = await externalAuthService.begin(
-      routeParam(req.params.provider),
+      provider,
       req.session.userId!,
     );
+    rememberExternalAuthState(req, provider, authorizationUrl);
+    await saveSession(req);
     res.setHeader("Cache-Control", "no-store");
     res.setHeader("Referrer-Policy", "no-referrer");
     res.redirect(302, authorizationUrl);
@@ -127,6 +134,48 @@ router.get(
 
 function queryString(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function externalAuthStateHash(state: string): string {
+  return createHash("sha256").update(state).digest("hex");
+}
+
+function rememberExternalAuthState(
+  req: Request,
+  provider: string,
+  authorizationUrl: string,
+): void {
+  const state = queryString(new URL(authorizationUrl).searchParams.get("state"));
+  if (!state) {
+    throw new DomainError("INVALID_EXTERNAL_AUTH_STATE", "Invalid external sign-in response");
+  }
+
+  const stateHash = externalAuthStateHash(state);
+  const pendingStates = req.session.externalAuthStates ?? [];
+  req.session.externalAuthStates = [
+    ...pendingStates.filter((entry) => entry.stateHash !== stateHash),
+    { provider, stateHash },
+  ].slice(-5);
+}
+
+function consumeExternalAuthState(req: Request, provider: string, state: string): boolean {
+  const stateHash = externalAuthStateHash(state);
+  const pendingStates = req.session.externalAuthStates ?? [];
+  const isBoundToSession = pendingStates.some(
+    (entry) => entry.provider === provider && entry.stateHash === stateHash,
+  );
+  if (!isBoundToSession) return false;
+
+  req.session.externalAuthStates = pendingStates.filter(
+    (entry) => entry.provider !== provider || entry.stateHash !== stateHash,
+  );
+  return true;
+}
+
+function saveSession(req: Request): Promise<void> {
+  return new Promise((resolve, reject) => {
+    req.session.save((error) => (error ? reject(error) : resolve()));
+  });
 }
 
 function safeAuthRedirect(path: "/login" | "/shop" | "/account", error?: string): string {
@@ -147,8 +196,12 @@ router.get(
     const isAuthenticated = Boolean(req.session.userId);
 
     try {
+      if (!state || !consumeExternalAuthState(req, provider, state)) {
+        throw new DomainError("INVALID_EXTERNAL_AUTH_STATE", "Invalid external sign-in response");
+      }
+
       if (queryString(req.query.error)) {
-        const linked = await externalAuthService.cancel(provider, state ?? "");
+        const linked = await externalAuthService.cancel(provider, state);
         res.redirect(302, safeAuthRedirect(linked ? "/account" : "/login", "cancelled"));
         return;
       }

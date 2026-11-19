@@ -215,18 +215,20 @@ async function startLogin(baseUrl: string, cookie?: string) {
   const authorizationUrl = new URL(location);
   const state = authorizationUrl.searchParams.get("state");
   assert.ok(state);
-  return { authorizationLocation: location, state };
+  const boundCookie = response.headers.get("set-cookie") ? sessionCookie(response) : cookie;
+  assert.ok(boundCookie, "OAuth initiation must bind state to a browser session");
+  return { authorizationLocation: location, cookie: boundCookie, state };
 }
 
 test("HTTP OAuth callback signs in, rotates the session, and redacts secrets from logs", async (t) => {
   const harness = await createHarness(t);
   const initialSession = await fetch(`${harness.baseUrl}/__test/session/start`);
   const oldCookie = sessionCookie(initialSession);
-  const { authorizationLocation, state } = await startLogin(harness.baseUrl, oldCookie);
+  const { authorizationLocation, cookie, state } = await startLogin(harness.baseUrl, oldCookie);
 
   const callback = await fetch(
     `${harness.baseUrl}/api/auth/external/google/callback?code=${encodeURIComponent(OAUTH_CODE)}&state=${encodeURIComponent(state)}`,
-    { headers: { cookie: oldCookie }, redirect: "manual" },
+    { headers: { cookie }, redirect: "manual" },
   );
   assert.equal(callback.status, 302);
   assert.equal(callback.headers.get("location"), "https://shop.example/shop");
@@ -250,11 +252,11 @@ test("HTTP OAuth callback signs in, rotates the session, and redacts secrets fro
 
 test("HTTP OAuth callback safely redirects a provider denial", async (t) => {
   const harness = await createHarness(t);
-  const { state } = await startLogin(harness.baseUrl);
+  const { cookie, state } = await startLogin(harness.baseUrl);
 
   const response = await fetch(
     `${harness.baseUrl}/api/auth/external/google/callback?error=access_denied&state=${encodeURIComponent(state)}`,
-    { redirect: "manual" },
+    { headers: { cookie }, redirect: "manual" },
   );
 
   assert.equal(response.status, 302);
@@ -267,7 +269,7 @@ test("HTTP OAuth callback safely redirects expired and replayed state errors", a
   harness.advanceClockBy(1_001);
   const expiredResponse = await fetch(
     `${harness.baseUrl}/api/auth/external/google/callback?code=${encodeURIComponent(OAUTH_CODE)}&state=${encodeURIComponent(expired.state)}`,
-    { redirect: "manual" },
+    { headers: { cookie: expired.cookie }, redirect: "manual" },
   );
   assert.equal(expiredResponse.status, 302);
   assert.equal(expiredResponse.headers.get("location"), "https://shop.example/login?auth_error=provider_failed");
@@ -276,16 +278,38 @@ test("HTTP OAuth callback safely redirects expired and replayed state errors", a
   const fresh = await startLogin(harness.baseUrl);
   const firstCallback = await fetch(
     `${harness.baseUrl}/api/auth/external/google/callback?code=${encodeURIComponent(OAUTH_CODE)}&state=${encodeURIComponent(fresh.state)}`,
-    { redirect: "manual" },
+    { headers: { cookie: fresh.cookie }, redirect: "manual" },
   );
   assert.equal(firstCallback.status, 302);
   assert.equal(firstCallback.headers.get("location"), "https://shop.example/shop");
 
   const replay = await fetch(
     `${harness.baseUrl}/api/auth/external/google/callback?code=${encodeURIComponent(OAUTH_CODE)}&state=${encodeURIComponent(fresh.state)}`,
-    { redirect: "manual" },
+    { headers: { cookie: fresh.cookie }, redirect: "manual" },
   );
   assert.equal(replay.status, 302);
   assert.equal(replay.headers.get("location"), "https://shop.example/login?auth_error=provider_failed");
   assert.equal(harness.provider.authenticatedCodes.length, 1);
+});
+
+test("HTTP OAuth callback rejects state initiated in another browser session", async (t) => {
+  const harness = await createHarness(t);
+  const victimSession = await fetch(`${harness.baseUrl}/__test/session/start`);
+  const victimCookie = sessionCookie(victimSession);
+  const attackerLogin = await startLogin(harness.baseUrl);
+
+  const callback = await fetch(
+    `${harness.baseUrl}/api/auth/external/google/callback?code=${encodeURIComponent(OAUTH_CODE)}&state=${encodeURIComponent(attackerLogin.state)}`,
+    { headers: { cookie: victimCookie }, redirect: "manual" },
+  );
+
+  assert.equal(callback.status, 302);
+  assert.equal(callback.headers.get("location"), "https://shop.example/account?auth_error=provider_failed");
+  assert.deepEqual(harness.provider.authenticatedCodes, []);
+  assert.equal(harness.logs().includes(OAUTH_CODE), false);
+  assert.equal(harness.logs().includes(attackerLogin.state), false);
+  const currentSession = await fetch(`${harness.baseUrl}/__test/session/current`, {
+    headers: { cookie: victimCookie },
+  });
+  assert.deepEqual(await currentSession.json(), { userId: 99 });
 });

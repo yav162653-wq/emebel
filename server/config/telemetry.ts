@@ -3,6 +3,7 @@ import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-proto";
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import { env } from "./env";
 import { logger } from "./logger";
+import { ignoreOAuthCallbackRequest, redactedServerQueryParams } from "./telemetry-privacy";
 
 const serviceName = env.OTEL_SERVICE_NAME;
 const configuredEndpoint = env.OTEL_EXPORTER_OTLP_ENDPOINT;
@@ -33,6 +34,10 @@ const sdk = new NodeSDK({
     ? [
         getNodeAutoInstrumentations({
           "@opentelemetry/instrumentation-fs": { enabled: false },
+        "@opentelemetry/instrumentation-http": {
+          ignoreIncomingRequestHook: ignoreOAuthCallbackRequest,
+          redactedQueryParamsServer: redactedServerQueryParams,
+        },
         }),
       ]
     : [],
