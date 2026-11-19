@@ -86,6 +86,10 @@ The optional sync script uses Shopify credentials and the local database:
 npx tsx script/sync-shopify-catalog.ts
 ```
 
+Admin catalog reads and Shopify-idempotent mutations have a bounded retry
+policy. Storefront checkout retries reads only; cart creation is not replayed
+after a timeout because its outcome may be unknown.
+
 ## Security
 
 Never commit `.env`, credentials, or API keys. Demo accounts use predictable passwords and must not be enabled in production.

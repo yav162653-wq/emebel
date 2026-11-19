@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { promisify } from "node:util";
 import { db } from "../server/db/client";
 
@@ -6,8 +7,16 @@ const execFileAsync = promisify(execFile);
 
 type AdminResponse<T> = {
   data?: T;
-  errors?: Array<{ message: string }>;
+  errors?: Array<{ message: string; extensions?: { code?: string } }>;
+  httpStatus?: number;
 };
+
+class ShopifySyncError extends Error {
+  constructor(readonly code: string, message: string) {
+    super(message);
+    this.name = "ShopifySyncError";
+  }
+}
 
 type ShopifyVariant = {
   id: string;
@@ -33,6 +42,7 @@ type ShopifyProduct = {
 async function adminRequest<T>(
   query: string,
   variables: Record<string, unknown> = {},
+  options: { idempotentMutation?: boolean } = {},
 ): Promise<T> {
   try {
     const { stdout } = await execFileAsync(
@@ -40,29 +50,42 @@ async function adminRequest<T>(
       [
         "shopify-admin-api.mjs",
         JSON.stringify({ query, variables }),
+        "/admin/api/2026-04/graphql.json",
+        String(options.idempotentMutation === true),
       ],
-      { maxBuffer: 4 * 1024 * 1024 },
+      { maxBuffer: 4 * 1024 * 1024, timeout: 65_000 },
     );
     const parsed = JSON.parse(stdout) as AdminResponse<T>;
     if (parsed.errors?.length) {
-      throw new Error(parsed.errors.map((error) => error.message).join("; "));
+      throw new ShopifySyncError(
+        parsed.errors[0].extensions?.code ?? "SHOPIFY_GRAPHQL_ERROR",
+        parsed.errors.map((error) => error.message).join("; "),
+      );
     }
     if (!parsed.data) {
       throw new Error("Shopify Admin API returned no data");
     }
     return parsed.data;
   } catch (error) {
+    if (error instanceof ShopifySyncError) throw error;
     const stdout = error && typeof error === "object" && "stdout" in error
       ? String(error.stdout)
       : "";
-    let message = error instanceof Error ? error.message : String(error);
+    const message = error instanceof Error ? error.message : String(error);
+    let parsed: AdminResponse<unknown> | undefined;
     try {
-      const parsed = JSON.parse(stdout) as AdminResponse<unknown>;
-      if (parsed.errors?.length) {
-        message = parsed.errors.map((item) => item.message).join("; ");
-      }
+      parsed = JSON.parse(stdout) as AdminResponse<unknown>;
     } catch {
-      // Keep the original child-process error when the helper output is not JSON.
+      parsed = undefined;
+    }
+    if (parsed?.errors?.length) {
+      throw new ShopifySyncError(
+        parsed.errors[0].extensions?.code ?? "SHOPIFY_GRAPHQL_ERROR",
+        parsed.errors.map((item) => item.message).join("; "),
+      );
+    }
+    if (error && typeof error === "object" && "killed" in error && error.killed) {
+      throw new ShopifySyncError("SHOPIFY_TIMEOUT", "Shopify Admin API request timed out");
     }
     throw new Error(message);
   }
@@ -103,18 +126,35 @@ async function getTargets() {
 }
 
 async function getExistingProducts() {
-  const data = await adminRequest<{
-    products: { nodes: Array<{ id: string; title: string }> };
-  }>(`#graphql
-    query ExistingProducts {
-      products(first: 250) {
-        nodes { id title }
+  const products: Array<{ id: string; title: string }> = [];
+  let after: string | undefined;
+
+  while (true) {
+    const data = await adminRequest<{
+      products: {
+        nodes: Array<{ id: string; title: string }>;
+        pageInfo: { hasNextPage: boolean; endCursor: string | null };
+      };
+    }>(`#graphql
+      query ExistingProducts($after: String) {
+        products(first: 250, after: $after) {
+          nodes { id title }
+          pageInfo { hasNextPage endCursor }
+        }
       }
+    `, { after });
+    products.push(...data.products.nodes);
+
+    if (!data.products.pageInfo.hasNextPage) break;
+    const next = data.products.pageInfo.endCursor;
+    if (!next || next === after) {
+      throw new Error("Shopify product pagination returned no next cursor");
     }
-  `);
+    after = next;
+  }
 
   return new Map(
-    data.products.nodes.map((product) => [
+    products.map((product) => [
       product.title.trim().toLocaleLowerCase(),
       { ...product, variants: { nodes: [] } },
     ]),
@@ -146,6 +186,7 @@ async function createProduct(product: {
         status: "ACTIVE",
       },
     },
+    { idempotentMutation: true },
   );
 
   if (data.productCreate.userErrors.length || !data.productCreate.product) {
@@ -194,6 +235,7 @@ async function getVariants(productId: string) {
 
 async function syncProduct(
   product: {
+    id: number;
     name: string;
     description: string;
     price: number;
@@ -202,15 +244,18 @@ async function syncProduct(
   existing: ShopifyProduct | undefined,
   locationId: string,
   publicationId: string,
+  syncId: string,
 ) {
-  const productKey = product.name.toLocaleLowerCase().replace(/[^a-z0-9]+/g, "-");
-  const productId = existing?.id ?? await createProduct(product, `catalog-create-${productKey}`);
+  const productId = existing?.id ?? await createProduct(
+    product,
+    `catalog-create-${product.id}`,
+  );
   const variant = existing?.variants.nodes[0] ?? await getVariants(productId);
 
   await adminRequest(
     `#graphql
       mutation UpdatePrice($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
-        productVariantsBulkUpdate(productId: $productId, variants: $variants) ${idempotent(`catalog-price-${productId}`)} {
+        productVariantsBulkUpdate(productId: $productId, variants: $variants) ${idempotent(`${syncId}-price-${productId}`)} {
           productVariants { id price }
           userErrors { field message }
         }
@@ -220,19 +265,21 @@ async function syncProduct(
       productId,
       variants: [{ id: variant.id, price: (product.price / 100).toFixed(2) }],
     },
+    { idempotentMutation: true },
   );
 
   if (!variant.inventoryItem.tracked) {
     await adminRequest(
       `#graphql
         mutation TrackInventory($id: ID!, $input: InventoryItemInput!) {
-          inventoryItemUpdate(id: $id, input: $input) ${idempotent(`catalog-track-${variant.inventoryItem.id}`)} {
+          inventoryItemUpdate(id: $id, input: $input) ${idempotent(`${syncId}-track-${variant.inventoryItem.id}`)} {
             inventoryItem { id tracked }
             userErrors { field message }
           }
         }
       `,
       { id: variant.inventoryItem.id, input: { tracked: true } },
+      { idempotentMutation: true },
     );
   }
 
@@ -248,20 +295,21 @@ async function syncProduct(
     await adminRequest(
       `#graphql
         mutation ActivateInventory($inventoryItemId: ID!, $locationId: ID!) {
-          inventoryActivate(inventoryItemId: $inventoryItemId, locationId: $locationId) ${idempotent(`catalog-activate-${variant.inventoryItem.id}-${locationId}`)} {
+          inventoryActivate(inventoryItemId: $inventoryItemId, locationId: $locationId) ${idempotent(`${syncId}-activate-${variant.inventoryItem.id}-${locationId}`)} {
             inventoryLevel { id }
             userErrors { field message }
           }
         }
       `,
       { inventoryItemId: variant.inventoryItem.id, locationId },
+      { idempotentMutation: true },
     );
   }
 
   await adminRequest(
     `#graphql
       mutation SetInventory($input: InventorySetQuantitiesInput!) {
-        inventorySetQuantities(input: $input) ${idempotent(`catalog-stock-${variant.inventoryItem.id}-${product.stock}`)} {
+        inventorySetQuantities(input: $input) ${idempotent(`${syncId}-stock-${variant.inventoryItem.id}`)} {
           inventoryAdjustmentGroup { id }
           userErrors { field message }
         }
@@ -279,18 +327,20 @@ async function syncProduct(
         }],
       },
     },
+    { idempotentMutation: true },
   );
 
   await adminRequest(
     `#graphql
       mutation PublishProduct($productId: ID!, $publicationId: ID!) {
-        publishablePublish(id: $productId, input: [{ publicationId: $publicationId }]) ${idempotent(`catalog-publish-${productId}-${publicationId}`)} {
+        publishablePublish(id: $productId, input: [{ publicationId: $publicationId }]) ${idempotent(`${syncId}-publish-${productId}-${publicationId}`)} {
           publishable { publishedOnPublication(publicationId: $publicationId) }
           userErrors { field message }
         }
       }
     `,
     { productId, publicationId },
+    { idempotentMutation: true },
   );
 }
 
@@ -299,7 +349,7 @@ async function main() {
   const existingProducts = await getExistingProducts();
   const products = await db.product.findMany({
     orderBy: { id: "asc" },
-    select: { name: true, description: true, price: true, stock: true },
+    select: { id: true, name: true, description: true, price: true, stock: true },
   });
   const requestedNames = process.env.SHOPIFY_SYNC_NAMES
     ?.split("|")
@@ -313,16 +363,18 @@ async function main() {
     `Syncing ${productsToSync.length} products to location "${location.name}" and publication "${publication.name}"`,
   );
 
+  const syncId = randomUUID();
   for (const product of productsToSync) {
     const existing = existingProducts.get(product.name.trim().toLocaleLowerCase());
-    await syncProduct(product, existing, location.id, publication.id);
+    await syncProduct(product, existing, location.id, publication.id, syncId);
     console.log(`✓ ${product.name}`);
   }
 }
 
 main()
   .catch((error) => {
-    console.error(`Catalog sync failed: ${error instanceof Error ? error.message : String(error)}`);
+    const code = error instanceof ShopifySyncError ? `[${error.code}] ` : "";
+    console.error(`Catalog sync failed: ${code}${error instanceof Error ? error.message : String(error)}`);
     process.exitCode = 1;
   })
   .finally(async () => {

@@ -1,4 +1,7 @@
-import { shopifyStorefrontRequest } from "../../config/shopifyStorefrontClient";
+import {
+  shopifyStorefrontRequest,
+  ShopifyStorefrontError,
+} from "../../config/shopifyStorefrontClient";
 import { AppError, ConflictError, ValidationError } from "../../utils/errors";
 
 type LocalProduct = {
@@ -26,6 +29,20 @@ type ShopifyProduct = {
   title: string;
   variants: { nodes: ShopifyVariant[] };
 };
+
+async function storefrontRequest<T>(
+  query: string,
+  variables?: Record<string, unknown>,
+) {
+  try {
+    return await shopifyStorefrontRequest<T>(query, variables);
+  } catch (error) {
+    if (error instanceof ShopifyStorefrontError) {
+      throw new AppError(error.message, error.statusCode, error.code);
+    }
+    throw error;
+  }
+}
 
 const PRODUCTS_QUERY = `#graphql
   query ProductsForCheckout {
@@ -67,7 +84,7 @@ function normalizeName(value: string) {
 }
 
 async function getShopifyProducts() {
-  const data = await shopifyStorefrontRequest<{
+  const data = await storefrontRequest<{
     products: { nodes: ShopifyProduct[] };
   }>(PRODUCTS_QUERY);
 
@@ -132,7 +149,7 @@ export const ShopifyService = {
       input.buyerIdentity = { email };
     }
 
-    const data = await shopifyStorefrontRequest<{
+    const data = await storefrontRequest<{
       cartCreate: {
         cart: { checkoutUrl: string } | null;
         userErrors: Array<{ field?: string[]; message: string }>;

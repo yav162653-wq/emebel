@@ -44,7 +44,9 @@ Dependencies: shared schemas should be established before route/test automation.
 
 1. TD-004 - Make cart operations atomic. ✅ Atomic upsert, scoped mutation
    predicates, and transaction-backed quantity updates are covered by tests.
-2. TD-012 - Define Shopify idempotency and retry boundaries.
+2. TD-012 - Define Shopify idempotency and retry boundaries. ✅ Admin queries
+   and idempotent mutations retry once; Storefront cart creation is never
+   replayed after an ambiguous failure.
 3. Route all order/cart persistence through application services.
 4. Centralize configuration and remove working-directory assumptions.
 5. Consolidate two PostgreSQL pools only if measured; otherwise document pool ownership.
@@ -67,14 +69,15 @@ No Redis, queue, or microservice work is warranted yet.
 1. TD-014 - Split health and readiness.
 2. Add database readiness and session-store checks.
 3. TD-013 - Add Resend timeout and bounded retry policy.
-4. Add Shopify timeout classification and idempotency.
+4. Add Shopify timeout classification and idempotency. ✅ Operation-aware retry
+   limits and error categories are tested with mocked providers.
 5. Add graceful shutdown tests and verify pool closure.
 
 ## Testing Improvements
 
 1. Add PostgreSQL integration-test setup independent of `emebel_dev`.
 2. Test order/cart stock races and duplicate requests.
-3. Test Shopify Storefront with a mock GraphQL endpoint.
+3. Test Shopify Storefront and Admin retry policy with mocked GraphQL responses. ✅
 4. Test Resend with mocked HTTP.
 5. Add frontend registration/login/logout and routing tests.
 6. Add migration apply/status tests.

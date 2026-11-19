@@ -132,13 +132,21 @@
 
 ## TD-012
 
+- Status: RESOLVED WITH BOUNDED RETRIES. Admin catalog queries and mutations
+  carrying Shopify's `@idempotent` directive retry once with a 30-second request
+  timeout; per-sync mutation keys are unique and product-create keys use the
+  local product ID. Existing Shopify products are cursor-paginated. Storefront
+  reads retry once, but `cartCreate` is intentionally never replayed because
+  Storefront does not document mutation idempotency. A lost response can still
+  leave an unreturned Shopify cart; durable checkout-request deduplication
+  remains a separate follow-up if that risk is unacceptable.
 - Severity: MEDIUM
 - Category: Reliability
-- File: `server/modules/shopify/shopify.service.ts:39-155`
-- Description: Shopify catalog/checkout operations lack timeout and retry classification beyond HTTP fetch timeout.
-- Evidence: Storefront request has a timeout but no replay or idempotency contract at cart creation.
-- Impact: Duplicate or uncertain cart operations under network failure.
-- Recommended correction: Add idempotency keys and classify transient/replayable failures.
+- File: `server/config/shopifyStorefrontClient.ts`, `script/shopify-admin-client.mjs`, `script/sync-shopify-catalog.ts`
+- Description: Shopify catalog and checkout calls need bounded, operation-aware retry behavior.
+- Evidence: Mocked tests cover read retries, idempotent Admin mutation retries, non-retryable cart creation, validation failures, and timeout classification.
+- Impact: Unbounded or unsafe replay could duplicate catalog changes or carts.
+- Recommended correction: Preserve the replay boundary; implement durable request-level checkout idempotency only if the product requires safe retry after ambiguous cart creation.
 - Complexity: Medium.
 
 ## TD-013
