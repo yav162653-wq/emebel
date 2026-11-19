@@ -59,11 +59,28 @@ The application is served at `http://localhost:5000` by default.
 ```powershell
 npm run check
 npm test
+npm run test:client
 npm run build
 npm start
 ```
 
 `npm start` runs the production build and requires `NODE_ENV=production`, `DATABASE_URL`, `SESSION_SECRET`, and `APP_ORIGIN`.
+
+## Database Integration Tests
+
+```powershell
+npm run test:db-integration
+```
+
+This command requires Docker Compose. It starts a uniquely named PostgreSQL 16
+container on `127.0.0.1:55437` with temporary storage, applies and checks Prisma
+migrations, runs cart/order concurrency tests, and removes the container in a
+`finally` block. The test code rejects database URLs other than the local
+`emebel_test` target; the command does not use `.env` database URLs.
+
+The browser authentication flows (registration, login, logout, and protected
+route redirects) are exercised by `npm run test:e2e`. Run those only with a
+disposable test database configured; the development server uses `DATABASE_URL`.
 
 ## Environment
 
