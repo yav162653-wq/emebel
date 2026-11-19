@@ -5,6 +5,7 @@ import { Loader2, ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
 import { PremiumButton } from "@/shared/components/PremiumButton";
+import { consumeAuthLink } from "@/api/auth";
 
 export default function AuthLinkPage({ kind }: { kind: "magic" | "account" }) {
   const { t } = useTranslation();
@@ -24,19 +25,8 @@ export default function AuthLinkPage({ kind }: { kind: "magic" | "account" }) {
       `${window.location.pathname}${window.location.search}`,
     );
 
-    const endpoint =
-      kind === "magic"
-        ? "/api/auth/magic-link/consume"
-        : "/api/auth/account-link/consume";
-
-    void fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token }),
-    })
-      .then(async (response) => {
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || "This link is invalid or expired.");
+    void consumeAuthLink(kind, token)
+      .then((data) => {
         queryClient.setQueryData(["/api/auth/me"], data);
         setLocation("/shop");
       })

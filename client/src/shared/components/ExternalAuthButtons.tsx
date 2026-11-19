@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Github, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { fetchExternalProviders, fetchLinkedIdentities } from "@/api/external-auth";
 
 type ExternalProvider = "google" | "github" | "telegram";
 type Mode = "sign-in" | "link";
@@ -40,21 +41,13 @@ export function ExternalAuthButtons({ mode = "sign-in" }: { mode?: Mode }) {
   const { toast } = useToast();
   const providersQuery = useQuery<ProviderResponse>({
     queryKey: ["/api/auth/external/providers"],
-    queryFn: async () => {
-      const response = await fetch("/api/auth/external/providers");
-      if (!response.ok) throw new Error("Provider configuration unavailable");
-      return response.json();
-    },
+    queryFn: async () => ({ providers: await fetchExternalProviders() }),
     staleTime: 60_000,
     retry: false,
   });
   const identitiesQuery = useQuery<Identity[]>({
     queryKey: ["/api/auth/identities"],
-    queryFn: async () => {
-      const response = await fetch("/api/auth/identities");
-      if (!response.ok) throw new Error("Linked identities unavailable");
-      return response.json();
-    },
+    queryFn: fetchLinkedIdentities,
     enabled: mode === "link",
     retry: false,
   });

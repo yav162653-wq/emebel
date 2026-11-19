@@ -31,7 +31,7 @@ export default function Register() {
   });
 
   const onSubmit = (data: z.infer<typeof registerSchema>) => {
-    const { confirmPassword, ...userData } = data;
+    const { confirmPassword: _confirmPassword, ...userData } = data;
     register(userData);
   };
 
@@ -84,6 +84,8 @@ export default function Register() {
             <button
               onClick={toggleTheme}
               data-testid="button-theme-toggle"
+              aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+              type="button"
               className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
             >
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -189,6 +191,7 @@ export default function Register() {
                         <Input
                           data-testid="input-password"
                           type="password"
+                          aria-label={t("auth.password")}
                           className="h-12 bg-secondary/30 border-border focus:border-primary/50 rounded-sm"
                           autoComplete="new-password"
                           {...field}
@@ -210,6 +213,7 @@ export default function Register() {
                         <Input
                           data-testid="input-confirm-password"
                           type="password"
+                          aria-label={t("auth.confirmPassword")}
                           className="h-12 bg-secondary/30 border-border focus:border-primary/50 rounded-sm"
                           autoComplete="new-password"
                           {...field}

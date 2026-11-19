@@ -71,6 +71,26 @@ Sequence list requiring `USAGE`:
 - `users_id_seq`
 - `wishlists_id_seq`
 
+## Optional seed role
+
+The current seed inserts catalog rows through the normal Prisma client, but
+runtime `products` privileges intentionally do not include `INSERT`. To keep
+the runtime allowlist narrow, use a separate `emebel_seed` role only for
+development/test seeding:
+
+| Object | Seed role privilege |
+|---|---|
+| Database | `CONNECT` |
+| `public` schema | `USAGE` |
+| `products` | `SELECT`, `INSERT` |
+| `products_id_seq` | `USAGE` |
+| All other tables and sequences | None |
+
+`SEED_DATABASE_URL` must be local/test-only, validated by the seed policy, and
+must not be configured in production. If this role is not adopted, granting
+`INSERT` on `products` to `emebel_app` is a less restrictive alternative and
+requires explicit approval.
+
 ## Migration role: `emebel_migrator`
 
 | Operation | Migration role |
@@ -91,9 +111,19 @@ Sequence list requiring `USAGE`:
 | Role creation | No |
 | Superuser | No |
 
-The migration role should own or be granted explicit ALTER ownership over existing
-application objects. After migration ownership transfer, table and sequence
-ownership should be `emebel_migrator`.
+The migration role should own existing application tables, sequences, and
+`_prisma_migrations`. It needs `USAGE, CREATE` on the schema for migrations.
+It must not own the database or the schema itself. After migration ownership
+transfer, table and sequence ownership should be `emebel_migrator`.
+
+## Future objects and migration journal
+
+Do not configure broad default table privileges for `emebel_app`: they can
+grant it access to `_prisma_migrations` when Prisma creates that table in a
+fresh database. New application tables and sequences receive no runtime rights
+until an allowlist grant script is updated and applied by the migrator after
+the migration. CI must verify both the new application privileges and the
+continued absence of runtime access to `_prisma_migrations`.
 
 ## Session store operations
 
@@ -117,8 +147,10 @@ Runtime PostgreSQL access is through:
 - maintenance scripts in [server/db/seed.ts](/C:/Users/user/Downloads/eMebel/project/server/db/seed.ts:1)
   and [server/db/update-products.ts](/C:/Users/user/Downloads/eMebel/project/server/db/update-products.ts:1)
 
-Maintenance scripts should use `MIGRATION_DATABASE_URL` or a dedicated seed role,
-not normal runtime `DATABASE_URL`.
+Schema migrations should use `MIGRATION_DATABASE_URL`. Catalog seeding should
+use `SEED_DATABASE_URL` when the optional seed role is adopted; do not use the
+DDL-capable migration identity for routine seeding. If there is no seed role,
+the runtime role needs an explicitly reviewed `INSERT` grant on `products`.
 
 ## Variables
 
@@ -126,5 +158,6 @@ not normal runtime `DATABASE_URL`.
 |---|---|---|
 | `DATABASE_URL` | `emebel_app` | Normal application startup and runtime CRUD |
 | `MIGRATION_DATABASE_URL` | `emebel_migrator` | Prisma migration/deploy/status and controlled schema work |
+| `SEED_DATABASE_URL` | `emebel_seed` | Optional local/test catalog seed only |
 
 No passwords or credential values are included in this matrix.

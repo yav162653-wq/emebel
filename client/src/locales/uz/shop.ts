@@ -1,0 +1,26 @@
+export default {
+  shop: {
+        collectionYear: "{{year}} kolleksiyasi",
+        allProducts: "Barcha mahsulotlar",
+        piecesAvailable: "{{count}} ta mahsulot mavjud",
+        piecesAvailable_plural: "{{count}} ta mahsulot mavjud",
+        resultsFor: "\"{{query}}\" uchun {{count}} ta natija",
+        resultsFor_plural: "\"{{query}}\" uchun {{count}} ta natija",
+        price: "Narx",
+        priceRange: "Narx oralig‘i",
+        featured: "Tavsiya etilgan",
+        priceLowHigh: "Narx: arzondan qimmatga",
+        priceHighLow: "Narx: qimmatdan arzonga",
+        nameAZ: "Nomi: A–Z",
+        clearAll: "Hammasini tozalash",
+        noItems: "Mahsulotlar topilmadi",
+        noSearchResults: "\"{{query}}\" bo‘yicha natija yo‘q. Boshqa so‘zlarni sinab ko‘ring.",
+        noFilterResults: "Bu filtrlar bo‘yicha mahsulot yo‘q. Tanlovni o‘zgartirib ko‘ring.",
+        clearAllFilters: "Barcha filtrlarni tozalash",
+        allPrices: "Barcha narxlar",
+        under500: "$500 gacha",
+        price5001000: "$500–$1 000",
+        price10002000: "$1 000–$2 000",
+        over2000: "$2 000 dan yuqori",
+      }
+};

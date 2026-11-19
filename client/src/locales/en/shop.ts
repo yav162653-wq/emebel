@@ -1,0 +1,26 @@
+export default {
+  shop: {
+        collectionYear: "Collection {{year}}",
+        allProducts: "All Products",
+        piecesAvailable: "{{count}} piece available",
+        piecesAvailable_plural: "{{count}} pieces available",
+        resultsFor: "{{count}} result for \"{{query}}\"",
+        resultsFor_plural: "{{count}} results for \"{{query}}\"",
+        price: "Price",
+        priceRange: "Price Range",
+        featured: "Featured",
+        priceLowHigh: "Price: Low → High",
+        priceHighLow: "Price: High → Low",
+        nameAZ: "Name: A–Z",
+        clearAll: "Clear all",
+        noItems: "No items found",
+        noSearchResults: "No results for \"{{query}}\". Try different keywords.",
+        noFilterResults: "No products match these filters. Try adjusting your selection.",
+        clearAllFilters: "Clear all filters",
+        allPrices: "All Prices",
+        under500: "Under $500",
+        price5001000: "$500–$1,000",
+        price10002000: "$1,000–$2,000",
+        over2000: "Over $2,000",
+      }
+};

@@ -6,6 +6,7 @@ import { useAdminStats } from "../hooks/use-admin";
 import { useFurniture } from "@/modules/furniture/hooks/use-furniture";
 import { cn } from "@/lib/utils";
 import type { AdminOrder } from "@shared/schema";
+import { fetchAdminOrders } from "@/api/admin";
 
 const STATUS_COLORS: Record<string, string> = {
   Delivered:  "bg-green-100  text-green-800  dark:bg-green-900/30  dark:text-green-400",
@@ -19,11 +20,7 @@ export function OverviewTab() {
 
   const { data: recentOrders = [], isLoading: ordersLoading } = useQuery<AdminOrder[]>({
     queryKey: ["/api/admin/orders"],
-    queryFn: async () => {
-      const res = await fetch("/api/admin/orders");
-      if (!res.ok) throw new Error("Failed");
-      return res.json();
-    },
+    queryFn: fetchAdminOrders,
   });
 
   const kpiCards = stats

@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useCart } from "@/modules/furniture/hooks/use-cart";
 import { useTheme } from "@/app/providers/ThemeProvider";
 import {
-  useFurnitureStore, CATEGORIES, type Category,
+  useFurnitureStore, type Category,
 } from "@/modules/furniture/store/furniture-store";
 import { useWishlist } from "@/modules/furniture/hooks/use-wishlist";
 import { PremiumButton } from "@/shared/components/PremiumButton";
@@ -33,8 +33,8 @@ export function HeroHeader() {
   const {
     activeCategory, setCategory,
     searchQuery, setSearchQuery,
-    cartDrawerOpen, setCartDrawerOpen,
-    mobileNavOpen, setMobileNavOpen,
+    setCartDrawerOpen,
+    setMobileNavOpen,
   } = useFurnitureStore();
   const wishlist = useWishlist();
 
@@ -175,7 +175,13 @@ export function HeroHeader() {
 
             {/* Wishlist */}
             <Link href="/wishlist">
-              <PremiumButton variant="ghost" size="icon" className="relative" data-testid="button-wishlist-nav">
+              <PremiumButton
+                variant="ghost"
+                size="icon"
+                className="relative"
+                data-testid="button-wishlist-nav"
+                aria-label="Wishlist"
+              >
                 <Heart className="h-5 w-5" />
                 <AnimatePresence>
                   {wishlist.count > 0 && (
@@ -194,6 +200,7 @@ export function HeroHeader() {
             <PremiumButton
               variant="ghost" size="icon" className="relative"
               data-testid="button-cart"
+              aria-label={`Cart with ${cartCount} items`}
               onClick={() => setCartDrawerOpen(true)}
             >
               <ShoppingBag className="h-5 w-5" />
@@ -212,7 +219,12 @@ export function HeroHeader() {
             {/* User Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <PremiumButton variant="ghost" size="icon" data-testid="button-user-menu">
+                <PremiumButton
+                  variant="ghost"
+                  size="icon"
+                  data-testid="button-user-menu"
+                  aria-label="Open user menu"
+                >
                   <User className="h-5 w-5" />
                 </PremiumButton>
               </DropdownMenuTrigger>

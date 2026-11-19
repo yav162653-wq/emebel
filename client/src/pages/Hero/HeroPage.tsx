@@ -45,7 +45,7 @@ export default function HeroPage() {
             <div className="absolute -bottom-20 -right-20 w-64 h-64 rounded-full bg-white/5 blur-3xl" />
           </div>
           <div className="relative">
-            <p className="text-xs font-mono uppercase tracking-[0.3em] text-primary-foreground/50 mb-3">
+            <p className="text-xs font-mono uppercase tracking-[0.3em] text-primary-foreground/80 mb-3">
                {t("landing.designerClub")}
             </p>
             <h2 className="font-display text-3xl md:text-4xl font-medium text-primary-foreground">

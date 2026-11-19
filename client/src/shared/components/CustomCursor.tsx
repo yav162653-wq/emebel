@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, useMotionValue, useSpring } from "framer-motion";
 
 export function CustomCursor() {
@@ -27,12 +27,11 @@ export function CustomCursor() {
     const onMove = (e: MouseEvent) => {
       mouseX.set(e.clientX);
       mouseY.set(e.clientY);
-      if (!visible) setVisible(true);
+      setVisible(true);
 
       const target = e.target as HTMLElement;
       const closest = target.closest("a, button, [role=button], input, textarea, select, label, [data-cursor]");
       const cursorLabel = (closest as HTMLElement)?.dataset?.cursor || "";
-      const isImg = target.tagName === "IMG";
       const isInput = target.tagName === "INPUT" || target.tagName === "TEXTAREA";
 
       setLabel(cursorLabel);
@@ -53,7 +52,7 @@ export function CustomCursor() {
       document.removeEventListener("mouseleave", onLeave);
       document.removeEventListener("mouseenter", onEnter);
     };
-  }, []);
+  }, [mouseX, mouseY]);
 
   if (typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches) {
     return null;

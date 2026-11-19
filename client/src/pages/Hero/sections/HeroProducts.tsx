@@ -137,6 +137,7 @@ export function HeroProducts() {
           <Select value={sortOption} onValueChange={(v) => setSortOption(v as SortOption)}>
             <SelectTrigger
               data-testid="select-sort"
+              aria-label={t("shop.sortBy")}
               className="w-44 h-9 text-sm border-border bg-transparent rounded-sm"
             >
               <SelectValue />

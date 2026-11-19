@@ -1,0 +1,26 @@
+export default {
+  shop: {
+        collectionYear: "Коллекция {{year}}",
+        allProducts: "Все товары",
+        piecesAvailable: "{{count}} товар доступен",
+        piecesAvailable_plural: "{{count}} товаров доступно",
+        resultsFor: "{{count}} результат для «{{query}}»",
+        resultsFor_plural: "{{count}} результатов для «{{query}}»",
+        price: "Цена",
+        priceRange: "Диапазон цен",
+        featured: "Избранное",
+        priceLowHigh: "Цена: по возрастанию",
+        priceHighLow: "Цена: по убыванию",
+        nameAZ: "Название: А–Я",
+        clearAll: "Очистить всё",
+        noItems: "Товары не найдены",
+        noSearchResults: "По запросу «{{query}}» ничего не найдено. Попробуйте другие слова.",
+        noFilterResults: "Нет товаров с такими фильтрами. Попробуйте изменить выбор.",
+        clearAllFilters: "Сбросить все фильтры",
+        allPrices: "Все цены",
+        under500: "До $500",
+        price5001000: "$500–$1 000",
+        price10002000: "$1 000–$2 000",
+        over2000: "Более $2 000",
+      }
+};

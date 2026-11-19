@@ -1,7 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, type LoginRequest, type InsertUser } from "@shared/routes";
+import { api } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import {
+  fetchCurrentUser,
+  login,
+  logout,
+  register,
+  requestMagicLink,
+} from "@/api/auth";
+import { syncWishlist } from "@/api/wishlist";
 import { useWishlistStore } from "@/modules/furniture/store/furniture-store";
 
 export function useAuth() {
@@ -11,12 +19,7 @@ export function useAuth() {
 
   const { data: user, isLoading, isError } = useQuery({
     queryKey: [api.auth.me.path],
-    queryFn: async () => {
-      const res = await fetch(api.auth.me.path);
-      if (res.status === 401) return null;
-      if (!res.ok) throw new Error("Failed to fetch user");
-      return await res.json();
-    },
+    queryFn: fetchCurrentUser,
     retry: false,
     staleTime: 5 * 60 * 1000,
   });
@@ -26,11 +29,7 @@ export function useAuth() {
     const localIds = useWishlistStore.getState().items;
     if (localIds.length === 0) return;
     try {
-      await fetch("/api/wishlist/sync", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ productIds: localIds }),
-      });
+      await syncWishlist(localIds);
       useWishlistStore.getState().clear();
       queryClient.invalidateQueries({ queryKey: ["/api/wishlist"] });
     } catch {
@@ -39,18 +38,7 @@ export function useAuth() {
   }
 
   const loginMutation = useMutation({
-    mutationFn: async (credentials: LoginRequest) => {
-      const res = await fetch(api.auth.login.path, {
-        method:  api.auth.login.method,
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(credentials),
-      });
-      if (!res.ok) {
-        if (res.status === 401) throw new Error("Invalid credentials");
-        throw new Error("Login failed");
-      }
-      return await res.json();
-    },
+    mutationFn: login,
     onSuccess: async (data) => {
       queryClient.setQueryData([api.auth.me.path], data);
       await syncLocalWishlist();
@@ -63,18 +51,7 @@ export function useAuth() {
   });
 
   const registerMutation = useMutation({
-    mutationFn: async (data: InsertUser) => {
-      const res = await fetch(api.auth.register.path, {
-        method:  api.auth.register.method,
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Registration failed");
-      }
-      return await res.json();
-    },
+    mutationFn: register,
     onSuccess: async (data) => {
       queryClient.setQueryData([api.auth.me.path], data);
       await syncLocalWishlist();
@@ -87,9 +64,7 @@ export function useAuth() {
   });
 
   const logoutMutation = useMutation({
-    mutationFn: async () => {
-      await fetch(api.auth.logout.path, { method: api.auth.logout.method });
-    },
+    mutationFn: logout,
     onSuccess: () => {
       queryClient.setQueryData([api.auth.me.path], null);
       queryClient.clear();
@@ -99,16 +74,7 @@ export function useAuth() {
   });
 
   const magicLinkMutation = useMutation({
-    mutationFn: async (email: string) => {
-      const res = await fetch("/api/auth/magic-link/request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Could not request a sign-in link");
-      return data;
-    },
+    mutationFn: requestMagicLink,
     onSuccess: (data) => {
       toast({ title: "Check your email", description: data.message });
     },

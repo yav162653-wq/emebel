@@ -67,11 +67,11 @@ configuration currently exists.
 
 The normal application role should:
 
-- be `NOLOGIN` in database scripts and `LOGIN` for runtime, as appropriate;
+- have `LOGIN` because the application connects directly with this identity;
 - be `NOSUPERUSER`;
 - be `NOCREATEDB`;
 - be `NOCREATEROLE`;
-- be `NOINHERIT` is not recommended; it may use explicit role grants;
+- be `NOINHERIT`;
 - have no access to `_prisma_migrations`;
 - have no `CREATE`, `ALTER`, `DROP`, or schema-owner privileges;
 - receive only the table and sequence privileges required by runtime code;
@@ -93,12 +93,29 @@ The migration role should:
 The PostgreSQL superuser remains administrative and should not be used by
 application or migration processes.
 
+### Optional `emebel_seed`
+
+The current seed process inserts catalog products using the same
+`DATABASE_URL` as runtime. Granting runtime `INSERT` on `products` just to
+support seeding would expand runtime privileges. The preferred design is a
+separate development/test-only `emebel_seed` login and `SEED_DATABASE_URL`
+with only `CONNECT`, schema `USAGE`, `SELECT`/`INSERT` on `products`, and
+`USAGE` on `products_id_seq`. It must not be configured in production.
+
+The seed policy must validate the host of `SEED_DATABASE_URL` itself, not only
+the runtime URL. The seed process must use this URL through its own Prisma
+client. If introducing a third role is not approved, the alternative is to
+grant runtime `INSERT` on `products`; that is less restrictive and should be
+an explicit decision.
+
 ## Connection architecture
 
-Use two variables:
+Use separate connection variables:
 
 - `DATABASE_URL`: runtime connection for `emebel_app`
 - `MIGRATION_DATABASE_URL`: migration connection for `emebel_migrator`
+- `SEED_DATABASE_URL`: optional local/test catalog-seed connection for
+  `emebel_seed`
 
 Reasons:
 
@@ -119,6 +136,11 @@ datasource: {
 
 Runtime implementation should continue to read `DATABASE_URL` through
 [server/config/env.ts](/C:/Users/user/Downloads/eMebel/project/server/config/env.ts:6).
+
+The seed command currently imports the normal Prisma client. It must be changed
+to construct a seed-only client from `SEED_DATABASE_URL` if the optional seed
+role is adopted. The value must remain server-side and must never use a
+`VITE_*` variable.
 
 `DIRECT_DATABASE_URL` is a valid conventional alternative, but
 `MIGRATION_DATABASE_URL` is clearer because this project has no pooled
@@ -167,11 +189,19 @@ configuration changes.
 
 ## Future migrations
 
-Set PostgreSQL default privileges for objects created by `emebel_migrator`:
+Do not grant broad default table privileges to `emebel_app`. PostgreSQL default
+privileges cannot exclude `_prisma_migrations` by table name; a broad grant can
+therefore violate the requirement that runtime cannot access the migration
+journal when Prisma creates it in a fresh database.
 
-- future tables grant runtime DML;
-- future sequences grant runtime `USAGE`;
-- migration role retains ownership and DDL authority.
+Instead, after each successful migration, apply a versioned allowlist grant
+script for the reviewed application tables and sequences in
+[POSTGRESQL_PERMISSION_MATRIX.md](/C:/Users/user/Downloads/eMebel/project/docs/database/POSTGRESQL_PERMISSION_MATRIX.md).
+New tables and sequences receive no runtime privileges until reviewed and
+added to that script. The migrator remains the owner and can apply these grants.
+
+After migration bootstrap, verify that `emebel_app` has no privileges on
+`public._prisma_migrations`. Keep this check in the deployment/CI validation.
 
 Migration role ownership of existing objects is preferred over a large set of
 individual grants because future migrations must add columns, indexes, constraints,

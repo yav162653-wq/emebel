@@ -8,7 +8,6 @@ import { OverviewTab } from "@/modules/admin/ui/OverviewTab";
 import { ProductsTab } from "@/modules/admin/ui/ProductsTab";
 import { UsersTab } from "@/modules/admin/ui/UsersTab";
 import { OrdersTab } from "@/modules/admin/ui/OrdersTab";
-import { cn } from "@/lib/utils";
 
 function TabContent({ tab }: { tab: AdminTab }) {
   if (tab === "overview") return <OverviewTab />;

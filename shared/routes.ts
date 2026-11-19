@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { insertUserSchema, insertCartItemSchema } from "./schema";
 import { authApiSpec } from "../lib/api-spec/src";
 
 export type {
@@ -69,30 +68,64 @@ export const api = {
     list: {
       method:    "GET" as const,
       path:      "/api/products",
-      responses: { 200: z.array(z.any()) },
+      responses: { 200: z.array(z.unknown()) },
     },
     get: {
       method:    "GET" as const,
       path:      "/api/products/:id",
-      responses: { 200: z.any(), 404: errorSchemas.notFound },
+      responses: { 200: z.unknown(), 404: errorSchemas.notFound },
     },
   },
   cart: {
     list: {
       method:    "GET" as const,
       path:      "/api/cart",
-      responses: { 200: z.array(z.any()) },
+      responses: { 200: z.array(z.unknown()) },
     },
     add: {
       method:    "POST" as const,
       path:      "/api/cart",
       input:     z.object({ productId: z.number(), quantity: z.number().default(1) }),
-      responses: { 200: z.any() },
+      responses: { 200: z.unknown() },
+    },
+    update: {
+      method:    "PATCH" as const,
+      path:      "/api/cart/:id",
+      input:     z.object({ quantity: z.number().int().min(0) }),
+      responses: { 200: z.unknown(), 204: z.void() },
     },
     remove: {
       method:    "DELETE" as const,
       path:      "/api/cart/:id",
       responses: { 204: z.void() },
+    },
+  },
+  wishlist: {
+    list: {
+      method:    "GET" as const,
+      path:      "/api/wishlist",
+      responses: { 200: z.array(z.number()) },
+    },
+    add: {
+      method:    "POST" as const,
+      path:      "/api/wishlist/:productId",
+      responses: { 204: z.void() },
+    },
+    remove: {
+      method:    "DELETE" as const,
+      path:      "/api/wishlist/:productId",
+      responses: { 204: z.void() },
+    },
+    clear: {
+      method:    "DELETE" as const,
+      path:      "/api/wishlist",
+      responses: { 204: z.void() },
+    },
+    sync: {
+      method:    "POST" as const,
+      path:      "/api/wishlist/sync",
+      input:     z.object({ productIds: z.array(z.number().int().positive()) }),
+      responses: { 200: z.array(z.number()) },
     },
   },
 } as const;

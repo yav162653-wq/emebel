@@ -8,20 +8,17 @@
  * is active. Optimistic updates keep the UI instant.
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { api } from "@shared/routes";
 import { useAuth } from "@/hooks/use-auth";
+import {
+  addWishlistItem,
+  clearWishlist,
+  fetchWishlist,
+  removeWishlistItem,
+} from "@/api/wishlist";
 import { useWishlistStore } from "../store/furniture-store";
 
-const WISHLIST_KEY = ["/api/wishlist"];
-
-async function apiRequest(method: string, url: string, body?: unknown) {
-  const res = await fetch(url, {
-    method,
-    headers: body ? { "Content-Type": "application/json" } : undefined,
-    body:    body ? JSON.stringify(body) : undefined,
-  });
-  if (!res.ok && res.status !== 204) throw new Error(await res.text());
-  return res;
-}
+const WISHLIST_KEY = [api.wishlist.list.path];
 
 export function useWishlist() {
   const { isAuthenticated } = useAuth();
@@ -31,17 +28,13 @@ export function useWishlist() {
   // ── Remote state (authenticated) ─────────────────────────────────────
   const { data: remoteIds = [], isLoading: remoteLoading } = useQuery<number[]>({
     queryKey: WISHLIST_KEY,
-    queryFn:  async () => {
-      const res = await fetch("/api/wishlist");
-      if (!res.ok) throw new Error("Failed to fetch wishlist");
-      return res.json();
-    },
+    queryFn: fetchWishlist,
     enabled:   isAuthenticated,
     staleTime: 2 * 60 * 1000,
   });
 
   const addMutation = useMutation({
-    mutationFn: (productId: number) => apiRequest("POST", `/api/wishlist/${productId}`),
+    mutationFn: addWishlistItem,
     onMutate: async (productId) => {
       await queryClient.cancelQueries({ queryKey: WISHLIST_KEY });
       const prev = queryClient.getQueryData<number[]>(WISHLIST_KEY) ?? [];
@@ -57,7 +50,7 @@ export function useWishlist() {
   });
 
   const removeMutation = useMutation({
-    mutationFn: (productId: number) => apiRequest("DELETE", `/api/wishlist/${productId}`),
+    mutationFn: removeWishlistItem,
     onMutate: async (productId) => {
       await queryClient.cancelQueries({ queryKey: WISHLIST_KEY });
       const prev = queryClient.getQueryData<number[]>(WISHLIST_KEY) ?? [];
@@ -71,7 +64,7 @@ export function useWishlist() {
   });
 
   const clearMutation = useMutation({
-    mutationFn: () => apiRequest("DELETE", "/api/wishlist"),
+    mutationFn: clearWishlist,
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: WISHLIST_KEY });
       const prev = queryClient.getQueryData<number[]>(WISHLIST_KEY);
@@ -92,7 +85,11 @@ export function useWishlist() {
 
   const toggle = (productId: number) => {
     if (isAuthenticated) {
-      has(productId) ? removeMutation.mutate(productId) : addMutation.mutate(productId);
+      if (has(productId)) {
+        removeMutation.mutate(productId);
+      } else {
+        addMutation.mutate(productId);
+      }
     } else {
       local.toggle(productId);
     }

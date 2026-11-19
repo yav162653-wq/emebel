@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { createRequire } from "node:module";
-import type { PrismaClient as PrismaClientType } from "@prisma/client";
+import type { Prisma, PrismaClient as PrismaClientType } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import { logger } from "../config/logger";
@@ -32,15 +32,15 @@ function createPrismaClient() {
         ],
   });
 
-  client.$on("query" as never, (e: any) => {
+  client.$on("query" as never, (e: Prisma.QueryEvent) => {
     dbLogger.debug({ query: e.query, durationMs: e.duration }, "prisma query");
   });
 
-  client.$on("error" as never, (e: any) => {
+  client.$on("error" as never, (e: Prisma.LogEvent) => {
     dbLogger.error({ msg: e.message }, "prisma error");
   });
 
-  client.$on("warn" as never, (e: any) => {
+  client.$on("warn" as never, (e: Prisma.LogEvent) => {
     dbLogger.warn({ msg: e.message }, "prisma warning");
   });
 

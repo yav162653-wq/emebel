@@ -14,6 +14,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { ReviewSummary } from "@shared/schema";
 import { useTranslation } from "react-i18next";
+import { fetchReviewSummary } from "@/api/reviews";
 
 interface QuickViewProps {
   product: Product | null;
@@ -26,15 +27,11 @@ export function QuickView({ product, onClose }: QuickViewProps) {
   const { has, toggle } = useWishlist();
   const { setCartDrawerOpen } = useFurnitureStore();
   const { toast } = useToast();
-  const [quantity, setQuantity] = useState(1);
+  const [quantity] = useState(1);
   const [imgLoaded, setImgLoaded] = useState(false);
   const { data: reviewSummary } = useQuery<ReviewSummary>({
     queryKey: ["/api/reviews", product?.id, "summary"],
-    queryFn: async () => {
-      const res = await fetch(`/api/reviews/${product!.id}/summary`);
-      if (!res.ok) throw new Error("Failed to load review summary");
-      return res.json();
-    },
+    queryFn: () => fetchReviewSummary(product!.id),
     enabled: !!product,
   });
 

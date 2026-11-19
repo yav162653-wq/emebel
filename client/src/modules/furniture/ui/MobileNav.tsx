@@ -41,7 +41,7 @@ export function MobileNav() {
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                   <span className="text-sm font-semibold text-primary uppercase">
-                    {(user.name || user.username).charAt(0)}
+                    {(user.name || user.username || "").charAt(0)}
                   </span>
                 </div>
                 <div className="min-w-0">

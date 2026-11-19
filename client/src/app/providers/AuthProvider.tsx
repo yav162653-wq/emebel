@@ -1,15 +1,14 @@
-import React, { createContext, useContext, useEffect } from 'react';
+import React, { createContext, useContext } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import type { User } from '@shared/schema';
-import { Loader2 } from 'lucide-react';
+import type { InsertUser, LoginRequest, User } from '@shared/schema';
 
 interface AuthContextType {
   user: User | undefined | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (data: any) => void;
+  login: (data: LoginRequest) => void;
   logout: () => void;
-  register: (data: any) => void;
+  register: (data: InsertUser) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

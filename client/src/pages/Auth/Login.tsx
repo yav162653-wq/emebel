@@ -86,6 +86,8 @@ export default function Login() {
             <button
               onClick={toggleTheme}
               data-testid="button-theme-toggle"
+              aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+              type="button"
               className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
             >
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -157,6 +159,7 @@ export default function Login() {
                           <Input
                             data-testid="input-password"
                             type={showPassword ? "text" : "password"}
+                            aria-label={t("auth.password")}
                             className="h-12 bg-secondary/30 border-border focus:border-primary/50 focus:ring-0 rounded-sm pr-10"
                             autoComplete="current-password"
                             {...field}
@@ -164,6 +167,7 @@ export default function Login() {
                           <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
+                            aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                           >
                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

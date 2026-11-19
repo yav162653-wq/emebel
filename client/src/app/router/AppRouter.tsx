@@ -3,6 +3,7 @@ import { useAuthContext } from "@/app/providers/AuthProvider";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { lazy, Suspense } from "react";
+import { AppErrorBoundary } from "@/shared/components/AppErrorBoundary";
 
 const LandingPage = lazy(() => import("@/pages/Landing/LandingPage"));
 const Login = lazy(() => import("@/pages/Auth/Login"));
@@ -64,16 +65,17 @@ export function AppRouter() {
   const [location] = useLocation();
 
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      <PageTransition key={location}>
-        <Suspense
-          fallback={
-            <div className="h-screen w-screen flex items-center justify-center bg-background">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          }
-        >
-          <Switch location={location}>
+    <AppErrorBoundary resetKey={location} compact>
+      <AnimatePresence mode="wait" initial={false}>
+        <PageTransition key={location}>
+          <Suspense
+            fallback={
+              <div className="h-screen w-screen flex items-center justify-center bg-background">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            }
+          >
+            <Switch location={location}>
             <Route path="/" component={LandingPage} />
             <Route path="/login" component={Login} />
             <Route path="/register" component={Register} />
@@ -102,9 +104,10 @@ export function AppRouter() {
               {() => <ProtectedRoute component={WishlistPage} />}
             </Route>
             <Route component={NotFound} />
-          </Switch>
-        </Suspense>
-      </PageTransition>
-    </AnimatePresence>
+            </Switch>
+          </Suspense>
+        </PageTransition>
+      </AnimatePresence>
+    </AppErrorBoundary>
   );
 }

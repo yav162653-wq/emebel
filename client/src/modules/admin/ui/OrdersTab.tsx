@@ -7,8 +7,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { Package, Search, ShoppingBag, X } from "lucide-react";
+import { Package, Search, X } from "lucide-react";
 import type { AdminOrder } from "@shared/schema";
+import { fetchAdminOrders, updateAdminOrderStatus } from "@/api/admin";
 
 const STATUSES = ["All", "Processing", "Shipped", "Delivered"] as const;
 type StatusFilter = typeof STATUSES[number];
@@ -33,23 +34,12 @@ export function OrdersTab() {
 
   const { data: orders = [], isLoading } = useQuery<AdminOrder[]>({
     queryKey: ["/api/admin/orders"],
-    queryFn: async () => {
-      const res = await fetch("/api/admin/orders");
-      if (!res.ok) throw new Error("Failed to fetch orders");
-      return res.json();
-    },
+    queryFn: fetchAdminOrders,
   });
 
   const updateStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: number; status: string }) => {
-      const res = await fetch(`/api/admin/orders/${id}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-      if (!res.ok) throw new Error("Failed to update");
-      return res.json();
-    },
+    mutationFn: ({ id, status }: { id: number; status: string }) =>
+      updateAdminOrderStatus(id, status),
     onSuccess: (updated) => {
       queryClient.setQueryData<AdminOrder[]>(["/api/admin/orders"], (old = []) =>
         old.map((o) => (o.id === updated.id ? updated : o))

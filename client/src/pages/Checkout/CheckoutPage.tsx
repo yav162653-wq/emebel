@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { createShopifyCheckout } from "@/api/commerce";
 
 type Step = "cart" | "shipping" | "payment";
 
@@ -42,23 +43,13 @@ export default function CheckoutPage() {
       }
       checkoutWindow.opener = null;
 
-      const res = await fetch("/api/shopify/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...(shippingData.email ? { email: shippingData.email } : {}),
-          items: items.map((item) => ({
-            productId: item.product.id,
-            quantity: item.quantity,
-          })),
-        }),
+      const payload = await createShopifyCheckout({
+        ...(shippingData.email ? { email: shippingData.email } : {}),
+        items: items.map((item) => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+        })),
       });
-
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok || !payload.checkoutUrl) {
-        throw new Error(payload.error ?? "Checkout failed");
-      }
-
       checkoutWindow.location.replace(payload.checkoutUrl);
     } catch {
       checkoutWindow?.close();

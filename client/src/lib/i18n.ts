@@ -15,6 +15,7 @@ function getSavedLang(): string {
 }
 
 if (!i18n.isInitialized) {
+  document.documentElement.lang = getSavedLang();
   i18n.use(initReactI18next).init({
     resources: {
       en: { translation: en },
@@ -27,6 +28,7 @@ if (!i18n.isInitialized) {
   });
 
   i18n.on("languageChanged", (lng) => {
+    document.documentElement.lang = lng;
     try {
       localStorage.setItem(STORAGE_KEY, lng);
     } catch {

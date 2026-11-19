@@ -25,7 +25,7 @@ export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
           variant="ghost"
           size={compact ? "icon" : "sm"}
           data-testid="button-language-switcher"
-          aria-label={t("common.changeLanguage")}
+          aria-label={`${current.code} - ${t("common.changeLanguage")}`}
           className="gap-1.5"
         >
           <Globe className="h-4 w-4" />

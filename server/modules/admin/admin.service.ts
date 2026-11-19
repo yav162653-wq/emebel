@@ -2,6 +2,11 @@ import { db } from "../../db/client";
 import { NotFoundError } from "../../utils/errors";
 
 const ORDER_STATUSES = ["Processing", "Shipped", "Delivered"] as const;
+type OrderStatus = (typeof ORDER_STATUSES)[number];
+
+function isOrderStatus(status: string): status is OrderStatus {
+  return (ORDER_STATUSES as readonly string[]).includes(status);
+}
 
 export const AdminService = {
   async getStats() {
@@ -55,7 +60,7 @@ export const AdminService = {
   },
 
   async updateOrderStatus(id: number, status: string) {
-    if (!ORDER_STATUSES.includes(status as any)) {
+    if (!isOrderStatus(status)) {
       throw new Error(`Invalid status: ${status}`);
     }
     const order = await db.order.findUnique({ where: { id } });
