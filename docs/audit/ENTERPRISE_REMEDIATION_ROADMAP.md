@@ -42,7 +42,8 @@ Dependencies: shared schemas should be established before route/test automation.
 
 ## Architecture Improvements
 
-1. TD-004 - Make cart operations atomic.
+1. TD-004 - Make cart operations atomic. ✅ Atomic upsert, scoped mutation
+   predicates, and transaction-backed quantity updates are covered by tests.
 2. TD-012 - Define Shopify idempotency and retry boundaries.
 3. Route all order/cart persistence through application services.
 4. Centralize configuration and remove working-directory assumptions.

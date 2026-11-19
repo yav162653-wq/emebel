@@ -7,6 +7,16 @@ type CartItemUpsertInput = {
   quantity: number;
 };
 
+type CartItemMutationInput = {
+  id: number;
+  userId: number;
+};
+
+type CartItemOwnership = {
+  id: number;
+  userId: number;
+};
+
 export function createCartItemAdder<T>(
   findProduct: (productId: number) => Promise<{ id: number } | null>,
   upsertCartItem: (input: CartItemUpsertInput) => Promise<T>,
@@ -16,6 +26,37 @@ export function createCartItemAdder<T>(
     if (!product) throw new NotFoundError("Product");
     return upsertCartItem({ userId, productId, quantity });
   };
+}
+
+export function createCartItemMutator<T>(
+  findItem: (id: number) => Promise<CartItemOwnership | null>,
+  updateItem: (input: CartItemMutationInput & { quantity: number }) => Promise<T | null>,
+  deleteItem: (input: CartItemMutationInput) => Promise<boolean>,
+) {
+  async function assertOwner(userId: number, id: number) {
+    const item = await findItem(id);
+    if (!item) throw new NotFoundError("Cart item");
+    if (item.userId !== userId) throw new ForbiddenError();
+  }
+
+  async function remove(userId: number, id: number): Promise<void> {
+    await assertOwner(userId, id);
+    if (!await deleteItem({ id, userId })) throw new NotFoundError("Cart item");
+  }
+
+  async function updateQuantity(userId: number, id: number, quantity: number): Promise<T | null> {
+    await assertOwner(userId, id);
+    if (quantity <= 0) {
+      if (!await deleteItem({ id, userId })) throw new NotFoundError("Cart item");
+      return null;
+    }
+
+    const item = await updateItem({ id, userId, quantity });
+    if (!item) throw new NotFoundError("Cart item");
+    return item;
+  }
+
+  return { updateQuantity, remove };
 }
 
 const addCartItem = createCartItemAdder(
@@ -30,6 +71,25 @@ const addCartItem = createCartItemAdder(
   }),
 );
 
+const cartItemMutator = createCartItemMutator(
+  (id) => db.cartItem.findUnique({
+    where: { id },
+    select: { id: true, userId: true },
+  }),
+  ({ id, userId, quantity }) => db.$transaction(async (tx) => {
+    const result = await tx.cartItem.updateMany({
+      where: { id, userId },
+      data: { quantity },
+    });
+    if (result.count === 0) return null;
+    return tx.cartItem.findUnique({ where: { id, userId } });
+  }),
+  async ({ id, userId }) => {
+    const result = await db.cartItem.deleteMany({ where: { id, userId } });
+    return result.count > 0;
+  },
+);
+
 export const CartService = {
   async getByUser(userId: number) {
     return db.cartItem.findMany({
@@ -41,23 +101,9 @@ export const CartService = {
 
   add: addCartItem,
 
-  async updateQuantity(userId: number, id: number, quantity: number) {
-    const item = await db.cartItem.findUnique({ where: { id } });
-    if (!item) throw new NotFoundError("Cart item");
-    if (item.userId !== userId) throw new ForbiddenError();
-    if (quantity <= 0) {
-      await db.cartItem.delete({ where: { id } });
-      return null;
-    }
-    return db.cartItem.update({ where: { id }, data: { quantity } });
-  },
+  updateQuantity: cartItemMutator.updateQuantity,
 
-  async remove(userId: number, id: number) {
-    const item = await db.cartItem.findUnique({ where: { id } });
-    if (!item) throw new NotFoundError("Cart item");
-    if (item.userId !== userId) throw new ForbiddenError();
-    await db.cartItem.delete({ where: { id } });
-  },
+  remove: cartItemMutator.remove,
 
   async clear(userId: number) {
     await db.cartItem.deleteMany({ where: { userId } });

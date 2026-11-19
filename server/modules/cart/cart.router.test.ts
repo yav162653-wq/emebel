@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { startHttpTestServer } from "../../test-utils/http";
-import { NotFoundError } from "../../utils/errors";
-import { CartService, createCartItemAdder } from "./cart.service";
+import { ForbiddenError, NotFoundError } from "../../utils/errors";
+import { CartService, createCartItemAdder, createCartItemMutator } from "./cart.service";
 import { createCartRouter, type CartRouterService } from "./cart.router";
 
 function createService(): { service: CartRouterService; calls: string[] } {
@@ -60,6 +60,66 @@ test("cart add does not upsert a missing product", async () => {
 
   await assert.rejects(add(42, 404), NotFoundError);
   assert.equal(upsertCalls, 0);
+});
+
+test("cart quantity updates pass user ownership into the atomic database write", async () => {
+  const inputs: unknown[] = [];
+  const update = createCartItemMutator(
+    async (id) => ({ id, userId: 42 }),
+    async (input) => {
+      inputs.push(input);
+      return { ...input, productId: 7 };
+    },
+    async () => true,
+  );
+
+  const result = await update.updateQuantity(42, 3, 5);
+
+  assert.deepEqual(result, { id: 3, userId: 42, quantity: 5, productId: 7 });
+  assert.deepEqual(inputs, [{ id: 3, userId: 42, quantity: 5 }]);
+});
+
+test("cart mutation rejects a different owner before writing", async () => {
+  let writeCalls = 0;
+  const mutator = createCartItemMutator(
+    async (id) => ({ id, userId: 99 }),
+    async () => {
+      writeCalls += 1;
+      return null;
+    },
+    async () => {
+      writeCalls += 1;
+      return false;
+    },
+  );
+
+  await assert.rejects(mutator.remove(42, 3), ForbiddenError);
+  assert.equal(writeCalls, 0);
+});
+
+test("cart quantity zero uses the owner-scoped delete", async () => {
+  const inputs: unknown[] = [];
+  const mutator = createCartItemMutator(
+    async (id) => ({ id, userId: 42 }),
+    async () => null,
+    async (input) => {
+      inputs.push(input);
+      return true;
+    },
+  );
+
+  assert.equal(await mutator.updateQuantity(42, 3, 0), null);
+  assert.deepEqual(inputs, [{ id: 3, userId: 42 }]);
+});
+
+test("cart removal reports not found when another request already deleted the item", async () => {
+  const mutator = createCartItemMutator(
+    async (id) => ({ id, userId: 42 }),
+    async () => null,
+    async () => false,
+  );
+
+  await assert.rejects(mutator.remove(42, 3), NotFoundError);
 });
 
 test("cart routes authenticate, default quantity, and support removal by zero quantity", async (t) => {

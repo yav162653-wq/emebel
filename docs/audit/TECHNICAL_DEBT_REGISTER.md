@@ -35,6 +35,11 @@
 
 ## TD-004
 
+- Status: RESOLVED. Cart creation uses the `(userId, productId)` unique key
+  with atomic upsert/increment. Quantity updates run in a transaction and
+  writes/deletes are scoped to the owning user; concurrent disappearance is
+  mapped to not-found. Client mutations have retries disabled because add is
+  intentionally an increment operation.
 - Severity: HIGH
 - Category: Concurrency
 - File: `server/modules/cart/cart.service.ts:14-38`
