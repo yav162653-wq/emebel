@@ -13,6 +13,7 @@ import { asyncHandler } from "../../../utils/asyncHandler";
 import { authLimiter } from "../../../middleware/rateLimiter";
 import { getAuthenticatedUserId, requireAuth } from "../../../middleware/auth";
 import { logger } from "../../../config/logger";
+import { createResponseSpanMiddleware } from "../../../config/tracing";
 import type { ExternalAuthService } from "../application/external-auth.service";
 import type { IdentityService } from "../application/identity.service";
 
@@ -89,9 +90,45 @@ function routeParam(value: string | string[] | undefined): string {
   return typeof value === "string" ? value : value?.[0] ?? "";
 }
 
+function authOperation(req: Request): string {
+  const staticOperations: Record<string, string> = {
+    "GET /external/providers": "external.providers",
+    "POST /login": "login",
+    "POST /register": "register",
+    "POST /logout": "logout",
+    "GET /me": "session.read",
+    "PATCH /profile": "profile.update",
+    "GET /identities": "identities.read",
+    "POST /magic-link/request": "magic_link.request",
+    "POST /magic-link/consume": "magic_link.consume",
+    "POST /account-link/request": "account_link.request",
+    "POST /account-link/consume": "account_link.consume",
+  };
+  const operation = staticOperations[`${req.method} ${req.path}`];
+  if (operation) return operation;
+  if (req.method === "GET" && /^\/external\/[^/]+\/callback$/.test(req.path)) {
+    return "external.callback";
+  }
+  if (req.method === "GET" && /^\/external\/[^/]+\/link$/.test(req.path)) {
+    return "external.link";
+  }
+  if (req.method === "GET" && /^\/external\/[^/]+$/.test(req.path)) {
+    return "external.begin";
+  }
+  return "other";
+}
+
 export function createIdentityRouter(dependencies: IdentityRouterDependencies): Router {
   const router = Router();
   const { externalAuthService, identityAppOrigin, identityService } = dependencies;
+
+  router.use(createResponseSpanMiddleware((req) => {
+    const operation = authOperation(req);
+    return {
+      name: `auth.${operation}`,
+      attributes: { "auth.operation": operation },
+    };
+  }));
 
 router.get(
   "/external/providers",

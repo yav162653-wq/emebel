@@ -108,6 +108,16 @@ percentiles from the histogram in Prometheus, for example:
 histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket[5m])))
 ```
 
+## Tracing
+
+Set `OTEL_EXPORTER_OTLP_ENDPOINT` to an OTLP/HTTP collector endpoint to enable
+OpenTelemetry traces; `OTEL_SERVICE_NAME` controls the service name. Tracing is
+disabled when no collector endpoint is configured. The application adds spans
+for authentication operations, Shopify Storefront operations, and Resend email
+sends, while PostgreSQL and outbound HTTP instrumentation supplies database and
+network spans. Span attributes use operation names and email kind, not user
+identities, email addresses, credentials, or request bodies.
+
 ## Shopify
 
 Set `SHOPIFY_SHOP_DOMAIN`, `SHOPIFY_STOREFRONT_ACCESS_TOKEN`, and `SHOPIFY_ADMIN_ACCESS_TOKEN` for catalog/checkout integrations.

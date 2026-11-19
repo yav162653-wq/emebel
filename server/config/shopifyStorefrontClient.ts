@@ -1,4 +1,5 @@
 import { env } from "./env";
+import { withActiveSpan } from "./tracing";
 import {
   isGraphqlError,
   isReadOnlyQuery,
@@ -58,7 +59,7 @@ export function createShopifyStorefrontClient(
   configProvider: ConfigProvider = getShopifyStorefrontConfig,
   fetcher: Fetcher = fetch,
 ) {
-  async function request<T>(
+  async function executeRequest<T>(
     query: string,
     variables?: Record<string, unknown>,
     options: { retryOnUnauthorized?: boolean } = {},
@@ -161,6 +162,22 @@ export function createShopifyStorefrontClient(
     }
 
     throw statusError(503, retrySafe);
+  }
+
+  function operationName(query: string): string {
+    return query.match(/\b(?:query|mutation)\s+([A-Za-z_]\w*)/)?.[1] ?? "unknown";
+  }
+
+  async function request<T>(
+    query: string,
+    variables?: Record<string, unknown>,
+    options: { retryOnUnauthorized?: boolean } = {},
+  ): Promise<T> {
+    return withActiveSpan(
+      "shopify.storefront.request",
+      { "shopify.operation": operationName(query) },
+      () => executeRequest<T>(query, variables, options),
+    );
   }
 
   return { request };

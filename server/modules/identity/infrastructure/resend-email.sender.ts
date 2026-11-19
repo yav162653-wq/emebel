@@ -1,5 +1,6 @@
 import { env } from "../../../config/env";
 import { applicationMetrics } from "../../../config/metrics";
+import { withActiveSpan } from "../../../config/tracing";
 import { DomainError } from "../../../../packages/kernel/src";
 import type {
   EmailMessage,
@@ -74,6 +75,14 @@ export class ResendEmailSender implements EmailSender {
   }
 
   async send(message: EmailMessage): Promise<void> {
+    return withActiveSpan(
+      "resend.email.send",
+      { "email.provider": "resend", "email.kind": message.kind },
+      () => this.sendWithRetry(message),
+    );
+  }
+
+  private async sendWithRetry(message: EmailMessage): Promise<void> {
     if (!this.from) {
       applicationMetrics.recordProviderFailure("resend", "EMAIL_SENDER_NOT_CONFIGURED");
       throw new DomainError(
