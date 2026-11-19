@@ -1,8 +1,9 @@
 import { Router, type RequestHandler } from "express";
 import { AdminService } from "./admin.service";
 import { asyncHandler } from "../../utils/asyncHandler";
-import { requireAdmin } from "../../middleware/auth";
+import { getAuthenticatedUserId, requireAdmin } from "../../middleware/auth";
 import { adminLimiter } from "../../middleware/rateLimiter";
+import { recordAuditEvent, type AuditEvent } from "../audit/audit.service";
 import {
   adminProductUpdateSchema,
   adminOrderStatusUpdateSchema,
@@ -12,10 +13,12 @@ import {
 } from "../../../lib/api-zod/src";
 
 export type AdminRouterService = typeof AdminService;
+export type AuditRecorder = (event: AuditEvent) => void;
 
 export function createAdminRouter(
   service: AdminRouterService = AdminService,
   authorize: RequestHandler = requireAdmin,
+  audit: AuditRecorder = recordAuditEvent,
 ) {
   const router = Router();
 
@@ -44,6 +47,13 @@ export function createAdminRouter(
       const id = idParamSchema.parse(req.params.id);
       const data = adminProductUpdateSchema.parse(req.body);
       const product = await service.updateProduct(id, data);
+      audit({
+        event: "admin.product.updated",
+        actorId: getAuthenticatedUserId(req),
+        ...(typeof req.id === "string" ? { requestId: req.id } : {}),
+        productId: id,
+        changedFields: Object.keys(data),
+      });
       res.json(product);
     })
   );
@@ -63,6 +73,13 @@ export function createAdminRouter(
       const id = idParamSchema.parse(req.params.id);
       const { status } = adminOrderStatusUpdateSchema.parse(req.body);
       const order = await service.updateOrderStatus(id, status);
+      audit({
+        event: "admin.order.status.updated",
+        actorId: getAuthenticatedUserId(req),
+        ...(typeof req.id === "string" ? { requestId: req.id } : {}),
+        orderId: id,
+        status,
+      });
       res.json(order);
     })
   );

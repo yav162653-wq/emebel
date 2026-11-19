@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { promisify } from "node:util";
 import { db } from "../server/db/client";
+import { recordAuditEvent } from "../server/modules/audit/audit.service";
 
 const execFileAsync = promisify(execFile);
 
@@ -16,6 +17,13 @@ class ShopifySyncError extends Error {
     super(message);
     this.name = "ShopifySyncError";
   }
+}
+
+function auditErrorCode(error: unknown): string {
+  const code = error instanceof ShopifySyncError
+    ? error.code
+    : error instanceof Error ? error.name : "UNKNOWN_ERROR";
+  return /^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(code) ? code : "UNKNOWN_ERROR";
 }
 
 type ShopifyVariant = {
@@ -345,29 +353,49 @@ async function syncProduct(
 }
 
 async function main() {
-  const { location, publication } = await getTargets();
-  const existingProducts = await getExistingProducts();
-  const products = await db.product.findMany({
-    orderBy: { id: "asc" },
-    select: { id: true, name: true, description: true, price: true, stock: true },
-  });
-  const requestedNames = process.env.SHOPIFY_SYNC_NAMES
-    ?.split("|")
-    .map((name) => name.trim().toLocaleLowerCase())
-    .filter(Boolean);
-  const productsToSync = requestedNames?.length
-    ? products.filter((product) => requestedNames.includes(product.name.toLocaleLowerCase()))
-    : products;
+  const operationId = randomUUID();
+  let productCount: number | undefined;
+  recordAuditEvent({ event: "shopify.catalog.sync.started", operationId });
 
-  console.log(
-    `Syncing ${productsToSync.length} products to location "${location.name}" and publication "${publication.name}"`,
-  );
+  try {
+    const { location, publication } = await getTargets();
+    const existingProducts = await getExistingProducts();
+    const products = await db.product.findMany({
+      orderBy: { id: "asc" },
+      select: { id: true, name: true, description: true, price: true, stock: true },
+    });
+    const requestedNames = process.env.SHOPIFY_SYNC_NAMES
+      ?.split("|")
+      .map((name) => name.trim().toLocaleLowerCase())
+      .filter(Boolean);
+    const productsToSync = requestedNames?.length
+      ? products.filter((product) => requestedNames.includes(product.name.toLocaleLowerCase()))
+      : products;
+    productCount = productsToSync.length;
 
-  const syncId = randomUUID();
-  for (const product of productsToSync) {
-    const existing = existingProducts.get(product.name.trim().toLocaleLowerCase());
-    await syncProduct(product, existing, location.id, publication.id, syncId);
-    console.log(`✓ ${product.name}`);
+    console.log(
+      `Syncing ${productsToSync.length} products to location "${location.name}" and publication "${publication.name}"`,
+    );
+
+    for (const product of productsToSync) {
+      const existing = existingProducts.get(product.name.trim().toLocaleLowerCase());
+      await syncProduct(product, existing, location.id, publication.id, operationId);
+      console.log(`✓ ${product.name}`);
+    }
+
+    recordAuditEvent({
+      event: "shopify.catalog.sync.succeeded",
+      operationId,
+      productCount,
+    });
+  } catch (error) {
+    recordAuditEvent({
+      event: "shopify.catalog.sync.failed",
+      operationId,
+      ...(productCount === undefined ? {} : { productCount }),
+      errorCode: auditErrorCode(error),
+    });
+    throw error;
   }
 }
 

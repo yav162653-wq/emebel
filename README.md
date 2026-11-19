@@ -118,6 +118,12 @@ sends, while PostgreSQL and outbound HTTP instrumentation supplies database and
 network spans. Span attributes use operation names and email kind, not user
 identities, email addresses, credentials, or request bodies.
 
+Admin product and order mutations, and Shopify catalog-sync start/completion
+outcomes, are emitted as structured audit log records. They include actor or
+operation IDs and safe change metadata only. Configure centralized log retention
+and access controls for production audit retention; these events are not stored
+in a separate tamper-evident database.
+
 ## Shopify
 
 Set `SHOPIFY_SHOP_DOMAIN`, `SHOPIFY_STOREFRONT_ACCESS_TOKEN`, and `SHOPIFY_ADMIN_ACCESS_TOKEN` for catalog/checkout integrations.

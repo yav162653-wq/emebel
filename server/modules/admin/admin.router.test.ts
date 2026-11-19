@@ -5,6 +5,7 @@ import { startHttpTestServer } from "../../test-utils/http";
 import { NotFoundError } from "../../utils/errors";
 import { AdminService } from "./admin.service";
 import { createAdminRouter, type AdminRouterService } from "./admin.router";
+import type { AuditEvent } from "../audit/audit.service";
 
 const order = {
   id: 11,
@@ -134,6 +135,56 @@ test("admin routes reject invalid status and product inputs before service calls
     body: JSON.stringify({ stock: -1 }),
   });
   assert.equal(product.status, 400);
+});
+
+test("admin mutations emit audit events with actor and safe change metadata", async (t) => {
+  const { service } = createService();
+  service.updateProduct = async (id, data) => ({
+    id,
+    name: "Test chair",
+    description: "Test description",
+    price: data.price ?? 100,
+    category: "seating",
+    image: "chair.jpg",
+    stock: data.stock ?? 2,
+    material: "wood",
+    warranty: "lifetime",
+    origin: "local",
+    assembly: "included",
+    colors: [],
+  });
+  const auditEvents: AuditEvent[] = [];
+  const baseUrl = await startHttpTestServer(
+    t,
+    createAdminRouter(service, allowAdmin, (event) => auditEvents.push(event)),
+    { mountPath: "/api/admin", userId: 42 },
+  );
+
+  const productResponse = await fetch(`${baseUrl}/api/admin/products/7`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ price: 250 }),
+  });
+  assert.equal(productResponse.status, 200);
+
+  const response = await fetch(`${baseUrl}/api/admin/orders/11/status`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ status: "Delivered" }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(auditEvents, [{
+    event: "admin.product.updated",
+    actorId: 42,
+    productId: 7,
+    changedFields: ["price"],
+  }, {
+    event: "admin.order.status.updated",
+    actorId: 42,
+    orderId: 11,
+    status: "Delivered",
+  }]);
 });
 
 test("admin routes enforce the configured authorization middleware and map service errors", async (t) => {
