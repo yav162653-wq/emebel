@@ -10,6 +10,7 @@ import {
   cartListResponseSchema,
   cartUpdateSchema,
   csrfTokenResponseSchema,
+  createOrderHeadersSchema,
   createOrderSchema,
   emailSchema,
   externalProvidersResponseSchema,
@@ -220,7 +221,8 @@ export const apiSpec = {
       method: "POST" as const,
       path: "/api/orders",
       input: createOrderSchema,
-      responses: { 201: orderResponseSchema, 400: apiErrorSchema, 401: apiErrorSchema },
+      headers: createOrderHeadersSchema,
+      responses: { 201: orderResponseSchema, 400: apiErrorSchema, 401: apiErrorSchema, 409: apiErrorSchema },
     },
     list: {
       method: "GET" as const,

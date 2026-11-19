@@ -5,7 +5,12 @@ import { requireAuth } from "../../middleware/auth";
 import { orderLimiter } from "../../middleware/rateLimiter";
 import { ValidationError } from "../../utils/errors";
 import { db } from "../../db/client";
-import { createOrderSchema, idParamSchema } from "../../../lib/api-zod/src";
+import {
+  createOrderHeadersSchema,
+  createOrderSchema,
+  idParamSchema,
+} from "../../../lib/api-zod/src";
+import { createOrderRequestHash, type OrderWithItems } from "./orders.service";
 
 export type OrderProduct = {
   id: number;
@@ -15,12 +20,27 @@ export type OrderProduct = {
   stock: number;
 };
 
-export type OrdersRouterService = Pick<typeof OrdersService, "create" | "getByUser" | "getById">;
+export type OrdersRouterService = Pick<
+  typeof OrdersService,
+  "create" | "findByIdempotencyKey" | "getByUser" | "getById"
+>;
 
 export interface OrdersRouterDependencies {
   service?: OrdersRouterService;
   findProducts?: (productIds: number[]) => Promise<OrderProduct[]>;
   authenticate?: RequestHandler;
+}
+
+function toOrderResponse(order: OrderWithItems) {
+  return {
+    id: order.id,
+    userId: order.userId,
+    total: order.total,
+    status: order.status,
+    address: order.address,
+    createdAt: order.createdAt,
+    items: order.items,
+  };
 }
 
 export function createOrdersRouter({
@@ -39,7 +59,18 @@ export function createOrdersRouter({
     "/",
     orderLimiter,
     asyncHandler(async (req, res) => {
+      const { "idempotency-key": idempotencyKey } = createOrderHeadersSchema.parse({
+        "idempotency-key": req.get("Idempotency-Key"),
+      });
       const { address, items } = createOrderSchema.parse(req.body);
+      const requestHash = createOrderRequestHash({ address, items });
+      const userId = req.session.userId!;
+
+      const existingOrder = await service.findByIdempotencyKey(userId, idempotencyKey, requestHash);
+      if (existingOrder) {
+        res.status(201).json(toOrderResponse(existingOrder));
+        return;
+      }
 
       const productIds = Array.from(new Set(items.map((item) => item.productId)));
       const products = await findProducts(productIds);
@@ -67,12 +98,13 @@ export function createOrdersRouter({
 
       const total = verifiedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-      const order = await service.create(req.session.userId!, {
-        total,
-        address,
-        items: verifiedItems,
-      });
-      res.status(201).json(order);
+      const order = await service.create(
+        userId,
+        { total, address, items: verifiedItems },
+        idempotencyKey,
+        requestHash,
+      );
+      res.status(201).json(toOrderResponse(order));
     })
   );
 

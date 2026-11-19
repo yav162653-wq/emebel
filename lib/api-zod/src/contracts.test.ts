@@ -3,6 +3,7 @@ import test from "node:test";
 import { apiSpec } from "../../api-spec/src";
 import {
   apiErrorSchema,
+  createOrderHeadersSchema,
   csrfTokenResponseSchema,
   externalIdentitySchema,
   registerSchema,
@@ -68,6 +69,15 @@ test("customer order list contract matches its selected item fields", () => {
 test("latest-review query contract coerces and caps the requested limit", () => {
   assert.deepEqual(apiSpec.reviews.latest.query.parse({ limit: "99" }), { limit: 10 });
   assert.equal(apiSpec.reviews.latest.query.safeParse({ limit: "0" }).success, false);
+});
+
+test("order creation contract requires a well-formed idempotency key", () => {
+  const headers = { "idempotency-key": "order-request-key-2026-001" };
+  assert.deepEqual(apiSpec.orders.create.headers.parse(headers), headers);
+  assert.equal(createOrderHeadersSchema.safeParse({}).success, false);
+  assert.equal(createOrderHeadersSchema.safeParse({
+    "idempotency-key": "short",
+  }).success, false);
 });
 
 test("external identity credentials accept arbitrary string keys", () => {

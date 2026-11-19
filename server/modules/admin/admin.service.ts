@@ -1,6 +1,7 @@
 import { db } from "../../db/client";
 import { NotFoundError, ValidationError } from "../../utils/errors";
 import { orderStatusSchema, type OrderStatus } from "../../../lib/api-zod/src";
+import { adminOrderSelect } from "../orders/orders.select";
 
 export const ORDER_STATUSES = orderStatusSchema.options;
 
@@ -51,10 +52,7 @@ export const AdminService = {
 
   async getAllOrders() {
     return db.order.findMany({
-      include: {
-        user: { select: { id: true, username: true, name: true } },
-        items: true,
-      },
+      select: adminOrderSelect,
       orderBy: { createdAt: "desc" },
     });
   },
@@ -68,10 +66,7 @@ export const AdminService = {
     return db.order.update({
       where: { id },
       data: { status },
-      include: {
-        user: { select: { id: true, username: true, name: true } },
-        items: true,
-      },
+      select: adminOrderSelect,
     });
   },
 };

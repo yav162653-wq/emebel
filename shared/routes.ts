@@ -24,10 +24,12 @@ export type {
 } from "./schema";
 
 export type {
+  CreateOrderHeaders,
   AdminStatsResponse,
   AdminUserResponse,
   LatestReviewResponse,
   CsrfTokenResponse,
+  IdempotencyKey,
   HealthResponse,
   OrderStatus,
   PublicIdentity,

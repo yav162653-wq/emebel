@@ -161,17 +161,20 @@ model CartItem {
 }
 
 model Order {
-  id        Int         @id @default(autoincrement())
-  userId    Int
-  total     Int
-  status    String      @default("Processing")
-  address   String      @default("")
-  createdAt DateTime    @default(now())
-  user      User        @relation(fields: [userId], references: [id], onDelete: Restrict)
-  items     OrderItem[]
+  id              Int         @id @default(autoincrement())
+  userId          Int
+  total           Int
+  status          String      @default("Processing")
+  address         String      @default("")
+  idempotencyKey  String?     @db.VarChar(128)
+  idempotencyHash String?     @db.Char(64)
+  createdAt       DateTime    @default(now())
+  user            User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  items           OrderItem[]
 
   @@index([userId, createdAt])
   @@index([createdAt])
+  @@unique([userId, idempotencyKey])
   @@map("orders")
 }
 

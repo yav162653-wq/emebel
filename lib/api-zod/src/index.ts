@@ -188,6 +188,16 @@ export const adminProductUpdateSchema = z.object({
   price: z.number().int().positive().optional(),
 });
 
+export const idempotencyKeySchema = z.string()
+  .trim()
+  .min(16)
+  .max(128)
+  .regex(/^[A-Za-z0-9_-]+$/);
+
+export const createOrderHeadersSchema = z.object({
+  "idempotency-key": idempotencyKeySchema,
+});
+
 export const orderStatusSchema = z.enum(["Processing", "Shipped", "Delivered"]);
 export const adminOrderStatusUpdateSchema = z.object({ status: orderStatusSchema });
 
@@ -297,6 +307,8 @@ export type AdminOrderResponse = z.infer<typeof adminOrderResponseSchema>;
 export type AdminStatsResponse = z.infer<typeof adminStatsResponseSchema>;
 export type AdminUserResponse = z.infer<typeof adminUserResponseSchema>;
 export type OrderStatus = z.infer<typeof orderStatusSchema>;
+export type CreateOrderHeaders = z.infer<typeof createOrderHeadersSchema>;
+export type IdempotencyKey = z.infer<typeof idempotencyKeySchema>;
 export type ReviewResponse = z.infer<typeof reviewResponseSchema>;
 export type ReviewBaseResponse = z.infer<typeof reviewBaseResponseSchema>;
 export type LatestReviewResponse = z.infer<typeof latestReviewResponseSchema>;
