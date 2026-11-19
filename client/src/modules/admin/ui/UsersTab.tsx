@@ -1,12 +1,17 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAdminUsers } from "../hooks/use-admin";
 import { cn } from "@/lib/utils";
 import { Shield, User } from "lucide-react";
 import { QueryErrorState } from "@/shared/components/QueryErrorState";
+import { ListPagination } from "@/shared/components/ListPagination";
 
 export function UsersTab() {
-  const { data: users, isLoading, isError, refetch } = useAdminUsers();
+  const [page, setPage] = useState(1);
+  const pageSize = 25;
+  const { data: userPage, isLoading, isError, refetch } = useAdminUsers(page, pageSize);
+  const users = userPage?.items ?? [];
 
   if (isError) {
     return (
@@ -23,7 +28,7 @@ export function UsersTab() {
         <p className="text-xs font-mono uppercase tracking-widest text-accent mb-1">Access</p>
         <h1 className="font-display text-3xl font-medium">Users</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          {isLoading ? "Loading…" : `${users?.length ?? 0} registered accounts`}
+          {isLoading ? "Loading…" : `${userPage?.total ?? 0} registered accounts`}
         </p>
       </motion.div>
 
@@ -58,7 +63,7 @@ export function UsersTab() {
                     <td className="px-5 py-4 text-right"><Skeleton className="h-5 w-14 ml-auto rounded-full" /></td>
                   </tr>
                 ))
-              : users?.map((user) => (
+              : users.map((user) => (
                   <tr
                     key={user.id}
                     className="hover:bg-secondary/20 transition-colors"
@@ -101,10 +106,18 @@ export function UsersTab() {
           </tbody>
         </table>
 
-        {!isLoading && (!users || users.length === 0) && (
+        {!isLoading && users.length === 0 && (
           <div className="py-16 text-center text-muted-foreground text-sm">No users found.</div>
         )}
       </motion.div>
+      {!isLoading && userPage && (
+        <ListPagination
+          page={page}
+          pageSize={pageSize}
+          total={userPage.total}
+          onPageChange={setPage}
+        />
+      )}
     </div>
   );
 }

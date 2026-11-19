@@ -1,14 +1,24 @@
-import { api, buildUrl, type Product } from "@shared/routes";
+import {
+  api,
+  buildUrl,
+  type Product,
+  type ProductListQuery,
+  type ProductListResponse,
+} from "@shared/routes";
 import { apiFetch, apiFetchJson, apiResponseJson } from "./http";
 
-export async function fetchFurnitureCollection(limit?: number): Promise<Product[]> {
-  const parsedLimit = limit === undefined
-    ? undefined
-    : api.products.list.query.parse({ limit }).limit;
-  const url = parsedLimit === undefined
-    ? api.products.list.path
-    : `${api.products.list.path}?${new URLSearchParams({ limit: String(parsedLimit) })}`;
-  return apiFetchJson(url, api.products.list.responses[200]);
+export async function fetchFurnitureCollection(
+  input: Partial<ProductListQuery> = {},
+): Promise<ProductListResponse> {
+  const query = api.products.list.query.parse(input);
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== "") params.set(key, String(value));
+  }
+  return apiFetchJson(
+    `${api.products.list.path}?${params}`,
+    api.products.list.responses[200],
+  );
 }
 
 export async function fetchFurnitureItem(id: number): Promise<Product | null> {

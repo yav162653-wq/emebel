@@ -25,9 +25,15 @@ function createService(): { service: ProductsRouterService; calls: string[] } {
   return {
     calls,
     service: {
-      async getAll(limit) {
-        calls.push(`list:${limit ?? "none"}`);
-        return [product];
+      async getAll(query) {
+        calls.push(
+          `list:${query.limit}:${query.cursor ?? "none"}:${query.category ?? "none"}:${query.search ?? "none"}`,
+        );
+        return {
+          items: [product],
+          total: 1,
+          nextCursor: query.cursor ? null : product.id,
+        };
       },
       async getById(id) {
         calls.push(`detail:${id}`);
@@ -44,18 +50,26 @@ test("product routes return catalog data and validate pagination and identifiers
     mountPath: "/api/products",
   });
 
-  const list = await fetch(`${baseUrl}/api/products?limit=1`);
+  const list = await fetch(
+    `${baseUrl}/api/products?limit=1&cursor=6&category=Seating&search=oak`,
+  );
   assert.equal(list.status, 200);
-  assert.deepEqual(await list.json(), [product]);
-  assert.deepEqual(calls, ["list:1"]);
+  assert.deepEqual(await list.json(), {
+    items: [product],
+    total: 1,
+    nextCursor: null,
+  });
+  assert.deepEqual(calls, ["list:1:6:Seating:oak"]);
 
   const detail = await fetch(`${baseUrl}/api/products/7`);
   assert.equal(detail.status, 200);
   assert.deepEqual(await detail.json(), product);
-  assert.deepEqual(calls, ["list:1", "detail:7"]);
+  assert.deepEqual(calls, ["list:1:6:Seating:oak", "detail:7"]);
 
   const invalidLimit = await fetch(`${baseUrl}/api/products?limit=101`);
   assert.equal(invalidLimit.status, 400);
+  const invalidCursor = await fetch(`${baseUrl}/api/products?cursor=0`);
+  assert.equal(invalidCursor.status, 400);
   const invalidId = await fetch(`${baseUrl}/api/products/nope`);
   assert.equal(invalidId.status, 400);
 });

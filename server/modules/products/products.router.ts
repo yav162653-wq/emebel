@@ -13,8 +13,8 @@ export function createProductsRouter(service: ProductsRouterService = ProductsSe
     "/",
     apiLimiter,
     asyncHandler(async (req, res) => {
-      const { limit } = productListQuerySchema.parse({ limit: req.query.limit });
-      const products = await service.getAll(limit);
+      const query = productListQuerySchema.parse(req.query);
+      const products = await service.getAll(query);
       res.json(products);
     })
   );

@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type { Product } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PremiumButton } from "@/shared/components/PremiumButton";
 import { api } from "@shared/routes";
@@ -17,11 +16,11 @@ export function FeaturedProductsSection() {
     isLoading: productsLoading,
     isError: productsError,
     refetch,
-  } = useQuery<Product[]>({
+  } = useQuery({
     queryKey: [api.products.list.path, { limit: 4 }],
-    queryFn: () => fetchFurnitureCollection(4),
+    queryFn: () => fetchFurnitureCollection({ limit: 4 }),
   });
-  const featuredProducts = products?.slice(0, 4) ?? [];
+  const featuredProducts = products?.items ?? [];
 
   return (
     <section className="py-28 bg-background">

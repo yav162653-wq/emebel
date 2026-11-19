@@ -1,4 +1,5 @@
 import { db } from "../../db/client";
+import type { ReviewListQuery } from "../../../lib/api-zod/src";
 
 export const ReviewsService = {
   async getLatest(limit = 3) {
@@ -13,24 +14,35 @@ export const ReviewsService = {
     });
   },
 
-  async getByProduct(productId: number) {
-    return db.review.findMany({
-      where: { productId },
-      include: {
-        user: { select: { id: true, name: true, username: true } },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+  async getByProduct(productId: number, { page, pageSize }: ReviewListQuery) {
+    const where = { productId };
+    const [items, total] = await Promise.all([
+      db.review.findMany({
+        where,
+        include: {
+          user: { select: { id: true, name: true, username: true } },
+        },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      db.review.count({ where }),
+    ]);
+
+    return { items, total, page, pageSize };
   },
 
   async getSummary(productId: number) {
-    const rows = await db.review.findMany({
+    const summary = await db.review.aggregate({
       where: { productId },
-      select: { rating: true },
+      _avg: { rating: true },
+      _count: { _all: true },
     });
-    if (rows.length === 0) return { count: 0, average: 0 };
-    const avg = rows.reduce((s, r) => s + r.rating, 0) / rows.length;
-    return { count: rows.length, average: Math.round(avg * 10) / 10 };
+    const average = summary._avg.rating ?? 0;
+    return {
+      count: summary._count._all,
+      average: Math.round(average * 10) / 10,
+    };
   },
 
   async getMyReview(userId: number, productId: number) {

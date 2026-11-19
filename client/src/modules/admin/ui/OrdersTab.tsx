@@ -8,9 +8,14 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { Package, Search, X } from "lucide-react";
-import { api, type AdminOrder, type OrderStatus } from "@shared/routes";
+import {
+  api,
+  type AdminOrderListResponse,
+  type OrderStatus,
+} from "@shared/routes";
 import { fetchAdminOrders, updateAdminOrderStatus } from "@/api/admin";
 import { QueryErrorState } from "@/shared/components/QueryErrorState";
+import { ListPagination } from "@/shared/components/ListPagination";
 
 const STATUSES = ["All", "Processing", "Shipped", "Delivered"] as const;
 type StatusFilter = typeof STATUSES[number];
@@ -32,19 +37,31 @@ export function OrdersTab() {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 25;
+  const query = {
+    page,
+    pageSize,
+    ...(statusFilter === "All" ? {} : { status: statusFilter }),
+    ...(search.trim() ? { search: search.trim() } : {}),
+  };
 
-  const { data: orders = [], isLoading, isError, refetch } = useQuery<AdminOrder[]>({
-    queryKey: ["/api/admin/orders"],
-    queryFn: fetchAdminOrders,
+  const {
+    data: ordersPage,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery<AdminOrderListResponse>({
+    queryKey: ["/api/admin/orders", query],
+    queryFn: () => fetchAdminOrders(query),
   });
+  const orders = ordersPage?.items ?? [];
 
   const updateStatus = useMutation({
     mutationFn: ({ id, status }: { id: number; status: OrderStatus }) =>
       updateAdminOrderStatus(id, status),
     onSuccess: (updated) => {
-      queryClient.setQueryData<AdminOrder[]>(["/api/admin/orders"], (old = []) =>
-        old.map((o) => (o.id === updated.id ? updated : o))
-      );
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
       toast({ title: "Status updated", description: `Order SP-${String(updated.id).padStart(5, "0")} → ${updated.status}`, duration: 2500 });
     },
     onError: () => {
@@ -52,19 +69,13 @@ export function OrdersTab() {
     },
   });
 
-  const filtered = orders.filter((o) => {
-    const matchStatus = statusFilter === "All" || o.status === statusFilter;
-    const q = search.toLowerCase().trim();
-    const matchSearch = !q ||
-      o.user.name.toLowerCase().includes(q) ||
-      (o.user.username ?? "").toLowerCase().includes(q) ||
-      `SP-${String(o.id).padStart(5, "0")}`.includes(q);
-    return matchStatus && matchSearch;
-  });
-
-  const totalRevenue = orders.reduce((s, o) => s + o.total, 0);
-  const processingCount = orders.filter(o => o.status === "Processing").length;
-  const shippedCount = orders.filter(o => o.status === "Shipped").length;
+  const summary = ordersPage?.summary;
+  const statusCounts: Record<StatusFilter, number> = {
+    All: summary?.orderCount ?? 0,
+    Processing: summary?.processingCount ?? 0,
+    Shipped: summary?.shippedCount ?? 0,
+    Delivered: summary?.deliveredCount ?? 0,
+  };
 
   if (isError) {
     return (
@@ -79,16 +90,18 @@ export function OrdersTab() {
     <div className="space-y-8">
       <div>
         <h1 className="font-display text-3xl font-medium">Orders</h1>
-        <p className="text-muted-foreground text-sm mt-1">{orders.length} total orders</p>
+        <p className="text-muted-foreground text-sm mt-1">
+          {ordersPage?.total ?? 0} matching orders
+        </p>
       </div>
 
       {/* KPI Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Total Revenue",  value: `$${(totalRevenue / 100).toLocaleString()}`, sub: "All time"        },
-          { label: "Total Orders",   value: orders.length,                                sub: "Placed"          },
-          { label: "Processing",     value: processingCount,                              sub: "Needs fulfillment"},
-          { label: "Shipped",        value: shippedCount,                                 sub: "In transit"      },
+          { label: "Total Revenue",  value: `$${((summary?.totalRevenue ?? 0) / 100).toLocaleString()}`, sub: "All time"        },
+          { label: "Total Orders",   value: summary?.orderCount ?? 0,                                     sub: "Placed"          },
+          { label: "Processing",     value: summary?.processingCount ?? 0,                                sub: "Needs fulfillment"},
+          { label: "Shipped",        value: summary?.shippedCount ?? 0,                                   sub: "In transit"      },
         ].map((kpi) => (
           <div key={kpi.label} className="p-5 rounded-sm border bg-card space-y-1">
             <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">{kpi.label}</p>
@@ -105,7 +118,7 @@ export function OrdersTab() {
           {STATUSES.map((s) => (
             <button
               key={s}
-              onClick={() => setStatusFilter(s)}
+              onClick={() => { setStatusFilter(s); setPage(1); }}
               data-testid={`filter-status-${s.toLowerCase()}`}
               className={cn(
                 "px-3 py-1.5 rounded-sm text-xs font-semibold uppercase tracking-wider transition-all",
@@ -117,7 +130,7 @@ export function OrdersTab() {
               {s}
               {s !== "All" && (
                 <span className="ml-1.5 opacity-60">
-                  ({orders.filter(o => o.status === s).length})
+                  ({statusCounts[s]})
                 </span>
               )}
             </button>
@@ -129,7 +142,7 @@ export function OrdersTab() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
           <input
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={e => { setSearch(e.target.value); setPage(1); }}
             placeholder="Search by name or order #…"
             data-testid="input-order-search"
             className="h-9 pl-9 pr-8 text-sm bg-secondary/40 border border-border rounded-sm focus:outline-none focus:ring-2 focus:ring-ring/30 w-full sm:w-64"
@@ -149,7 +162,7 @@ export function OrdersTab() {
             <Skeleton key={i} className="h-20 rounded-sm" />
           ))}
         </div>
-      ) : filtered.length === 0 ? (
+      ) : orders.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
           <div className="w-16 h-16 rounded-full bg-secondary/50 flex items-center justify-center">
             <Package className="h-8 w-8 text-muted-foreground/30" />
@@ -159,7 +172,7 @@ export function OrdersTab() {
       ) : (
         <div className="space-y-2">
           <AnimatePresence initial={false}>
-            {filtered.map((order, i) => (
+            {orders.map((order, i) => (
               <motion.div
                 key={order.id}
                 initial={{ opacity: 0, y: 8 }}
@@ -197,6 +210,14 @@ export function OrdersTab() {
                     <div className="h-9 w-9 rounded-sm bg-secondary/50 flex items-center justify-center text-[10px] font-bold text-muted-foreground">
                       +{order.items.length - 3}
                     </div>
+                  )}
+                  {!isLoading && ordersPage && (
+                    <ListPagination
+                      page={page}
+                      pageSize={pageSize}
+                      total={ordersPage.total}
+                      onPageChange={setPage}
+                    />
                   )}
                 </div>
 

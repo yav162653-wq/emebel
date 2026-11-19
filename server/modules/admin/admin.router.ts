@@ -6,6 +6,8 @@ import { adminLimiter } from "../../middleware/rateLimiter";
 import {
   adminProductUpdateSchema,
   adminOrderStatusUpdateSchema,
+  adminListQuerySchema,
+  adminOrderListQuerySchema,
   idParamSchema,
 } from "../../../lib/api-zod/src";
 
@@ -30,7 +32,8 @@ export function createAdminRouter(
   router.get(
     "/users",
     asyncHandler(async (_req, res) => {
-      const users = await service.getUsers();
+      const query = adminListQuerySchema.parse(_req.query);
+      const users = await service.getUsers(query);
       res.json(users);
     })
   );
@@ -48,7 +51,8 @@ export function createAdminRouter(
   router.get(
     "/orders",
     asyncHandler(async (_req, res) => {
-      const orders = await service.getAllOrders();
+      const query = adminOrderListQuerySchema.parse(_req.query);
+      const orders = await service.getAllOrders(query);
       res.json(orders);
     })
   );

@@ -74,7 +74,10 @@ export const externalIdentitySchema = z.object({
 export const idParamSchema = z.coerce.number().int().positive();
 
 export const productListQuerySchema = z.object({
-  limit: z.coerce.number().int().positive().max(100).optional(),
+  limit: z.coerce.number().int().positive().max(100).default(24),
+  cursor: z.coerce.number().int().positive().optional(),
+  category: z.string().trim().min(1).max(64).optional(),
+  search: z.string().trim().max(100).optional(),
 });
 
 export const productResponseSchema = z.object({
@@ -90,6 +93,12 @@ export const productResponseSchema = z.object({
   origin: z.string(),
   assembly: z.string(),
   colors: z.array(z.string()),
+});
+
+export const productListResponseSchema = z.object({
+  items: z.array(productResponseSchema),
+  nextCursor: z.number().int().positive().nullable(),
+  total: z.number().int().nonnegative(),
 });
 
 export const cartAddSchema = z.object({
@@ -185,6 +194,18 @@ export const adminUserResponseSchema = z.object({
   role: userRoleSchema,
 });
 
+export const adminListQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  pageSize: z.coerce.number().int().positive().max(100).default(25),
+});
+
+export const adminUserListResponseSchema = z.object({
+  items: z.array(adminUserResponseSchema),
+  total: z.number().int().nonnegative(),
+  page: z.number().int().positive(),
+  pageSize: z.number().int().positive(),
+});
+
 export const adminProductUpdateSchema = z.object({
   stock: z.number().int().min(0).optional(),
   price: z.number().int().positive().optional(),
@@ -202,6 +223,23 @@ export const createOrderHeadersSchema = z.object({
 
 export const orderStatusSchema = z.enum(["Processing", "Shipped", "Delivered"]);
 export const adminOrderStatusUpdateSchema = z.object({ status: orderStatusSchema });
+export const adminOrderListQuerySchema = adminListQuerySchema.extend({
+  status: orderStatusSchema.optional(),
+  search: z.string().trim().max(100).optional(),
+});
+export const adminOrderListResponseSchema = z.object({
+  items: z.array(adminOrderResponseSchema),
+  total: z.number().int().nonnegative(),
+  page: z.number().int().positive(),
+  pageSize: z.number().int().positive(),
+  summary: z.object({
+    orderCount: z.number().int().nonnegative(),
+    totalRevenue: z.number().nonnegative(),
+    processingCount: z.number().int().nonnegative(),
+    shippedCount: z.number().int().nonnegative(),
+    deliveredCount: z.number().int().nonnegative(),
+  }),
+});
 
 export const reviewInputSchema = z.object({
   rating: z.number().int().min(1).max(5),
@@ -232,6 +270,17 @@ export const reviewResponseSchema = reviewBaseResponseSchema.extend({
     name: z.string(),
     username: z.string().nullable(),
   }),
+});
+
+export const reviewListQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  pageSize: z.coerce.number().int().positive().max(50).default(10),
+});
+export const reviewListResponseSchema = z.object({
+  items: z.array(reviewResponseSchema),
+  total: z.number().int().nonnegative(),
+  page: z.number().int().positive(),
+  pageSize: z.number().int().positive(),
 });
 
 export const latestReviewResponseSchema = reviewResponseSchema.extend({
@@ -302,6 +351,8 @@ export type CsrfTokenResponse = z.infer<typeof csrfTokenResponseSchema>;
 export type RegisterRequest = z.input<typeof registerSchema>;
 export type UserProfileUpdate = z.input<typeof profileSchema>;
 export type ProductResponse = z.infer<typeof productResponseSchema>;
+export type ProductListResponse = z.infer<typeof productListResponseSchema>;
+export type ProductListQuery = z.infer<typeof productListQuerySchema>;
 export type CartItemResponse = z.infer<typeof cartItemResponseSchema>;
 export type CartListResponse = z.infer<typeof cartListResponseSchema>;
 export type OrderResponse = z.infer<typeof orderResponseSchema>;
@@ -309,10 +360,16 @@ export type OrderListResponse = z.infer<typeof orderListResponseSchema>;
 export type AdminOrderResponse = z.infer<typeof adminOrderResponseSchema>;
 export type AdminStatsResponse = z.infer<typeof adminStatsResponseSchema>;
 export type AdminUserResponse = z.infer<typeof adminUserResponseSchema>;
+export type AdminUserListResponse = z.infer<typeof adminUserListResponseSchema>;
+export type AdminOrderListResponse = z.infer<typeof adminOrderListResponseSchema>;
+export type AdminListQuery = z.infer<typeof adminListQuerySchema>;
+export type AdminOrderListQuery = z.infer<typeof adminOrderListQuerySchema>;
 export type OrderStatus = z.infer<typeof orderStatusSchema>;
 export type CreateOrderHeaders = z.infer<typeof createOrderHeadersSchema>;
 export type IdempotencyKey = z.infer<typeof idempotencyKeySchema>;
 export type ReviewResponse = z.infer<typeof reviewResponseSchema>;
+export type ReviewListResponse = z.infer<typeof reviewListResponseSchema>;
+export type ReviewListQuery = z.infer<typeof reviewListQuerySchema>;
 export type ReviewBaseResponse = z.infer<typeof reviewBaseResponseSchema>;
 export type LatestReviewResponse = z.infer<typeof latestReviewResponseSchema>;
 export type ReviewSummaryResponse = z.infer<typeof reviewSummaryResponseSchema>;

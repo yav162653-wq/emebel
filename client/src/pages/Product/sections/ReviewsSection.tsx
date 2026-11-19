@@ -4,10 +4,12 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Check, MessageSquare, Star } from "lucide-react";
 import { Link } from "wouter";
 import type { Review, ReviewSummary } from "@shared/schema";
+import type { ReviewListResponse } from "@shared/routes";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { PremiumButton } from "@/shared/components/PremiumButton";
 import { QueryErrorState } from "@/shared/components/QueryErrorState";
+import { ListPagination } from "@/shared/components/ListPagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -98,6 +100,8 @@ export function ReviewsSection({ productId }: { productId: number }) {
   const [rating, setRating] = useState(0);
   const [body, setBody] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [reviewPage, setReviewPage] = useState(1);
+  const pageSize = 10;
 
   const { data: summary } = useQuery<ReviewSummary>({
     queryKey: ["/api/reviews", productId, "summary"],
@@ -105,14 +109,15 @@ export function ReviewsSection({ productId }: { productId: number }) {
   });
 
   const {
-    data: reviews = [],
+    data: reviewsPage,
     isLoading: reviewsLoading,
     isError: reviewsError,
     refetch: refetchReviews,
-  } = useQuery<Review[]>({
-    queryKey: ["/api/reviews", productId],
-    queryFn: () => fetchReviews(productId),
+  } = useQuery<ReviewListResponse>({
+    queryKey: ["/api/reviews", productId, { page: reviewPage, pageSize }],
+    queryFn: () => fetchReviews(productId, { page: reviewPage, pageSize }),
   });
+  const reviews = reviewsPage?.items ?? [];
 
   const { data: myReview, isError: myReviewError, refetch: refetchMyReview } = useQuery({
     queryKey: ["/api/reviews", productId, "mine"],
@@ -132,6 +137,7 @@ export function ReviewsSection({ productId }: { productId: number }) {
       submitReviewRequest(productId, rating, body.trim() || undefined),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/reviews", productId] });
+      setReviewPage(1);
       setShowForm(false);
       toast({ title: myReview ? "Review updated" : "Review submitted", description: "Thank you for your feedback!", duration: 3000 });
     },
@@ -264,6 +270,14 @@ export function ReviewsSection({ productId }: { productId: number }) {
         <div className="space-y-3">
           {reviews.map((review) => <ReviewCard key={review.id} review={review} />)}
         </div>
+      )}
+      {!reviewsLoading && !reviewsError && reviewsPage && (
+        <ListPagination
+          page={reviewPage}
+          pageSize={pageSize}
+          total={reviewsPage.total}
+          onPageChange={setReviewPage}
+        />
       )}
     </section>
   );

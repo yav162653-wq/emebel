@@ -1,4 +1,13 @@
-import { api, buildUrl, type LatestReviewResponse, type Review, type ReviewBaseResponse, type ReviewSummary } from "@shared/routes";
+import {
+  api,
+  buildUrl,
+  type LatestReviewResponse,
+  type Review,
+  type ReviewBaseResponse,
+  type ReviewListQuery,
+  type ReviewListResponse,
+  type ReviewSummary,
+} from "@shared/routes";
 import { apiFetchJson, apiRequestJson } from "./http";
 
 export async function fetchReviewSummary(productId: number): Promise<ReviewSummary> {
@@ -6,9 +15,17 @@ export async function fetchReviewSummary(productId: number): Promise<ReviewSumma
   return apiFetchJson(url, api.reviews.summary.responses[200]);
 }
 
-export async function fetchReviews(productId: number): Promise<Review[]> {
+export async function fetchReviews(
+  productId: number,
+  input: Partial<ReviewListQuery> = {},
+): Promise<ReviewListResponse> {
   const url = buildUrl(api.reviews.list.path, { productId });
-  return apiFetchJson(url, api.reviews.list.responses[200]);
+  const query = api.reviews.list.query.parse(input);
+  const params = new URLSearchParams({
+    page: String(query.page),
+    pageSize: String(query.pageSize),
+  });
+  return apiFetchJson(`${url}?${params}`, api.reviews.list.responses[200]);
 }
 
 export async function fetchMyReview(productId: number): Promise<ReviewBaseResponse | null> {

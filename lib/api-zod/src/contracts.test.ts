@@ -38,18 +38,60 @@ test("API spec includes the health check and clear-cart route", () => {
 });
 
 test("admin order response contract accepts nullable usernames", () => {
-  const payload = [{
-    id: 1,
-    userId: 2,
-    total: 2500,
-    status: "Processing",
-    address: "Test address",
-    createdAt: "2026-01-01T00:00:00.000Z",
-    items: [],
-    user: { id: 2, username: null, name: "Test Member" },
-  }];
+  const payload = {
+    items: [{
+      id: 1,
+      userId: 2,
+      total: 2500,
+      status: "Processing",
+      address: "Test address",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      items: [],
+      user: { id: 2, username: null, name: "Test Member" },
+    }],
+    total: 1,
+    page: 1,
+    pageSize: 25,
+    summary: {
+      orderCount: 1,
+      totalRevenue: 2500,
+      processingCount: 1,
+      shippedCount: 0,
+      deliveredCount: 0,
+    },
+  };
 
   assert.deepEqual(apiSpec.admin.orders.responses[200].parse(payload), payload);
+});
+
+test("product list contract validates cursor filters and page metadata", () => {
+  assert.deepEqual(
+    apiSpec.products.list.query.parse({
+      cursor: "12",
+      category: "Seating",
+      search: "oak",
+    }),
+    { limit: 24, cursor: 12, category: "Seating", search: "oak" },
+  );
+  assert.equal(apiSpec.products.list.query.safeParse({ cursor: "0" }).success, false);
+  assert.equal(apiSpec.products.list.responses[200].safeParse({
+    items: [],
+    total: 0,
+    nextCursor: null,
+  }).success, true);
+});
+
+test("admin and review list contracts coerce and bound page parameters", () => {
+  assert.deepEqual(apiSpec.admin.users.query.parse({
+    page: "2",
+    pageSize: "10",
+  }), { page: 2, pageSize: 10 });
+  assert.deepEqual(apiSpec.reviews.list.query.parse({}), {
+    page: 1,
+    pageSize: 10,
+  });
+  assert.equal(apiSpec.admin.orders.query.safeParse({ pageSize: "101" }).success, false);
+  assert.equal(apiSpec.reviews.list.query.safeParse({ pageSize: "51" }).success, false);
 });
 
 test("customer order list contract matches its selected item fields", () => {

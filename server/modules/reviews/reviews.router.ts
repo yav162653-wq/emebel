@@ -6,17 +6,23 @@ import { reviewLimiter } from "../../middleware/rateLimiter";
 import {
   idParamSchema,
   latestReviewsQuerySchema,
+  reviewListQuerySchema,
   reviewInputSchema,
 } from "../../../lib/api-zod/src";
 
-const router = Router();
+export type ReviewsRouterService = typeof ReviewsService;
+
+export function createReviewsRouter(
+  service: ReviewsRouterService = ReviewsService,
+) {
+  const router = Router();
 
 // GET /api/reviews/latest — latest top-rated reviews across all products (public)
 router.get(
   "/latest",
   asyncHandler(async (req, res) => {
     const { limit } = latestReviewsQuerySchema.parse({ limit: req.query.limit });
-    const reviews = await ReviewsService.getLatest(limit);
+    const reviews = await service.getLatest(limit);
     res.json(reviews);
   })
 );
@@ -26,7 +32,8 @@ router.get(
   "/:productId",
   asyncHandler(async (req, res) => {
     const productId = idParamSchema.parse(req.params.productId);
-    const reviews = await ReviewsService.getByProduct(productId);
+    const query = reviewListQuerySchema.parse(req.query);
+    const reviews = await service.getByProduct(productId, query);
     res.json(reviews);
   })
 );
@@ -36,7 +43,7 @@ router.get(
   "/:productId/summary",
   asyncHandler(async (req, res) => {
     const productId = idParamSchema.parse(req.params.productId);
-    const summary = await ReviewsService.getSummary(productId);
+    const summary = await service.getSummary(productId);
     res.json(summary);
   })
 );
@@ -47,7 +54,7 @@ router.get(
   requireAuth,
   asyncHandler(async (req, res) => {
     const productId = idParamSchema.parse(req.params.productId);
-    const review = await ReviewsService.getMyReview(getAuthenticatedUserId(req), productId);
+    const review = await service.getMyReview(getAuthenticatedUserId(req), productId);
     res.json(review ?? null);
   })
 );
@@ -60,7 +67,7 @@ router.post(
   asyncHandler(async (req, res) => {
     const productId = idParamSchema.parse(req.params.productId);
     const { rating, body } = reviewInputSchema.parse(req.body);
-    const review = await ReviewsService.upsert(getAuthenticatedUserId(req), productId, rating, body);
+    const review = await service.upsert(getAuthenticatedUserId(req), productId, rating, body);
     res.status(201).json(review);
   })
 );
@@ -71,9 +78,12 @@ router.delete(
   requireAuth,
   asyncHandler(async (req, res) => {
     const productId = idParamSchema.parse(req.params.productId);
-    await ReviewsService.remove(getAuthenticatedUserId(req), productId);
+    await service.remove(getAuthenticatedUserId(req), productId);
     res.json({ ok: true });
   })
 );
 
-export default router;
+  return router;
+}
+
+export default createReviewsRouter();

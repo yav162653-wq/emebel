@@ -5,7 +5,6 @@ import {
   fetchAdminUsers,
   updateAdminProduct,
   type AdminStats,
-  type AdminUser,
 } from "@/api/admin";
 
 export function useAdminStats() {
@@ -15,10 +14,10 @@ export function useAdminStats() {
   });
 }
 
-export function useAdminUsers() {
-  return useQuery<AdminUser[]>({
-    queryKey: ["/api/admin/users"],
-    queryFn: fetchAdminUsers,
+export function useAdminUsers(page: number, pageSize = 25) {
+  return useQuery({
+    queryKey: ["/api/admin/users", { page, pageSize }],
+    queryFn: () => fetchAdminUsers({ page, pageSize }),
   });
 }
 

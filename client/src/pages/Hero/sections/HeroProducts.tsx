@@ -18,14 +18,27 @@ import {
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { QueryErrorState } from "@/shared/components/QueryErrorState";
+import { Button } from "@/components/ui/button";
 
 export function HeroProducts() {
   const { t } = useTranslation();
-  const { data: products, isLoading, isError, refetch } = useFurniture();
   const {
     activeCategory, searchQuery, sortOption, priceRange,
     setSortOption, setPriceRange, clearFilters,
   } = useFurnitureStore();
+  const {
+    data: products,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isError,
+    refetch,
+  } = useFurniture({
+    limit: 24,
+    category: activeCategory === "All" ? undefined : activeCategory,
+    search: searchQuery.trim() || undefined,
+  });
   const [filterOpen, setFilterOpen] = useState(false);
 
   const activeRange = PRICE_RANGES.find((range) => range.value === priceRange);
@@ -45,16 +58,6 @@ export function HeroProducts() {
   ];
 
   const filtered = (products ?? [])
-    .filter(p => activeCategory === "All" || p.category === activeCategory)
-    .filter(p => {
-      if (!searchQuery.trim()) return true;
-      const q = searchQuery.toLowerCase();
-      return (
-        p.name.toLowerCase().includes(q) ||
-        p.description.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q)
-      );
-    })
     .filter(p => p.price >= activeRange.min && p.price < activeRange.max)
     .sort((a, b) => {
       switch (sortOption) {
@@ -258,6 +261,18 @@ export function HeroProducts() {
             ))}
           </motion.div>
         </AnimatePresence>
+      )}
+      {hasNextPage && (
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+            data-testid="button-load-more-products"
+          >
+            {isFetchingNextPage ? t("shop.loadingMore") : t("shop.loadMore")}
+          </Button>
+        </div>
       )}
     </section>
   );

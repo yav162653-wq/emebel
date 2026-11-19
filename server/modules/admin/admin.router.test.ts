@@ -17,8 +17,13 @@ const order = {
   items: [],
 } satisfies Awaited<ReturnType<typeof AdminService.updateOrderStatus>>;
 
-function createService(): { service: AdminRouterService; updatedStatuses: string[] } {
+function createService(): {
+  service: AdminRouterService;
+  updatedStatuses: string[];
+  listQueries: unknown[];
+} {
   const updatedStatuses: string[] = [];
+  const listQueries: unknown[] = [];
   const service: AdminRouterService = {
     async getStats() {
       return {
@@ -31,36 +36,71 @@ function createService(): { service: AdminRouterService; updatedStatuses: string
         outOfStock: 0,
       };
     },
-    async getUsers() {
-      return [];
+    async getUsers(query) {
+      listQueries.push(query);
+      return { items: [], total: 0, page: query.page, pageSize: query.pageSize };
     },
     async updateProduct() {
       throw new NotFoundError("Product");
     },
-    async getAllOrders() {
-      return [];
+    async getAllOrders(query) {
+      listQueries.push(query);
+      return {
+        items: [],
+        total: 0,
+        page: query.page,
+        pageSize: query.pageSize,
+        summary: {
+          orderCount: 0,
+          totalRevenue: 0,
+          processingCount: 0,
+          shippedCount: 0,
+          deliveredCount: 0,
+        },
+      };
     },
     async updateOrderStatus(_id, status) {
       updatedStatuses.push(status);
       return { ...order, status };
     },
   };
-  return { service, updatedStatuses };
+  return { service, updatedStatuses, listQueries };
 }
 
 const allowAdmin: RequestHandler = (_req, _res, next) => next();
 
 test("admin routes return data and accept supported order status updates", async (t) => {
-  const { service, updatedStatuses } = createService();
+  const { service, updatedStatuses, listQueries } = createService();
   const baseUrl = await startHttpTestServer(
     t,
     createAdminRouter(service, allowAdmin),
     { mountPath: "/api/admin", userId: 42 },
   );
 
-  const users = await fetch(`${baseUrl}/api/admin/users`);
+  const users = await fetch(`${baseUrl}/api/admin/users?page=2&pageSize=10`);
   assert.equal(users.status, 200);
-  assert.deepEqual(await users.json(), []);
+  assert.deepEqual(await users.json(), {
+    items: [],
+    total: 0,
+    page: 2,
+    pageSize: 10,
+  });
+
+  const orders = await fetch(
+    `${baseUrl}/api/admin/orders?page=3&pageSize=5&status=Shipped&search=chair`,
+  );
+  assert.equal(orders.status, 200);
+  assert.deepEqual((await orders.json()).summary, {
+    orderCount: 0,
+    totalRevenue: 0,
+    processingCount: 0,
+    shippedCount: 0,
+    deliveredCount: 0,
+  });
+  assert.deepEqual(listQueries, [
+    { page: 2, pageSize: 10 },
+    { page: 3, pageSize: 5, status: "Shipped", search: "chair" },
+  ]);
 
   const status = await fetch(`${baseUrl}/api/admin/orders/11/status`, {
     method: "PATCH",

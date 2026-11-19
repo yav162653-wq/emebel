@@ -6,12 +6,15 @@ import {
 } from "../lib/api-zod/src";
 import type {
   AdminOrderResponse,
+  AdminOrderListResponse as ApiAdminOrderListResponse,
   CartItemResponse,
   CartListResponse as ApiCartListResponse,
   LoginRequest as ApiLoginRequest,
   OrderListResponse as ApiOrderListResponse,
+  ProductListResponse as ApiProductListResponse,
   ProductResponse as ApiProductResponse,
   PublicUser,
+  ReviewListResponse as ApiReviewListResponse,
   ReviewResponse,
   ReviewSummaryResponse,
 } from "../lib/api-zod/src";
@@ -66,9 +69,9 @@ export type ReviewSummary = ReviewSummaryResponse;
 // ── Request / Response aliases ────────────────────────────────────────────────
 export type LoginRequest = ApiLoginRequest;
 export type AuthResponse = PublicUser;
-export type ProductListResponse = Product[];
+export type ProductListResponse = ApiProductListResponse;
 export type ProductResponse = Product;
 export type CartListResponse = ApiCartListResponse;
 export type OrderListResponse = ApiOrderListResponse;
-export type AdminOrderListResponse = AdminOrder[];
-export type ReviewListResponse = Review[];
+export type AdminOrderListResponse = ApiAdminOrderListResponse;
+export type ReviewListResponse = ApiReviewListResponse;

@@ -1,19 +1,47 @@
-import { api, buildUrl, type AdminOrder, type AdminStatsResponse, type AdminUserResponse, type OrderStatus, type Product } from "@shared/routes";
+import {
+  api,
+  buildUrl,
+  type AdminListQuery,
+  type AdminOrder,
+  type AdminOrderListQuery,
+  type AdminOrderListResponse,
+  type AdminStatsResponse,
+  type AdminUserListResponse,
+  type AdminUserResponse,
+  type OrderStatus,
+  type Product,
+} from "@shared/routes";
 import { apiFetchJson, apiRequestJson } from "./http";
 
 export type AdminStats = AdminStatsResponse;
 export type AdminUser = AdminUserResponse;
 
+function queryUrl(path: string, values: Record<string, string | number | undefined>) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(values)) {
+    if (value !== undefined && value !== "") params.set(key, String(value));
+  }
+  return `${path}?${params}`;
+}
+
 export async function fetchAdminStats(): Promise<AdminStats> {
   return apiFetchJson(api.admin.stats.path, api.admin.stats.responses[200]);
 }
 
-export async function fetchAdminUsers(): Promise<AdminUser[]> {
-  return apiFetchJson(api.admin.users.path, api.admin.users.responses[200]);
+export async function fetchAdminUsers(
+  input: Partial<AdminListQuery> = {},
+): Promise<AdminUserListResponse> {
+  const query = api.admin.users.query.parse(input);
+  const url = queryUrl(api.admin.users.path, query);
+  return apiFetchJson(url, api.admin.users.responses[200]);
 }
 
-export async function fetchAdminOrders(): Promise<AdminOrder[]> {
-  return apiFetchJson(api.admin.orders.path, api.admin.orders.responses[200]);
+export async function fetchAdminOrders(
+  input: Partial<AdminOrderListQuery> = {},
+): Promise<AdminOrderListResponse> {
+  const query = api.admin.orders.query.parse(input);
+  const url = queryUrl(api.admin.orders.path, query);
+  return apiFetchJson(url, api.admin.orders.responses[200]);
 }
 
 export async function updateAdminProduct(

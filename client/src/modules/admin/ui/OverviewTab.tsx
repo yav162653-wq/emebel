@@ -2,10 +2,11 @@ import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { DollarSign, MessageSquare, Package, ShoppingBag, TrendingDown, TrendingUp, Users } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { useAdminStats } from "../hooks/use-admin";
 import { useFurniture } from "@/modules/furniture/hooks/use-furniture";
 import { cn } from "@/lib/utils";
-import type { AdminOrder } from "@shared/schema";
+import type { AdminOrderListResponse } from "@shared/routes";
 import { fetchAdminOrders } from "@/api/admin";
 import { QueryErrorState } from "@/shared/components/QueryErrorState";
 
@@ -24,20 +25,24 @@ export function OverviewTab() {
   } = useAdminStats();
   const {
     data: products,
+    hasNextPage: hasMoreProducts,
+    fetchNextPage: fetchMoreProducts,
+    isFetchingNextPage: isLoadingMoreProducts,
     isLoading: productsLoading,
     isError: productsError,
     refetch: refetchProducts,
   } = useFurniture();
 
   const {
-    data: recentOrders = [],
+    data: recentOrderPage,
     isLoading: ordersLoading,
     isError: ordersError,
     refetch: refetchOrders,
-  } = useQuery<AdminOrder[]>({
-    queryKey: ["/api/admin/orders"],
-    queryFn: fetchAdminOrders,
+  } = useQuery<AdminOrderListResponse>({
+    queryKey: ["/api/admin/orders", { page: 1, pageSize: 6 }],
+    queryFn: () => fetchAdminOrders({ page: 1, pageSize: 6 }),
   });
+  const recentOrders = recentOrderPage?.items ?? [];
 
   const kpiCards = stats
     ? [
@@ -135,7 +140,11 @@ export function OverviewTab() {
           <div className="px-5 py-4 border-b flex items-center justify-between">
             <h3 className="font-semibold">Recent Orders</h3>
             <span className="text-xs text-muted-foreground font-mono">
-              {ordersLoading ? "…" : ordersError ? "—" : `${recentOrders.length} total`}
+              {ordersLoading
+                ? "…"
+                : ordersError
+                  ? "—"
+                  : `${recentOrderPage?.summary.orderCount ?? 0} total`}
             </span>
           </div>
           <div className="divide-y divide-border">
@@ -242,6 +251,18 @@ export function OverviewTab() {
                     </div>
                   </div>
                 ))}
+            {hasMoreProducts && (
+              <div className="p-3 text-center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchMoreProducts()}
+                  disabled={isLoadingMoreProducts}
+                >
+                  {isLoadingMoreProducts ? "Loading…" : "Load more products"}
+                </Button>
+              </div>
+            )}
           </div>
         </motion.div>
       </div>

@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Check, Pencil, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { useFurniture } from "@/modules/furniture/hooks/use-furniture";
 import { useAdminProductUpdate } from "../hooks/use-admin";
 import { cn } from "@/lib/utils";
@@ -79,18 +80,24 @@ function StockEditor({
 const CATEGORIES = ["All", "Seating", "Tables", "Lighting", "Storage", "Bedroom", "Outdoor", "Decor"];
 
 export function ProductsTab() {
-  const { data: products, isLoading, isError, refetch } = useFurniture();
-  const updateProduct = useAdminProductUpdate();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
-
-  const filtered = products?.filter((p) => {
-    const matchesSearch =
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.category.toLowerCase().includes(search.toLowerCase());
-    const matchesCat = category === "All" || p.category === category;
-    return matchesSearch && matchesCat;
-  }) ?? [];
+  const {
+    data: products,
+    total,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isError,
+    refetch,
+  } = useFurniture({
+    limit: 25,
+    category: category === "All" ? undefined : category,
+    search: search.trim() || undefined,
+  });
+  const updateProduct = useAdminProductUpdate();
+  const productItems = products ?? [];
 
   if (isError) {
     return (
@@ -108,7 +115,7 @@ export function ProductsTab() {
         <p className="text-xs font-mono uppercase tracking-widest text-accent mb-1">Catalog</p>
         <h1 className="font-display text-3xl font-medium">Products</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Manage your {products?.length ?? 0} products — hover a row to edit stock.
+          Manage {total ?? 0} matching products — hover a row to edit stock.
         </p>
       </motion.div>
 
@@ -183,7 +190,7 @@ export function ProductsTab() {
                       <td className="px-5 py-3.5 text-right"><Skeleton className="h-4 w-10 ml-auto" /></td>
                     </tr>
                   ))
-                : filtered.map((product) => (
+                : productItems.map((product) => (
                     <tr
                       key={product.id}
                       className="group hover:bg-secondary/20 transition-colors"
@@ -238,13 +245,25 @@ export function ProductsTab() {
             </tbody>
           </table>
 
-          {!isLoading && filtered.length === 0 && (
+          {!isLoading && productItems.length === 0 && (
             <div className="py-16 text-center text-muted-foreground text-sm">
               No products match your filters.
             </div>
           )}
         </div>
       </motion.div>
+      {hasNextPage && (
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+            data-testid="button-load-more-admin-products"
+          >
+            {isFetchingNextPage ? "Loading…" : "Load more products"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

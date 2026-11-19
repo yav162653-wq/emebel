@@ -99,13 +99,16 @@
 
 ## TD-009
 
+- Status: RESOLVED. Admin user and order lists now use bounded offset
+  pagination; order lists support status and customer/order-ID filters.
+  Product lists use bounded ID cursor pagination with category and text
+  filters. Shared API schemas validate the parameters and response metadata.
 - Severity: MEDIUM
 - Category: Scalability
-- File: `server/modules/admin/admin.service.ts:35-54`
-- Description: Admin user and order queries are unbounded.
-- Evidence: `findMany` calls return complete datasets.
-- Impact: Memory/latency growth and payload amplification.
-- Recommended correction: Add cursor or offset pagination, sorting, filters, and result limits.
+- File: `server/modules/admin/admin.service.ts`, `server/modules/products/products.service.ts`
+- Evidence: API contract and route tests cover pagination bounds, filters, and
+  cursor metadata; admin and catalog interfaces provide next-page controls.
+- Impact: Results are bounded per request; order summary counts remain global.
 - Complexity: Medium.
 
 ## TD-010
@@ -121,13 +124,14 @@
 
 ## TD-011
 
+- Status: RESOLVED. Product review lists use bounded offset pagination and
+  expose total/page metadata; the client provides previous/next controls.
 - Severity: MEDIUM
 - Category: Scalability
-- File: `server/modules/reviews/reviews.service.ts:21-24`
-- Description: Product review queries are unbounded.
-- Evidence: `findMany` has no limit or cursor.
-- Impact: Large payload and slow rendering.
-- Recommended correction: Add pagination and stable cursor.
+- File: `server/modules/reviews/reviews.service.ts`
+- Evidence: Review route tests cover bounded page responses and invalid
+  page-size rejection.
+- Impact: Review response size is capped per request.
 - Complexity: Medium.
 
 ## TD-012
