@@ -10,6 +10,7 @@ jobs:
     env:
       NODE_ENV: test
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/emebel_test
+      MIGRATION_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/emebel_test
       SESSION_SECRET: ci-session-secret-change-me
     services:
       postgres:
@@ -33,13 +34,27 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run db:migrate
+      - run: npx prisma migrate status
       - run: npm run db:seed
         env:
           SEED_DEMO_DATA: "true"
       - run: npm run lint
       - run: npm run check
       - run: npm test
+      - run: pwsh -NoProfile -File script/test-postgres-integration.ps1
       - run: npm run test:client
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - run: npm run build
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
