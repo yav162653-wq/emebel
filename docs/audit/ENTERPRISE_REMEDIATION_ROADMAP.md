@@ -70,10 +70,11 @@ No Redis, queue, or microservice work is warranted yet.
 
 1. TD-014 - Split health and readiness. ✅ Liveness is independent of session
    middleware; readiness checks both the database and session-store pool.
-3. TD-013 - Add Resend timeout and bounded retry policy.
-4. Add Shopify timeout classification and idempotency. ✅ Operation-aware retry
+2. TD-013 - Add Resend timeout and bounded retry policy. ✅ 10-second timeout,
+   at most three idempotent attempts, and transient-error classification.
+3. Add Shopify timeout classification and idempotency. ✅ Operation-aware retry
    limits and error categories are tested with mocked providers.
-5. Add graceful shutdown tests and verify pool closure.
+4. Add graceful shutdown tests and verify pool closure.
 
 ## Testing Improvements
 

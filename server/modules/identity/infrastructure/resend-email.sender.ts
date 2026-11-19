@@ -10,6 +10,7 @@ type ResendProxyOptions = {
   method?: string;
   headers?: Record<string, string>;
   body?: unknown;
+  signal?: AbortSignal;
 };
 
 type ResendProxy = {
@@ -20,11 +21,50 @@ type ResendProxy = {
   ): Promise<Response>;
 };
 
+type ResendEmailSenderOptions = {
+  timeoutMs?: number;
+  maxAttempts?: number;
+  retryBaseDelayMs?: number;
+  sleep?: (milliseconds: number) => Promise<void>;
+};
+
+const DEFAULT_TIMEOUT_MS = 10_000;
+const DEFAULT_MAX_ATTEMPTS = 3;
+const DEFAULT_RETRY_BASE_DELAY_MS = 250;
+
+function sleep(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function isRetryableStatus(status: number): boolean {
+  return status === 408 || status === 429 || status >= 500;
+}
+
 export class ResendEmailSender implements EmailSender {
+  private readonly timeoutMs: number;
+  private readonly maxAttempts: number;
+  private readonly retryBaseDelayMs: number;
+  private readonly sleep: (milliseconds: number) => Promise<void>;
+
   constructor(
     private readonly from: string | undefined,
     private readonly connector?: ResendProxy,
-  ) {}
+    options: ResendEmailSenderOptions = {},
+  ) {
+    this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    this.maxAttempts = options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
+    this.retryBaseDelayMs = options.retryBaseDelayMs ?? DEFAULT_RETRY_BASE_DELAY_MS;
+    this.sleep = options.sleep ?? sleep;
+    if (!Number.isSafeInteger(this.maxAttempts) || this.maxAttempts < 1) {
+      throw new RangeError("Resend maxAttempts must be a positive safe integer");
+    }
+    if (!Number.isFinite(this.timeoutMs) || this.timeoutMs <= 0) {
+      throw new RangeError("Resend timeoutMs must be a positive number");
+    }
+    if (!Number.isFinite(this.retryBaseDelayMs) || this.retryBaseDelayMs < 0) {
+      throw new RangeError("Resend retryBaseDelayMs must be a non-negative number");
+    }
+  }
 
   async send(message: EmailMessage): Promise<void> {
     if (!this.from) {
@@ -34,62 +74,112 @@ export class ResendEmailSender implements EmailSender {
       );
     }
 
-    let response: Response;
-    try {
-      const body = {
-          from: this.from,
-          to: message.to,
-          subject: message.subject,
-          text: message.text,
-          ...(message.html ? { html: message.html } : {}),
-      };
+    const apiKey = this.connector ? undefined : env.RESEND_API_KEY;
+    if (!this.connector && !apiKey) {
+      throw new DomainError(
+        "EMAIL_SENDER_NOT_CONFIGURED",
+        "Set RESEND_API_KEY to a valid Resend API key",
+      );
+    }
 
-      if (this.connector) {
-        response = await this.connector.proxy("resend", "/emails", {
-          method: "POST",
-          headers: {
-            "Idempotency-Key": message.idempotencyKey,
-          },
-          body,
-        });
-      } else {
-        if (!env.RESEND_API_KEY) {
-          throw new DomainError(
-            "EMAIL_SENDER_NOT_CONFIGURED",
-            "Set RESEND_API_KEY to a valid Resend API key",
+    const body = {
+      from: this.from,
+      to: message.to,
+      subject: message.subject,
+      text: message.text,
+      ...(message.html ? { html: message.html } : {}),
+    };
+
+    for (let attempt = 1; attempt <= this.maxAttempts; attempt += 1) {
+      let response: Response;
+      try {
+        response = await this.request(body, message.idempotencyKey, apiKey);
+      } catch (error) {
+        if (attempt === this.maxAttempts) {
+          logger.error(
+            { attempts: attempt, errorType: errorType(error) },
+            "Resend email request failed",
           );
+          throw this.deliveryError();
         }
-        response = await fetch("https://api.resend.com/emails", {
+        await this.sleep(this.retryDelay(attempt));
+        continue;
+      }
+
+      if (response.ok) return;
+
+      if (!isRetryableStatus(response.status) || attempt === this.maxAttempts) {
+        logger.error(
+          {
+            attempts: attempt,
+            statusCode: response.status,
+            requestId: response.headers.get("x-request-id") ?? undefined,
+          },
+          "Resend rejected an authentication email",
+        );
+        throw this.deliveryError();
+      }
+
+      await this.sleep(this.retryDelay(attempt));
+    }
+
+    throw this.deliveryError();
+  }
+
+  private async request(
+    body: Record<string, string>,
+    idempotencyKey: string,
+    apiKey: string | undefined,
+  ): Promise<Response> {
+    const controller = new AbortController();
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const request = this.connector
+      ? this.connector.proxy("resend", "/emails", {
+          method: "POST",
+          headers: { "Idempotency-Key": idempotencyKey },
+          body,
+          signal: controller.signal,
+        })
+      : fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${env.RESEND_API_KEY}`,
+            Authorization: `Bearer ${apiKey}`,
             "Content-Type": "application/json",
-            "Idempotency-Key": message.idempotencyKey,
+            "Idempotency-Key": idempotencyKey,
           },
           body: JSON.stringify(body),
+          signal: controller.signal,
         });
-      }
-    } catch (error) {
-      logger.error(
-        { errorType: error instanceof Error ? error.name : "unknown" },
-        "Resend email request failed before receiving a response",
-      );
-      throw new DomainError(
-        "EMAIL_DELIVERY_FAILED",
-        "Email could not be sent. Please try again.",
-      );
-    }
 
-    if (!response.ok) {
-      // Do not log response bodies: providers may include recipient or content data.
-      logger.error(
-        { statusCode: response.status, requestId: response.headers.get("x-request-id") ?? undefined },
-        "Resend rejected an authentication email",
-      );
-      throw new DomainError(
-        "EMAIL_DELIVERY_FAILED",
-        "Email could not be sent. Please try again.",
-      );
+    try {
+      return await Promise.race([
+        request,
+        new Promise<never>((_resolve, reject) => {
+          timeout = setTimeout(() => {
+            controller.abort();
+            const error = new Error("Resend request timed out");
+            error.name = "TimeoutError";
+            reject(error);
+          }, this.timeoutMs);
+        }),
+      ]);
+    } finally {
+      if (timeout) clearTimeout(timeout);
     }
   }
+
+  private retryDelay(attempt: number): number {
+    return this.retryBaseDelayMs * 2 ** (attempt - 1);
+  }
+
+  private deliveryError(): DomainError {
+    return new DomainError(
+      "EMAIL_DELIVERY_FAILED",
+      "Email could not be sent. Please try again.",
+    );
+  }
+}
+
+function errorType(error: unknown): string {
+  return error instanceof Error ? error.name : "unknown";
 }

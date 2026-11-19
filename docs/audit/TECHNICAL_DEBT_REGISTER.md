@@ -155,13 +155,18 @@
 
 ## TD-013
 
+- Status: RESOLVED. Direct Resend calls time out after 10 seconds and make at
+  most three attempts with exponential backoff. Network/timeouts and HTTP 408,
+  429, and 5xx are retried with the same idempotency key; other HTTP errors
+  fail immediately. Missing sender/API-key configuration remains a distinct
+  configuration error.
 - Severity: MEDIUM
 - Category: Resilience
-- File: `server/modules/identity/infrastructure/resend-email.sender.ts:32-68`
-- Description: Direct Resend integration has no explicit timeout or retry policy.
-- Evidence: Native `fetch` call has no `AbortSignal`.
-- Impact: Requests can hang and block auth flows.
-- Recommended correction: Add timeout, bounded retries, and provider-specific error mapping.
+- File: `server/modules/identity/infrastructure/resend-email.sender.ts`
+- Evidence: Mocked tests cover timeout/abort, transient retry delays, stable
+  idempotency keys, and non-retryable HTTP errors.
+- Impact: Auth flows no longer wait indefinitely; transient delivery failures
+  can recover without replaying a message under a new idempotency key.
 - Complexity: Small.
 
 ## TD-014
