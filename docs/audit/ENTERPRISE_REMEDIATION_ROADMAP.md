@@ -57,7 +57,8 @@ Dependencies: transaction work precedes concurrency testing.
 
 1. TD-009 - Paginate admin and review lists. ✅ Admin users/orders and review
    pages use bounded offset pagination with frontend controls.
-2. TD-010 - Move inventory statistics to database aggregates.
+2. TD-010 - Move inventory statistics to database aggregates. ✅ Exact totals
+   and stock buckets are computed in PostgreSQL.
 3. Add product cursor pagination. ✅ Catalog filters and admin/public product
    lists use bounded ID cursor pages with load-more controls.
 4. Add database indexes for common filters and order lookups as query plans show demand.

@@ -113,13 +113,16 @@
 
 ## TD-010
 
+- Status: RESOLVED. Inventory value and stock buckets are calculated with one
+  PostgreSQL aggregate query rather than transferring product rows to Node.js.
 - Severity: MEDIUM
 - Category: Scalability
-- File: `server/modules/admin/admin.service.ts:13-26`
-- Description: Inventory value and stock counts are computed by loading every product.
-- Evidence: `db.product.findMany({ select: { price: true, stock: true } })`.
-- Impact: Node memory and database transfer grow with catalog size.
-- Recommended correction: Use database aggregates or maintain incrementally.
+- File: `server/modules/admin/admin.service.ts`
+- Evidence: Unit tests cover exact aggregate conversion and safe-integer bounds;
+  the SQL was executed against a disposable PostgreSQL database with known
+  fixtures and returned the expected total, low-stock, and out-of-stock counts.
+- Impact: Product records are no longer materialized in application memory.
+  PostgreSQL still scans the catalog for a fresh exact total.
 - Complexity: Small.
 
 ## TD-011

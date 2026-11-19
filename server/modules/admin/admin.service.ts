@@ -10,35 +10,69 @@ import { adminOrderSelect } from "../orders/orders.select";
 
 export const ORDER_STATUSES = orderStatusSchema.options;
 
+type InventoryAggregate = {
+  productCount: string;
+  totalInventoryValue: string;
+  lowStock: string;
+  outOfStock: string;
+};
+
+type InventoryAggregateQuery = () => Promise<InventoryAggregate[]>;
+
+function parseAggregateInteger(value: string, field: string): number {
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed)) {
+    throw new RangeError(`Inventory aggregate ${field} is outside the safe integer range`);
+  }
+  return parsed;
+}
+
+export function createInventoryAggregateReader(query: InventoryAggregateQuery) {
+  return async function readInventoryAggregate() {
+    const [row] = await query();
+    if (!row) throw new Error("Inventory aggregate query returned no result");
+
+    return {
+      productCount: parseAggregateInteger(row.productCount, "productCount"),
+      totalInventoryValue: parseAggregateInteger(row.totalInventoryValue, "totalInventoryValue"),
+      lowStock: parseAggregateInteger(row.lowStock, "lowStock"),
+      outOfStock: parseAggregateInteger(row.outOfStock, "outOfStock"),
+    };
+  };
+}
+
+const getInventoryAggregate = createInventoryAggregateReader(() =>
+  db.$queryRaw<InventoryAggregate[]>`
+    SELECT
+      COUNT(*)::text AS "productCount",
+      COALESCE(SUM(price::numeric * stock::numeric), 0)::text AS "totalInventoryValue",
+      COUNT(*) FILTER (WHERE stock > 0 AND stock <= 5)::text AS "lowStock",
+      COUNT(*) FILTER (WHERE stock = 0)::text AS "outOfStock"
+    FROM "products"
+  `,
+);
+
 function isOrderStatus(status: string): status is OrderStatus {
   return orderStatusSchema.safeParse(status).success;
 }
 
 export const AdminService = {
   async getStats() {
-    const [productCount, userCount, orderCount, reviewCount, products] = await Promise.all([
-      db.product.count(),
+    const [inventory, userCount, orderCount, reviewCount] = await Promise.all([
+      getInventoryAggregate(),
       db.user.count(),
       db.order.count(),
       db.review.count(),
-      db.product.findMany({ select: { price: true, stock: true } }),
     ]);
 
-    const totalInventoryValue = products.reduce(
-      (sum, p) => sum + p.price * p.stock,
-      0
-    );
-    const lowStock = products.filter((p) => p.stock > 0 && p.stock <= 5).length;
-    const outOfStock = products.filter((p) => p.stock === 0).length;
-
     return {
-      productCount,
+      productCount: inventory.productCount,
       userCount,
       orderCount,
       reviewCount,
-      totalInventoryValue,
-      lowStock,
-      outOfStock,
+      totalInventoryValue: inventory.totalInventoryValue,
+      lowStock: inventory.lowStock,
+      outOfStock: inventory.outOfStock,
     };
   },
 
