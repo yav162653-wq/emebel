@@ -33,6 +33,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npx prisma generate
       - run: npm run db:migrate
       - run: npx prisma migrate status
       - run: npm run db:seed
@@ -42,6 +43,7 @@ jobs:
       - run: npm run check
       - run: npm test
       - run: pwsh -NoProfile -File script/test-postgres-integration.ps1
+      - run: pwsh -NoProfile -File script/test-postgres-recovery.ps1
       - run: npm run test:client
       - uses: actions/cache@v4
         with:

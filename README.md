@@ -25,15 +25,22 @@ npm install
 Copy-Item .env.example .env
 ```
 
-Set at least `DATABASE_URL` and `SESSION_SECRET` in `.env`. Generate a strong session secret before running production.
+Set `DATABASE_URL` and `SESSION_SECRET` in `.env`. Generate a strong session
+secret before running production. `MIGRATION_DATABASE_URL` is only for a
+migration shell/job; do not put it in the application environment.
 
 ## Database
 
 ```powershell
+$env:MIGRATION_DATABASE_URL = "postgresql://emebel_migrator:<password>@localhost:5432/emebel"
+npx prisma generate
 npm run db:migrate
+Remove-Item Env:\MIGRATION_DATABASE_URL
 ```
 
-`npm run db:migrate` applies the versioned migrations in `prisma/migrations`.
+Generate the Prisma client after a clean dependency install. The migration
+command applies the versioned migrations in `prisma/migrations`. Use a
+migrator-role connection for these commands, not the runtime application role.
 Use `npm run db:push` only for local schema prototyping; do not use it for deployments.
 
 For an explicitly opted-in local development seed:
@@ -53,6 +60,26 @@ npm run dev
 ```
 
 The application is served at `http://localhost:5000` by default.
+
+## Linux Containers
+
+The multi-stage `Dockerfile` builds a non-root production image. Compose uses
+PostgreSQL for application data and sessions; apply migrations explicitly
+before starting the app:
+
+```powershell
+Copy-Item .env.compose.example .env.compose
+# Replace every placeholder with unique URL-safe random values.
+docker compose --env-file .env.compose up -d postgres
+docker compose --env-file .env.compose --profile migrate run --rm migrate
+docker compose --env-file .env.compose up -d app
+```
+
+The migration profile runs Prisma deploy/status and applies the runtime grants;
+the application container never receives the migrator URL. Compose binds the
+app to localhost by default, for a TLS-terminating reverse proxy. The `.env.compose`
+file is ignored by Git. For hosted production, inject values from the platform's
+secret manager rather than storing them in a Compose environment file.
 
 ## Checks and Build
 

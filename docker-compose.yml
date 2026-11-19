@@ -1,0 +1,82 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-emebel}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?Set POSTGRES_ADMIN_PASSWORD}
+      EMEBEL_APP_PASSWORD: ${EMEBEL_APP_PASSWORD:?Set EMEBEL_APP_PASSWORD}
+      EMEBEL_MIGRATOR_PASSWORD: ${EMEBEL_MIGRATOR_PASSWORD:?Set EMEBEL_MIGRATOR_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/roles.sql:/docker-entrypoint-initdb.d/10-emebel-roles.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      target: runtime
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgresql://emebel_app:${EMEBEL_APP_PASSWORD:?Set EMEBEL_APP_PASSWORD}@postgres:5432/${POSTGRES_DB:-emebel}?schema=public
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET}
+      APP_ORIGIN: ${APP_ORIGIN:?Set APP_ORIGIN}
+      METRICS_TOKEN: ${METRICS_TOKEN:?Set METRICS_TOKEN}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      AUTH_EMAIL_FROM: ${AUTH_EMAIL_FROM:-}
+      AUTH_MAGIC_LINK_TTL_MINUTES: ${AUTH_MAGIC_LINK_TTL_MINUTES:-15}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      TELEGRAM_CLIENT_ID: ${TELEGRAM_CLIENT_ID:-}
+      TELEGRAM_CLIENT_SECRET: ${TELEGRAM_CLIENT_SECRET:-}
+      SHOPIFY_SHOP_DOMAIN: ${SHOPIFY_SHOP_DOMAIN:-}
+      SHOPIFY_STOREFRONT_ACCESS_TOKEN: ${SHOPIFY_STOREFRONT_ACCESS_TOKEN:-}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-emebel}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${HOST_PORT:-5000}:5000"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:5000/api/ready').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      start_period: 45s
+      retries: 3
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  migrate:
+    profiles: ["migrate"]
+    build:
+      context: .
+      target: migrate
+    environment:
+      MIGRATION_DATABASE_URL: postgresql://emebel_migrator:${EMEBEL_MIGRATOR_PASSWORD:?Set EMEBEL_MIGRATOR_PASSWORD}@postgres:5432/${POSTGRES_DB:-emebel}?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

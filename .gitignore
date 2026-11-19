@@ -4,6 +4,7 @@ build/
 .env
 .env.*
 !.env.example
+!.env.compose.example
 *.local
 *.log
 npm-debug.log*
