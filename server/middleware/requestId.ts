@@ -6,6 +6,7 @@ export function requestIdMiddleware(req: Request, res: Response, next: NextFunct
   const id = incoming && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(incoming)
     ? incoming
     : randomUUID();
+  req.id = id;
   res.locals["requestId"] = id;
   res.setHeader("X-Request-Id", id);
   next();
